@@ -1,0 +1,18 @@
+# Next.js
+frontend/node_modules
+frontend/.next
+
+# .NET
+backend/bin
+backend/obj
+
+# Environment variables
+.env
+.env.local
+backend/appsettings.Development.json
+
+# VS Code
+.vscode
+
+# Logs
+*.log
