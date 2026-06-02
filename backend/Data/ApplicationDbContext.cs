@@ -12,4 +12,8 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+
+    public DbSet<Quiz> Quizzes => Set<Quiz>();
+
+    public DbSet<Question> Questions => Set<Question>();
 }

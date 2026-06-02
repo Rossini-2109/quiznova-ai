@@ -22,13 +22,15 @@ export default function LoginPage() {
     e.preventDefault();
 
     try {
-      const res = await api.post(
-        "/auth/login",
-        {
-          email,
-          password,
-        }
-      );
+      console.log("Sending login request...");
+
+      const res = await api.post("/auth/login", {
+        email,
+        password,
+      });
+
+      console.log("Login success:");
+      console.log(res.data);
 
       localStorage.setItem(
   "token",
@@ -56,7 +58,8 @@ login(
 );
 
       if (
-        res.data.role === "Student"
+        res.data.role === "Student"||
+  res.data.role === "User"
       ) {
         router.push(
           "/student/dashboard"
@@ -74,9 +77,20 @@ login(
           "/admin/dashboard"
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Login failed");
+
+      if (error.response) {
+        console.log(error.response.data);
+
+        alert(
+          typeof error.response.data === "string"
+            ? error.response.data
+            : JSON.stringify(error.response.data)
+        );
+      } else {
+        alert("Server not reachable");
+      }
     }
   };
 
