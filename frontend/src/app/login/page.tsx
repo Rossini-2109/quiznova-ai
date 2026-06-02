@@ -30,15 +30,30 @@ export default function LoginPage() {
         }
       );
 
-      login(
-        {
-          id: res.data.id,
-          name: res.data.name,
-          email: res.data.email,
-          role: res.data.role,
-        },
-        res.data.token
-      );
+      localStorage.setItem(
+  "token",
+  res.data.token
+);
+
+localStorage.setItem(
+  "user",
+  JSON.stringify({
+    id: res.data.id,
+    name: res.data.name,
+    email: res.data.email,
+    role: res.data.role,
+  })
+);
+
+login(
+  {
+    id: res.data.id,
+    name: res.data.name,
+    email: res.data.email,
+    role: res.data.role,
+  },
+  res.data.token
+);
 
       if (
         res.data.role === "Student"
