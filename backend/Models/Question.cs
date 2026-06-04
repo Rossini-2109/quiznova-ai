@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace backend.Models;
 
 public class Question
@@ -22,5 +24,6 @@ public class Question
 
     public string QuestionType { get; set; } = "MCQ";
 
+    [JsonIgnore]
     public Quiz? Quiz { get; set; }
 }

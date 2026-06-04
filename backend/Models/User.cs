@@ -15,4 +15,7 @@ public class User
     public int XP { get; set; } = 0;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<QuizAttempt> QuizAttempts { get; set; }
+        = new List<QuizAttempt>();
 }

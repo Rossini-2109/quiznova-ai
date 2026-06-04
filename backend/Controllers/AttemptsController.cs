@@ -1,0 +1,328 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using backend.Data;
+using backend.DTOs;
+using backend.Models;
+
+namespace backend.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class AttemptsController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+
+    public AttemptsController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet("{attemptId}")]
+    public async Task<IActionResult> GetAttempt(Guid attemptId)
+    {
+        var attempt = await _context.QuizAttempts
+            .FirstOrDefaultAsync(a => a.Id == attemptId);
+
+        if (attempt == null)
+            return NotFound("Attempt not found");
+
+        var quiz = await _context.Quizzes
+            .Include(q => q.Questions)
+            .FirstOrDefaultAsync(q => q.Id == attempt.QuizId);
+
+        if (quiz == null)
+            return NotFound("Quiz not found");
+
+        return Ok(new
+        {
+            id = quiz.Id,
+            title = quiz.Title,
+            timeLimit = quiz.TimeLimit,
+
+            questions = quiz.Questions.Select(q => new
+            {
+                id = q.Id,
+                questionText = q.QuestionText,
+                optionA = q.OptionA,
+                optionB = q.OptionB,
+                optionC = q.OptionC,
+                optionD = q.OptionD
+            })
+        });
+    }
+
+    [HttpPost("submit")]
+    public async Task<IActionResult> SubmitQuiz(
+        SubmitQuizDto dto
+    )
+    {
+        var attempt = await _context.QuizAttempts
+            .FirstOrDefaultAsync(x => x.Id == dto.AttemptId);
+
+        if (attempt == null)
+            return NotFound("Attempt not found");
+
+        var quiz = await _context.Quizzes
+            .Include(q => q.Questions)
+            .FirstOrDefaultAsync(q => q.Id == attempt.QuizId);
+
+        if (quiz == null)
+            return NotFound("Quiz not found");
+
+        // Prevent double submit
+        bool alreadySubmitted =
+            await _context.QuizAnswers
+                .AnyAsync(a => a.AttemptId == attempt.Id);
+
+        if (alreadySubmitted)
+        {
+            return BadRequest("Quiz already submitted");
+        }
+
+        int correctAnswers = 0;
+
+        foreach (var question in quiz.Questions)
+        {
+            if (
+                dto.Answers.TryGetValue(
+                    question.Id.ToString(),
+                    out string? selected
+                )
+            )
+            {
+                bool isCorrect =
+                    selected == question.CorrectAnswer;
+
+                if (isCorrect)
+                    correctAnswers++;
+
+                _context.QuizAnswers.Add(
+                    new QuizAnswer
+                    {
+                        Id = Guid.NewGuid(),
+                        AttemptId = attempt.Id,
+                        QuestionId = question.Id,
+                        SelectedAnswer = selected,
+                        IsCorrect = isCorrect
+                    });
+            }
+        }
+
+        // Count only submitted answers
+        int totalQuestions = quiz.Questions.Count;
+
+        int score = correctAnswers * 5;
+
+        double percentage =
+            totalQuestions == 0
+                ? 0
+                : ((double)correctAnswers /
+                totalQuestions) * 100;
+
+        attempt.Score = score;
+        attempt.TotalQuestions = totalQuestions;
+        attempt.CorrectAnswers = correctAnswers;
+        attempt.Percentage = percentage;
+        attempt.SubmittedAt = DateTime.UtcNow;
+
+        attempt.TimeTaken =
+    (int)(
+      DateTime.UtcNow -
+      attempt.StartedAt
+    ).TotalSeconds;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            Score = score,
+            CorrectAnswers = correctAnswers,
+            WrongAnswers =
+                totalQuestions - correctAnswers,
+            Percentage = percentage
+        });
+    }
+    [HttpGet("review/{attemptId}")]
+    public async Task<IActionResult> ReviewAttempt(
+        Guid attemptId
+    )
+    {
+        var answers = await _context.QuizAnswers
+            .Where(a => a.AttemptId == attemptId)
+            .Join(
+                _context.Questions,
+                a => a.QuestionId,
+                q => q.Id,
+                (a, q) => new
+                {
+                    q.QuestionText,
+                    YourAnswer = a.SelectedAnswer,
+                    q.CorrectAnswer,
+                    q.Explanation,
+                    a.IsCorrect
+                }
+            )
+            .ToListAsync();
+
+        return Ok(answers);
+    }
+
+    [HttpGet("result/{attemptId}")]
+    public async Task<IActionResult> GetResult(
+        Guid attemptId
+    )
+    {
+        var attempt = await _context.QuizAttempts
+            .FindAsync(attemptId);
+
+        if (attempt == null)
+            return NotFound();
+
+        return Ok(new
+        {
+            attempt.Score,
+            attempt.CorrectAnswers,
+            WrongAnswers =
+                attempt.TotalQuestions -
+                attempt.CorrectAnswers,
+            attempt.Percentage
+        });
+    }
+
+    
+    [HttpPost("start")]
+public async Task<IActionResult> StartAttempt(
+    [FromBody] StartAttemptDto dto
+)
+{
+    try
+    {
+        Guid studentId = Guid.Empty;
+        var studentIdClaim =
+            User.FindFirst(ClaimTypes.NameIdentifier);
+
+        if (studentIdClaim != null)
+        {
+            studentId = Guid.Parse(studentIdClaim.Value);
+        }
+
+        var quiz = await _context.Quizzes
+            .FirstOrDefaultAsync(q => q.Id == dto.QuizId);
+
+        if (quiz == null)
+        {
+            return NotFound("Quiz not found");
+        }
+
+        var attempt = new QuizAttempt
+        {
+            Id = Guid.NewGuid(),
+            QuizId = dto.QuizId,
+            StudentId = studentId,
+            Score = 0,
+            TotalQuestions = 0,
+            CorrectAnswers = 0,
+            Percentage = 0,
+            TimeTaken = 0,
+            StartedAt = DateTime.UtcNow
+        };
+
+        _context.QuizAttempts.Add(attempt);
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            id = attempt.Id,
+            quizId = attempt.QuizId,
+            studentId = attempt.StudentId,
+            startedAt = attempt.StartedAt
+        });
+    }
+    catch (Exception ex)
+    {
+        return StatusCode(500, new
+        {
+            Message = "Error starting quiz attempt",
+            Error = ex.Message
+        });
+    }
+}
+
+[Authorize]
+[HttpGet("student")]
+public async Task<IActionResult> GetStudentAttempts()
+{
+    var studentId = User.FindFirst(
+        ClaimTypes.NameIdentifier
+    )?.Value;
+
+    var attempts = await _context.QuizAttempts
+        .Where(a => a.StudentId == Guid.Parse(studentId))
+        .OrderByDescending(a => a.SubmittedAt)
+        .ToListAsync();
+
+    return Ok(attempts);
+}
+
+[Authorize]
+[HttpGet("stats")]
+public async Task<IActionResult> GetStats()
+{
+    var studentId = Guid.Parse(
+        User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!
+            .Value
+    );
+
+    var attempts = await _context.QuizAttempts
+        .Where(a => a.StudentId == studentId)
+        .ToListAsync();
+
+    return Ok(new
+    {
+        TotalQuizzes = attempts.Count,
+
+        HighestScore = attempts.Any()
+            ? attempts.Max(a => a.Score)
+            : 0,
+
+        AverageScore = attempts.Any()
+            ? attempts.Average(a => a.Score)
+            : 0,
+
+        Attempts = attempts.Count
+    });
+}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateQuiz(
+        Guid id,
+        UpdateQuizDto dto)
+    {
+        var quiz = await _context.Quizzes.FindAsync(id);
+
+        if (quiz == null)
+            return NotFound();
+
+        quiz.Title = dto.Title;
+        quiz.Description = dto.Description;
+        quiz.Difficulty = dto.Difficulty;
+        quiz.TimeLimit = dto.TimeLimit;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(quiz);
+    }
+
+
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllAttempts()
+    {
+        var attempts = await _context.QuizAttempts
+            .OrderByDescending(a => a.StartedAt)
+            .ToListAsync();
+
+        return Ok(attempts);
+    }
+}

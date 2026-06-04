@@ -54,13 +54,26 @@ public class AuthController : ControllerBase
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
         // Create new user
+        string role =
+            request.Role?.Trim() ?? "";
+
+        if (
+            role != "Teacher" &&
+            role != "Student"
+        )
+        {
+            return BadRequest(
+                "Role must be Teacher or Student"
+            );
+        }
+
         var newUser = new User
         {
             Id = Guid.NewGuid(),
             Name = request.Name.Trim(),
             Email = request.Email.Trim(),
             PasswordHash = passwordHash,
-            Role = "User",
+            Role = role,
             XP = 0,
             CreatedAt = DateTime.UtcNow
         };

@@ -6,12 +6,18 @@ using backend.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Controllers
 builder.Services.AddControllers();
 
+// Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")
     ));
+
+// Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -55,11 +61,18 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Swagger
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// CORS
 app.UseCors("AllowFrontend");
 
+// Auth
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Controllers
 app.MapControllers();
 
 app.MapGet("/", () => "QuizNovaAI Backend Running");
