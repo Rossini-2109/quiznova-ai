@@ -27,30 +27,28 @@ export default function EditQuizPage() {
   }, [id]);
 
   const loadQuiz = async () => {
-    try {
-      const res = await api.get(
-        `/quiz/${id}`
-      );
+  try {
+    console.log("Quiz ID:", id);
+    console.log(
+      "Request URL:",
+      `http://localhost:5201/api/Quiz/${id}`
+    );
 
-      const quiz = res.data;
+    const res = await api.get(`/Quiz/${id}`);
 
-      setTitle(quiz.title);
-      setDescription(
-        quiz.description
-      );
+    console.log("Response:", res.data);
 
-      setDifficulty(
-        quiz.difficulty
-      );
+    const quiz = res.data;
 
-      setTimeLimit(
-        quiz.timeLimit
-      );
-    } catch (error) {
-      console.error(error);
-      alert("Quiz not found");
-    }
-  };
+    setTitle(quiz.title);
+    setDescription(quiz.description);
+    setDifficulty(quiz.difficulty);
+    setTimeLimit(quiz.timeLimit);
+  } catch (error) {
+    console.error("LOAD QUIZ ERROR:", error);
+    alert("Quiz not found");
+  }
+};
 
   const updateQuiz = async () => {
     try {

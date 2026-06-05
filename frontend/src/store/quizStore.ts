@@ -7,6 +7,8 @@ type QuizStore = {
     questionId: string,
     answer: string
   ) => void;
+
+  clearAnswers: () => void;
 };
 
 export const useQuizStore =
@@ -23,4 +25,6 @@ export const useQuizStore =
           [questionId]: answer,
         },
       })),
+
+    clearAnswers: () => set({ answers: {} }),
   }));
