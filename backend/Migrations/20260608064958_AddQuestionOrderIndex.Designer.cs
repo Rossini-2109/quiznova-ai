@@ -12,8 +12,8 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260603051028_AddQuizAttempts")]
-    partial class AddQuizAttempts
+    [Migration("20260608064958_AddQuestionOrderIndex")]
+    partial class AddQuestionOrderIndex
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,59 @@ namespace backend.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("backend.Models.AIQuizLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("GeneratedQuestions")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PromptTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TeacherId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AIQuizLogs");
+                });
+
+            modelBuilder.Entity("backend.Models.Folder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ParentFolderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TeacherId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentFolderId");
+
+                    b.ToTable("Folders");
+                });
 
             modelBuilder.Entity("backend.Models.Question", b =>
                 {
@@ -55,6 +108,9 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
                     b.Property<string>("QuestionText")
                         .IsRequired()
                         .HasColumnType("text");
@@ -82,6 +138,9 @@ namespace backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("DefaultQuestionTimeSeconds")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
@@ -90,11 +149,28 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("FolderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Instructions")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsAiGenerated")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("QuizCode")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ShareToken")
+                        .HasColumnType("text");
+
                     b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tags")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -109,6 +185,8 @@ namespace backend.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FolderId");
 
                     b.ToTable("Quizzes");
                 });
@@ -164,7 +242,7 @@ namespace backend.Migrations
                     b.Property<DateTime>("SubmittedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("TimeTaken")
+                    b.Property<int>("TimeTakenMilliseconds")
                         .HasColumnType("integer");
 
                     b.Property<int>("TotalQuestions")
@@ -172,7 +250,34 @@ namespace backend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("QuizId");
+
+                    b.HasIndex("StudentId");
+
                     b.ToTable("QuizAttempts");
+                });
+
+            modelBuilder.Entity("backend.Models.StudentEnrollment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EnrolledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Nickname")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("QuizId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuizId");
+
+                    b.ToTable("StudentEnrollments");
                 });
 
             modelBuilder.Entity("backend.Models.User", b =>
@@ -208,6 +313,16 @@ namespace backend.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("backend.Models.Folder", b =>
+                {
+                    b.HasOne("backend.Models.Folder", "ParentFolder")
+                        .WithMany("SubFolders")
+                        .HasForeignKey("ParentFolderId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("ParentFolder");
+                });
+
             modelBuilder.Entity("backend.Models.Question", b =>
                 {
                     b.HasOne("backend.Models.Quiz", "Quiz")
@@ -221,7 +336,63 @@ namespace backend.Migrations
 
             modelBuilder.Entity("backend.Models.Quiz", b =>
                 {
+                    b.HasOne("backend.Models.Folder", "Folder")
+                        .WithMany("Quizzes")
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Folder");
+                });
+
+            modelBuilder.Entity("backend.Models.QuizAttempt", b =>
+                {
+                    b.HasOne("backend.Models.Quiz", "Quiz")
+                        .WithMany("Attempts")
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("backend.Models.User", "Student")
+                        .WithMany("QuizAttempts")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quiz");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("backend.Models.StudentEnrollment", b =>
+                {
+                    b.HasOne("backend.Models.Quiz", "Quiz")
+                        .WithMany("StudentEnrollments")
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quiz");
+                });
+
+            modelBuilder.Entity("backend.Models.Folder", b =>
+                {
+                    b.Navigation("Quizzes");
+
+                    b.Navigation("SubFolders");
+                });
+
+            modelBuilder.Entity("backend.Models.Quiz", b =>
+                {
+                    b.Navigation("Attempts");
+
                     b.Navigation("Questions");
+
+                    b.Navigation("StudentEnrollments");
+                });
+
+            modelBuilder.Entity("backend.Models.User", b =>
+                {
+                    b.Navigation("QuizAttempts");
                 });
 #pragma warning restore 612, 618
         }

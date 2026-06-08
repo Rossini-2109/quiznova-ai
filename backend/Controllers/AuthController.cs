@@ -7,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using backend.Data;
 using backend.Models;
+using backend.DTOs;
 
 namespace backend.Controllers;
 
@@ -24,11 +25,12 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+    public async Task<IActionResult> Register([FromBody] RegisterDto request)
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToArray();
+            return BadRequest(new { message = "Validation failed", errors });
         }
 
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password) || string.IsNullOrWhiteSpace(request.Name))
@@ -54,8 +56,7 @@ public class AuthController : ControllerBase
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
         // Create new user
-        string role =
-            request.Role?.Trim() ?? "";
+        string role = request.Role?.Trim() ?? "";
 
         if (
             role != "Teacher" &&

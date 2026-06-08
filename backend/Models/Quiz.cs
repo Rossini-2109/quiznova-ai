@@ -13,13 +13,29 @@ public class Quiz
     public string Difficulty { get; set; } = "Easy";
 
     public int TimeLimit { get; set; }
+    // Default seconds allotted per question; teacher can customise per quiz
+    public int DefaultQuestionTimeSeconds { get; set; } = 5;
+    // Token used for public shareable link
+    public string? ShareToken { get; set; }
 
     public string Status { get; set; } = "Draft";
 
     public Guid TeacherId { get; set; }
 
+    public Guid? FolderId { get; set; }
+    public Folder? Folder { get; set; }
+
+    public bool IsAiGenerated { get; set; } = false;
+
+    public string Tags { get; set; } = string.Empty;
+
+    public string Instructions { get; set; } = string.Empty;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Question> Questions { get; set; }
         = new List<Question>();
+    // Navigation to attempts for ranking
+    public ICollection<QuizAttempt> Attempts { get; set; } = new List<QuizAttempt>();
+    public ICollection<StudentEnrollment> StudentEnrollments { get; set; } = new List<StudentEnrollment>();
 }

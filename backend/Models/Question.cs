@@ -24,6 +24,8 @@ public class Question
 
     public string QuestionType { get; set; } = "MCQ";
 
+    public int OrderIndex { get; set; } = 0;
+
     [JsonIgnore]
     public Quiz? Quiz { get; set; }
 }

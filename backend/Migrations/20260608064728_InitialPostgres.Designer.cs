@@ -12,8 +12,8 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260604070002_AddQuizAttemptForeignKeys")]
-    partial class AddQuizAttemptForeignKeys
+    [Migration("20260608064728_InitialPostgres")]
+    partial class InitialPostgres
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,33 @@ namespace backend.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("backend.Models.AIQuizLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("GeneratedQuestions")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PromptTokens")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TeacherId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AIQuizLogs");
+                });
 
             modelBuilder.Entity("backend.Models.Question", b =>
                 {
@@ -82,6 +109,9 @@ namespace backend.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("DefaultQuestionTimeSeconds")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
@@ -92,6 +122,9 @@ namespace backend.Migrations
 
                     b.Property<string>("QuizCode")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ShareToken")
                         .HasColumnType("text");
 
                     b.Property<string>("Status")
@@ -164,7 +197,7 @@ namespace backend.Migrations
                     b.Property<DateTime>("SubmittedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("TimeTaken")
+                    b.Property<int>("TimeTakenMilliseconds")
                         .HasColumnType("integer");
 
                     b.Property<int>("TotalQuestions")
@@ -177,6 +210,29 @@ namespace backend.Migrations
                     b.HasIndex("StudentId");
 
                     b.ToTable("QuizAttempts");
+                });
+
+            modelBuilder.Entity("backend.Models.StudentEnrollment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EnrolledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Nickname")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("QuizId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuizId");
+
+                    b.ToTable("StudentEnrollments");
                 });
 
             modelBuilder.Entity("backend.Models.User", b =>
@@ -226,13 +282,13 @@ namespace backend.Migrations
             modelBuilder.Entity("backend.Models.QuizAttempt", b =>
                 {
                     b.HasOne("backend.Models.Quiz", "Quiz")
-                        .WithMany()
+                        .WithMany("Attempts")
                         .HasForeignKey("QuizId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("backend.Models.User", "Student")
-                        .WithMany()
+                        .WithMany("QuizAttempts")
                         .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -242,9 +298,29 @@ namespace backend.Migrations
                     b.Navigation("Student");
                 });
 
+            modelBuilder.Entity("backend.Models.StudentEnrollment", b =>
+                {
+                    b.HasOne("backend.Models.Quiz", "Quiz")
+                        .WithMany("StudentEnrollments")
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quiz");
+                });
+
             modelBuilder.Entity("backend.Models.Quiz", b =>
                 {
+                    b.Navigation("Attempts");
+
                     b.Navigation("Questions");
+
+                    b.Navigation("StudentEnrollments");
+                });
+
+            modelBuilder.Entity("backend.Models.User", b =>
+                {
+                    b.Navigation("QuizAttempts");
                 });
 #pragma warning restore 612, 618
         }

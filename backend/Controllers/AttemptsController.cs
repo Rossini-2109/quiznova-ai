@@ -127,11 +127,11 @@ public class AttemptsController : ControllerBase
         attempt.Percentage = percentage;
         attempt.SubmittedAt = DateTime.UtcNow;
 
-        attempt.TimeTaken =
+        attempt.TimeTakenMilliseconds =
     (int)(
-      DateTime.UtcNow -
-      attempt.StartedAt
-    ).TotalSeconds;
+        DateTime.UtcNow -
+        attempt.StartedAt
+    ).TotalMilliseconds;
 
         await _context.SaveChangesAsync();
 
@@ -225,7 +225,7 @@ public async Task<IActionResult> StartAttempt(
             TotalQuestions = 0,
             CorrectAnswers = 0,
             Percentage = 0,
-            TimeTaken = 0,
+            TimeTakenMilliseconds = 0,
             StartedAt = DateTime.UtcNow
         };
 
@@ -255,12 +255,13 @@ public async Task<IActionResult> StartAttempt(
 [HttpGet("student")]
 public async Task<IActionResult> GetStudentAttempts()
 {
-    var studentId = User.FindFirst(
-        ClaimTypes.NameIdentifier
-    )?.Value;
-
+    var studentIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (!Guid.TryParse(studentIdStr, out var studentGuid))
+    {
+        return BadRequest("Invalid student identifier.");
+    }
     var attempts = await _context.QuizAttempts
-        .Where(a => a.StudentId == Guid.Parse(studentId))
+        .Where(a => a.StudentId == studentGuid)
         .OrderByDescending(a => a.SubmittedAt)
         .ToListAsync();
 

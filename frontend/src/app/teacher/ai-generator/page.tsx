@@ -17,8 +17,6 @@ export default function AIGeneratorPage() {
 
   // Generation parameters
   const [file, setFile] = useState<File | null>(null);
-  const [difficulty, setDifficulty] = useState("Medium");
-  const [questionCount, setQuestionCount] = useState(5);
   const [loading, setLoading] = useState(false);
 
   // Generated questions & state
@@ -45,7 +43,7 @@ export default function AIGeneratorPage() {
 
   const handleGenerate = async () => {
     if (!file) {
-      alert("Please select a file to parse (PDF, DOCX, TXT)");
+      alert("Please select a file to parse (JSON, TXT, PDF, DOCX, PPTX)");
       return;
     }
 
@@ -55,9 +53,6 @@ export default function AIGeneratorPage() {
 
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("difficulty", difficulty);
-      formData.append("questionCount", questionCount.toString());
-      formData.append("questionType", "MCQ");
 
       const response = await api.post("/ai/generate", formData, {
         headers: {
@@ -69,16 +64,16 @@ export default function AIGeneratorPage() {
       if (Array.isArray(response.data)) {
         setQuestions(response.data);
         setQuizTitle(`${file.name.split(".")[0]} Quiz`);
-        setQuizDescription(`AI-Generated assessment based on ${file.name}`);
+        setQuizDescription(`Parsed assessment based on ${file.name}`);
       } else {
-        alert("Received invalid data structure from AI generator.");
+        alert("Received invalid data structure from file parser.");
       }
     } catch (error: any) {
       console.error(error);
       alert(
         error.response?.data?.message ||
         error.response?.data?.Error ||
-        "Quiz generation failed. Please try again."
+        "File parsing failed. Please try again."
       );
     } finally {
       setLoading(false);
@@ -129,7 +124,6 @@ export default function AIGeneratorPage() {
       const payload = {
         title: quizTitle,
         description: quizDescription,
-        difficulty,
         timeLimit,
         teacherId: teacherId || "00000000-0000-0000-0000-000000000000",
         questions: questions.map((q) => ({
@@ -160,11 +154,11 @@ export default function AIGeneratorPage() {
       {/* Top Header */}
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-900 via-indigo-950 to-zinc-900 dark:from-zinc-100 dark:to-zinc-300 bg-clip-text text-transparent flex items-center gap-2">
-          <Sparkles className="text-indigo-500 fill-indigo-500/25" size={28} />
-          AI Quiz Generator
+          <FileText className="text-indigo-500 fill-indigo-500/25" size={28} />
+          Quiz File Importer
         </h1>
         <p className="text-zinc-500 dark:text-zinc-400 mt-1.5">
-          Generate quizzes instantly from files using advanced generative AI
+          Import quizzes instantly from JSON and TXT files
         </p>
       </div>
 
@@ -177,12 +171,12 @@ export default function AIGeneratorPage() {
             {/* File Upload Zone */}
             <div>
               <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2.5">
-                Upload Material (PDF, DOCX, TXT)
+                Upload Quiz File (.json, .txt, .pdf, .docx, .pptx)
               </label>
               <div className="border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-all text-center relative flex flex-col items-center justify-center">
                 <input
                   type="file"
-                  accept=".pdf,.docx,.pptx,.txt"
+                  accept=".json,.txt,.pdf,.docx,.pptx"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                 />
@@ -197,39 +191,13 @@ export default function AIGeneratorPage() {
                 ) : (
                   <div>
                     <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Choose file or drag here</p>
-                    <p className="text-xs text-zinc-400 mt-0.5">PDF, DOCX, or text questions</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">JSON, TXT, PDF, Word, or PPT files</p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Selection Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Difficulty</label>
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
-                >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
-              </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Number of Questions</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="30"
-                  value={questionCount}
-                  onChange={(e) => setQuestionCount(Number(e.target.value))}
-                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
-                />
-              </div>
-            </div>
 
             <button
               onClick={handleGenerate}
@@ -239,12 +207,12 @@ export default function AIGeneratorPage() {
               {loading ? (
                 <>
                   <RefreshCw className="animate-spin" size={18} />
-                  Analyzing & Generating Questions...
+                  Parsing Questions...
                 </>
               ) : (
                 <>
-                  <Sparkles size={18} />
-                  Generate AI Quiz
+                  <Upload size={18} />
+                  Parse Quiz File
                 </>
               )}
             </button>
@@ -257,13 +225,13 @@ export default function AIGeneratorPage() {
           <div className="lg:col-span-2 space-y-6">
             <div className="flex justify-between items-center bg-zinc-100 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50">
               <span className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">
-                Generated {questions.length} Quiz Questions
+                Imported {questions.length} Quiz Questions
               </span>
               <button
                 onClick={() => setQuestions([])}
                 className="text-xs text-zinc-500 hover:text-red-500 font-semibold flex items-center gap-1"
               >
-                Clear & Re-generate
+                Clear & Re-import
               </button>
             </div>
 

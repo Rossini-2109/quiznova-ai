@@ -3,17 +3,28 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using backend.Data;
+using backend.Services.AI;
+
+using System.IO;
+using backend.Services;
+using backend.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Controllers
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
+// AI Services
+builder.Services.AddHttpClient<OpenAIProvider>();
+builder.Services.AddHttpClient<OllamaProvider>();
+builder.Services.AddScoped<LocalQuestionGenerator>();
+builder.Services.AddScoped<QuizGenerationService>();
+
+builder.Services.AddScoped<IQuizImportService, QuizImportService>();
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    ));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -28,7 +39,8 @@ builder.Services.AddCors(options =>
             policy
                 .WithOrigins("http://localhost:3000")
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
         });
 });
 
@@ -59,7 +71,30 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+
 var app = builder.Build();
+
+// Ensure database is migrated and uploads directory exists
+using (var scope = app.Services.CreateScope())
+{
+    // Ensure uploads directory exists
+    var env = app.Services.GetRequiredService<IWebHostEnvironment>();
+    var uploadPath = Path.Combine(env.ContentRootPath, "Uploads");
+    if (!Directory.Exists(uploadPath))
+    {
+        Directory.CreateDirectory(uploadPath);
+    }
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Database migration failed. Ensure connection string is correct.");
+    }
+}
 
 // Swagger
 app.UseSwagger();
@@ -74,6 +109,7 @@ app.UseAuthorization();
 
 // Controllers
 app.MapControllers();
+app.MapHub<QuizHub>("/quizHub");
 
 app.MapGet("/", () => "QuizNovaAI Backend Running");
 

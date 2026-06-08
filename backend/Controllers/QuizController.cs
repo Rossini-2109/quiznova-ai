@@ -44,9 +44,7 @@ public async Task<IActionResult> CreateQuiz(
             TimeLimit = dto.TimeLimit,
             Status = "Draft",
             QuizCode = string.Empty,
-            TeacherId = Guid.Parse(
-                teacherIdClaim.Value
-            ),
+            TeacherId = Guid.TryParse(teacherIdClaim.Value, out var parsedId) ? parsedId : Guid.Empty,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -161,31 +159,46 @@ public async Task<IActionResult> AddQuestion(
         });
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetQuiz(Guid id)
+   [HttpGet("{id}")]
+public async Task<IActionResult> GetQuiz(Guid id)
+{
+    Console.WriteLine($"GET QUIZ HIT: {id}");
+
+    var quiz = await _context.Quizzes
+        .Include(q => q.Questions)
+        .FirstOrDefaultAsync(q => q.Id == id);
+
+    if (quiz == null)
     {
-        try
-        {
-            var quiz = await _context.Quizzes
-                .Include(q => q.Questions)
-                .FirstOrDefaultAsync(q => q.Id == id);
-
-            if (quiz == null)
-            {
-                return NotFound("Quiz not found");
-            }
-
-            return Ok(quiz);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new
-            {
-                Message = "Error fetching quiz",
-                Error = ex.Message
-            });
-        }
+        Console.WriteLine("QUIZ NOT FOUND");
+        return NotFound("Quiz not found");
     }
+
+    return Ok(quiz);
+}
+    [HttpPut("{id}")]
+public async Task<IActionResult> UpdateQuiz(
+    Guid id,
+    [FromBody] UpdateQuizDto dto)
+{
+    var quiz = await _context.Quizzes
+        .FirstOrDefaultAsync(q => q.Id == id);
+
+    if (quiz == null)
+        return NotFound("Quiz not found");
+
+    quiz.Title = dto.Title;
+    quiz.Description = dto.Description;
+    quiz.Difficulty = dto.Difficulty;
+    quiz.TimeLimit = dto.TimeLimit;
+
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        Message = "Quiz updated successfully"
+    });
+}
 
 
 
@@ -282,7 +295,7 @@ public async Task<IActionResult> AddQuestion(
                 TotalQuestions = 0,
                 CorrectAnswers = 0,
                 Percentage = 0,
-                TimeTaken = 0,
+                TimeTakenMilliseconds = 0,
                 StartedAt = DateTime.UtcNow
             };
 
