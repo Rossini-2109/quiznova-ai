@@ -6,10 +6,7 @@ public class CreateQuizDto
 
     public string Description { get; set; } = "";
 
-    public string Difficulty { get; set; } = "";
-
-    public int TimeLimit { get; set; }
-
+    public int NumberOfQuestions { get; set; }
     public System.Guid? FolderId { get; set; }
 
     public string? Tags { get; set; }

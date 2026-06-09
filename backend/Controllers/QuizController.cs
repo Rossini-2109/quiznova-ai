@@ -40,8 +40,7 @@ public async Task<IActionResult> CreateQuiz(
             Id = Guid.NewGuid(),
             Title = dto.Title,
             Description = dto.Description,
-            Difficulty = dto.Difficulty,
-            TimeLimit = dto.TimeLimit,
+            NumberOfQuestions = dto.NumberOfQuestions,
             Status = "Draft",
             QuizCode = string.Empty,
             TeacherId = Guid.TryParse(teacherIdClaim.Value, out var parsedId) ? parsedId : Guid.Empty,
@@ -83,6 +82,9 @@ public async Task<IActionResult> AddQuestion(
             Console.WriteLine("QUIZ NOT FOUND");
             return NotFound("Quiz not found");
         }
+        Console.WriteLine(
+            $"Question Time Limit: {dto.QuestionTimeLimit}"
+        );
 
         var question = new Question
         {
@@ -95,7 +97,8 @@ public async Task<IActionResult> AddQuestion(
             OptionD = dto.OptionD,
             CorrectAnswer = dto.CorrectAnswer,
             Explanation = dto.Explanation,
-            QuestionType = dto.QuestionType
+            QuestionType = dto.QuestionType,
+            QuestionTimeLimit = dto.QuestionTimeLimit
         };
 
         Console.WriteLine("STEP 4");

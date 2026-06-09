@@ -31,6 +31,8 @@ public class Quiz
 
     public string Instructions { get; set; } = string.Empty;
 
+    public int NumberOfQuestions { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Question> Questions { get; set; }

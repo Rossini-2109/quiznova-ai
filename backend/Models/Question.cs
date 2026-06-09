@@ -24,6 +24,8 @@ public class Question
 
     public string QuestionType { get; set; } = "MCQ";
 
+    public int QuestionTimeLimit { get; set; } = 10;
+
     public int OrderIndex { get; set; } = 0;
 
     [JsonIgnore]

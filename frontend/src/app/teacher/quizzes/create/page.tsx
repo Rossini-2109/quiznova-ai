@@ -9,8 +9,7 @@ export default function CreateQuizPage() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [difficulty, setDifficulty] = useState("Medium");
-  const [timeLimit, setTimeLimit] = useState(15);
+  const [numberOfQuestions, setNumberOfQuestions] = useState(5);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,8 +26,7 @@ export default function CreateQuizPage() {
       const res = await api.post("/quiz/create", {
         title,
         description,
-        difficulty,
-        timeLimit: Number(timeLimit),
+        numberOfQuestions,
       });
 
       alert("Quiz created successfully!");
@@ -85,37 +83,22 @@ export default function CreateQuizPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
-                Difficulty Level
-              </label>
-              <select
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-              >
-                <option value="Easy">🟢 Easy</option>
-                <option value="Medium">🟡 Medium</option>
-                <option value="Hard">🔴 Hard</option>
-              </select>
-            </div>
+          <div>
+  <label className="block text-sm font-semibold mb-2">
+    Number of Questions
+  </label>
 
-            <div>
-              <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2">
-                Time Limit (Minutes)
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="180"
-                className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
-                value={timeLimit}
-                onChange={(e) => setTimeLimit(Number(e.target.value))}
-                required
-              />
-            </div>
-          </div>
+  <input
+    type="number"
+    min="1"
+    max="100"
+    value={numberOfQuestions}
+    onChange={(e) =>
+      setNumberOfQuestions(Number(e.target.value))
+    }
+    className="w-full px-4 py-3 rounded-xl border"
+  />
+</div>
 
           <div className="flex gap-4 pt-4">
             <button

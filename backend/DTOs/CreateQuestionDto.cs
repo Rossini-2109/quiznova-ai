@@ -17,6 +17,7 @@ public class CreateQuestionDto
     public string CorrectAnswer { get; set; } = string.Empty;
 
     public string Explanation { get; set; } = string.Empty;
+    public int QuestionTimeLimit { get; set; } = 30;
 
     public string QuestionType { get; set; } = "MCQ";
 }
