@@ -2,7 +2,7 @@
 
 import { useState, use } from "react";
 import api from "@/services/api";
-
+import { supabase } from "@/lib/supabase";
 export default function QuizDetailsPage({
   params,
 }: {
@@ -19,83 +19,126 @@ export default function QuizDetailsPage({
   const [optionCount, setOptionCount] = useState(4);
   const [explanation, setExplanation] = useState("");
   const [questionTimeLimit, setQuestionTimeLimit] = useState(30);
+  const [questionImage, setQuestionImage] = useState<File | null>(null);
+
+const [optionAImage, setOptionAImage] = useState<File | null>(null);
+const [optionBImage, setOptionBImage] = useState<File | null>(null);
+const [optionCImage, setOptionCImage] = useState<File | null>(null);
+const [optionDImage, setOptionDImage] = useState<File | null>(null);
 
   const saveQuestion = async () => {
-    if (!questionText.trim()) {
-      alert("Please enter a question");
-      return;
-    }
+  if (!questionText.trim()) {
+    alert("Please enter a question");
+    return;
+  }
 
-    if (!optionA.trim() || !optionB.trim()) {
-      alert("Option A and Option B are required");
-      return;
-    }
+  if (!optionA.trim() || !optionB.trim()) {
+    alert("Option A and Option B are required");
+    return;
+  }
 
-    if (optionCount >= 3 && !optionC.trim()) {
-      alert("Option C is required");
-      return;
-    }
+  if (optionCount >= 3 && !optionC.trim()) {
+    alert("Option C is required");
+    return;
+  }
 
-    if (optionCount >= 4 && !optionD.trim()) {
-      alert("Option D is required");
-      return;
-    }
+  if (optionCount >= 4 && !optionD.trim()) {
+    alert("Option D is required");
+    return;
+  }
 
-    if (!correctAnswer) {
-      alert("Please select the correct answer");
-      return;
-    }
+  if (!correctAnswer) {
+    alert("Please select the correct answer");
+    return;
+  }
 
-    let finalOptionC = optionC;
-    let finalOptionD = optionD;
+  let finalOptionC = optionC;
+  let finalOptionD = optionD;
 
-    if (optionCount < 4) {
-      finalOptionD = "";
-    }
+  if (optionCount < 4) finalOptionD = "";
+  if (optionCount < 3) finalOptionC = "";
 
-    if (optionCount < 3) {
-      finalOptionC = "";
-    }
+  try {
+    let questionImageUrl = "";
+    let optionAImageUrl = "";
+    let optionBImageUrl = "";
+    let optionCImageUrl = "";
+    let optionDImageUrl = "";
 
-    try {
-      await api.post("/quiz/add-question", {
-        quizId: id,
-        questionText,
-        optionA,
-        optionB,
-        optionC: finalOptionC,
-        optionD: finalOptionD,
-        correctAnswer,
-        explanation,
-        questionType: "MCQ",
-        questionTimeLimit,
-      });
+    const uploadFile = async (file: File | null) => {
+      if (!file) return "";
 
-      alert("Question Added Successfully");
+      const fileName =
+        `${Date.now()}-${Math.random()}-${file.name}`;
 
-      setQuestionText("");
-      setOptionA("");
-      setOptionB("");
-      setOptionC("");
-      setOptionD("");
-      setCorrectAnswer("");
-      setExplanation("");
-      setQuestionTimeLimit(30);
-      setOptionCount(4);
-    } catch (error: any) {
-      console.error(error);
+      const { error } = await supabase.storage
+        .from("quiz-images")
+        .upload(fileName, file);
 
-      if (error.response) {
-        alert(
-          error.response.data.message ||
-            error.response.data ||
-            "Failed to add question"
-        );
-      } else {
-        alert("Failed to add question");
+      if (error) {
+        throw new Error(error.message);
       }
-    }
-  };
+
+      const { data } = supabase.storage
+        .from("quiz-images")
+        .getPublicUrl(fileName);
+
+      return data.publicUrl;
+    };
+
+    questionImageUrl = await uploadFile(questionImage);
+    optionAImageUrl = await uploadFile(optionAImage);
+    optionBImageUrl = await uploadFile(optionBImage);
+    optionCImageUrl = await uploadFile(optionCImage);
+    optionDImageUrl = await uploadFile(optionDImage);
+
+    await api.post("/quiz/add-question", {
+      quizId: id,
+      questionText,
+      optionA,
+      optionB,
+      optionC: finalOptionC,
+      optionD: finalOptionD,
+      correctAnswer,
+      explanation,
+      questionType: "MCQ",
+      questionTimeLimit,
+
+      questionImageUrl,
+      optionAImageUrl,
+      optionBImageUrl,
+      optionCImageUrl,
+      optionDImageUrl,
+    });
+
+    alert("Question Added Successfully");
+
+    setQuestionText("");
+    setOptionA("");
+    setOptionB("");
+    setOptionC("");
+    setOptionD("");
+    setCorrectAnswer("");
+    setExplanation("");
+
+    setQuestionTimeLimit(30);
+    setOptionCount(4);
+
+    setQuestionImage(null);
+    setOptionAImage(null);
+    setOptionBImage(null);
+    setOptionCImage(null);
+    setOptionDImage(null);
+  } catch (error: any) {
+    console.error(error);
+
+    alert(
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to add question"
+    );
+  }
+};
 
   return (
     <div className="max-w-4xl mx-auto p-8">
@@ -121,6 +164,26 @@ export default function QuizDetailsPage({
             setQuestionText(e.target.value)
           }
         />
+        <label className="block font-medium">
+  Question Image (Optional)
+</label>
+
+<input
+  type="file"
+  accept="image/*"
+  onChange={(e) =>
+    setQuestionImage(
+      e.target.files?.[0] || null
+    )
+  }
+/>
+{questionImage && (
+  <img
+    src={URL.createObjectURL(questionImage)}
+    alt="Question Preview"
+    className="w-48 rounded-lg border mt-2"
+  />
+)}
 
         {/* OPTION A */}
         <div className="flex items-center gap-3">
@@ -139,6 +202,22 @@ export default function QuizDetailsPage({
               setOptionA(e.target.value)
             }
           />
+          <input
+  type="file"
+  accept="image/*"
+  onChange={(e) =>
+    setOptionAImage(
+      e.target.files?.[0] || null
+    )
+  }
+/>
+{questionImage && (
+  <img
+    src={URL.createObjectURL(questionImage)}
+    alt="Question Preview"
+    className="w-48 rounded-lg border mt-2"
+  />
+)}
         </div>
 
         {/* OPTION B */}
@@ -158,6 +237,15 @@ export default function QuizDetailsPage({
               setOptionB(e.target.value)
             }
           />
+          <input
+  type="file"
+  accept="image/*"
+  onChange={(e) =>
+    setOptionBImage(
+      e.target.files?.[0] || null
+    )
+  }
+/>
         </div>
 
         {/* OPTION C */}
@@ -178,6 +266,15 @@ export default function QuizDetailsPage({
                 setOptionC(e.target.value)
               }
             />
+            <input
+  type="file"
+  accept="image/*"
+  onChange={(e) =>
+    setOptionCImage(
+      e.target.files?.[0] || null
+    )
+  }
+/>
           </div>
         )}
 
@@ -199,6 +296,15 @@ export default function QuizDetailsPage({
                 setOptionD(e.target.value)
               }
             />
+            <input
+  type="file"
+  accept="image/*"
+  onChange={(e) =>
+    setOptionDImage(
+      e.target.files?.[0] || null
+    )
+  }
+/>
           </div>
         )}
 
