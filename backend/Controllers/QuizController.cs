@@ -4,8 +4,11 @@ using backend.Data;
 using backend.Models;
 using backend.DTOs;
 using backend.Helpers;
-using Microsoft.AspNetCore.Authorization;
+using QRCoder;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
 
@@ -39,8 +42,6 @@ public async Task<IActionResult> CreateQuiz(
         {
             Id = Guid.NewGuid(),
             Title = dto.Title,
-            Description = dto.Description,
-            NumberOfQuestions = dto.NumberOfQuestions,
             Status = "Draft",
             QuizCode = string.Empty,
             TeacherId = Guid.TryParse(teacherIdClaim.Value, out var parsedId) ? parsedId : Guid.Empty,
@@ -98,7 +99,12 @@ public async Task<IActionResult> AddQuestion(
             CorrectAnswer = dto.CorrectAnswer,
             Explanation = dto.Explanation,
             QuestionType = dto.QuestionType,
-            QuestionTimeLimit = dto.QuestionTimeLimit
+            QuestionTimeLimit = dto.QuestionTimeLimit,
+            QuestionImageUrl = dto.QuestionImageUrl,
+            OptionAImageUrl = dto.OptionAImageUrl,
+            OptionBImageUrl = dto.OptionBImageUrl,
+            OptionCImageUrl = dto.OptionCImageUrl,
+            OptionDImageUrl = dto.OptionDImageUrl,
         };
 
         Console.WriteLine("STEP 4");
@@ -146,8 +152,7 @@ public async Task<IActionResult> AddQuestion(
         var quiz = await _context.Quizzes
             .Include(q => q.Questions)
             .FirstOrDefaultAsync(q =>
-                q.QuizCode == quizCode &&
-                q.Status == "Published");
+                q.QuizCode == quizCode && q.Status == "Published");
 
         if (quiz == null)
             return NotFound("Quiz not found");
@@ -156,9 +161,26 @@ public async Task<IActionResult> AddQuestion(
         {
             quiz.Id,
             quiz.Title,
+            quiz.Description,
             quiz.Difficulty,
-            QuestionCount = quiz.Questions.Count,
-            quiz.TimeLimit
+            quiz.TimeLimit,
+            quiz.Status,
+            quiz.QuizCode,
+            Questions = quiz.Questions.Select(q => new {
+                q.Id,
+                q.QuestionText,
+                q.OptionA,
+                q.OptionB,
+                q.OptionC,
+                q.OptionD,
+                q.QuestionType,
+                q.QuestionTimeLimit,
+                q.QuestionImageUrl,
+                q.OptionAImageUrl,
+                q.OptionBImageUrl,
+                q.OptionCImageUrl,
+                q.OptionDImageUrl
+            })
         });
     }
 
@@ -191,9 +213,7 @@ public async Task<IActionResult> UpdateQuiz(
         return NotFound("Quiz not found");
 
     quiz.Title = dto.Title;
-    quiz.Description = dto.Description;
-    quiz.Difficulty = dto.Difficulty;
-    quiz.TimeLimit = dto.TimeLimit;
+    
 
     await _context.SaveChangesAsync();
 
@@ -222,8 +242,26 @@ public async Task<IActionResult> UpdateQuiz(
 
             if (string.IsNullOrEmpty(quiz.QuizCode))
             {
-                quiz.QuizCode =
-                    QuizCodeGenerator.GenerateQuizCode();
+                quiz.QuizCode = QuizCodeGenerator.GenerateQuizCode();
+                // Generate QR code image
+                var qrGenerator = new QRCodeGenerator();
+                var qrData = qrGenerator.CreateQrCode(quiz.QuizCode, QRCodeGenerator.ECCLevel.Q);
+                using var qrCode = new QRCode(qrData);
+                using var bitmap = qrCode.GetGraphic(20);
+                var qrPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "qrcodes", $"{quiz.QuizCode}.png");
+                Directory.CreateDirectory(Path.GetDirectoryName(qrPath));
+                bitmap.Save(qrPath, ImageFormat.Png);
+            }
+            else if (!System.IO.File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "qrcodes", $"{quiz.QuizCode}.png")))
+            {
+                // Generate QR if missing
+                var qrGenerator = new QRCodeGenerator();
+                var qrData = qrGenerator.CreateQrCode(quiz.QuizCode, QRCodeGenerator.ECCLevel.Q);
+                using var qrCode = new QRCode(qrData);
+                using var bitmap = qrCode.GetGraphic(20);
+                var qrPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "qrcodes", $"{quiz.QuizCode}.png");
+                Directory.CreateDirectory(Path.GetDirectoryName(qrPath));
+                bitmap.Save(qrPath, ImageFormat.Png);
             }
 
             await _context.SaveChangesAsync();
@@ -232,6 +270,7 @@ public async Task<IActionResult> UpdateQuiz(
             {
                 Message = "Quiz published successfully",
                 QuizCode = quiz.QuizCode,
+                QRUrl = $"/qrcodes/{quiz.QuizCode}.png",
                 Quiz = quiz
             });
         }
@@ -282,8 +321,8 @@ public async Task<IActionResult> UpdateQuiz(
             }
 
             var quiz = await _context.Quizzes
-                .FirstOrDefaultAsync(q => q.Id == dto.QuizId);
-
+    .Include(q => q.Questions)
+    .FirstOrDefaultAsync(q => q.Id == dto.QuizId);
             if (quiz == null)
             {
                 return NotFound("Quiz not found");

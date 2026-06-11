@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using backend.Data;
@@ -11,9 +12,11 @@ using backend.Data;
 namespace backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260610111052_SyncQuizAttempt")]
+    partial class SyncQuizAttempt
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -263,22 +266,12 @@ namespace backend.Migrations
                     b.Property<double>("Accuracy")
                         .HasColumnType("double precision");
 
-                    b.Property<bool>("Completed")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("CompletionStatus")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("CorrectAnswers")
                         .HasColumnType("integer");
-
-                    b.Property<string>("EmployeeId")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<double>("PassMark")
                         .HasColumnType("double precision");
@@ -289,14 +282,8 @@ namespace backend.Migrations
                     b.Property<Guid>("QuizId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Rank")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Score")
                         .HasColumnType("integer");
-
-                    b.Property<Guid?>("SessionId")
-                        .HasColumnType("uuid");
 
                     b.Property<int>("SkippedQuestions")
                         .HasColumnType("integer");
@@ -313,9 +300,6 @@ namespace backend.Migrations
                     b.Property<int>("TimeTakenMilliseconds")
                         .HasColumnType("integer");
 
-                    b.Property<int>("TimeTakenSeconds")
-                        .HasColumnType("integer");
-
                     b.Property<int>("TotalQuestions")
                         .HasColumnType("integer");
 
@@ -326,78 +310,9 @@ namespace backend.Migrations
 
                     b.HasIndex("QuizId");
 
-                    b.HasIndex("SessionId");
-
                     b.HasIndex("StudentId");
 
                     b.ToTable("QuizAttempts");
-                });
-
-            modelBuilder.Entity("backend.Models.Session", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsEnded")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsStarted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("JoinLink")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("QrCodeUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("QuizId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SessionCode")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QuizId");
-
-                    b.ToTable("Sessions");
-                });
-
-            modelBuilder.Entity("backend.Models.SessionParticipant", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("EmployeeId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsConnected")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("JoinedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("SessionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("StudentName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SessionId");
-
-                    b.ToTable("SessionParticipants");
                 });
 
             modelBuilder.Entity("backend.Models.StudentEnrollment", b =>
@@ -495,10 +410,6 @@ namespace backend.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("backend.Models.Session", "Session")
-                        .WithMany()
-                        .HasForeignKey("SessionId");
-
                     b.HasOne("backend.Models.User", "Student")
                         .WithMany("QuizAttempts")
                         .HasForeignKey("StudentId")
@@ -507,31 +418,7 @@ namespace backend.Migrations
 
                     b.Navigation("Quiz");
 
-                    b.Navigation("Session");
-
                     b.Navigation("Student");
-                });
-
-            modelBuilder.Entity("backend.Models.Session", b =>
-                {
-                    b.HasOne("backend.Models.Quiz", "Quiz")
-                        .WithMany()
-                        .HasForeignKey("QuizId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Quiz");
-                });
-
-            modelBuilder.Entity("backend.Models.SessionParticipant", b =>
-                {
-                    b.HasOne("backend.Models.Session", "Session")
-                        .WithMany()
-                        .HasForeignKey("SessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Session");
                 });
 
             modelBuilder.Entity("backend.Models.StudentEnrollment", b =>

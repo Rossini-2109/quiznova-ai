@@ -11,4 +11,7 @@ public class QuizAnswer
     public string SelectedAnswer { get; set; } = string.Empty;
 
     public bool IsCorrect { get; set; }
+
+    /// <summary>Time in milliseconds the student took to answer this question</summary>
+    public int ResponseTimeMs { get; set; } = 0;
 }

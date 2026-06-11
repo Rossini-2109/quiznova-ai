@@ -18,6 +18,12 @@ public class ApplicationDbContext : DbContext
     public DbSet<StudentEnrollment> StudentEnrollments => Set<StudentEnrollment>();
     public DbSet<Folder> Folders => Set<Folder>();
 
+    public DbSet<Session> Sessions
+    => Set<Session>();
+
+    public DbSet<SessionParticipant>
+    SessionParticipants => Set<SessionParticipant>();
+
     public DbSet<AIQuizLog> AIQuizLogs { get; set; }
     public DbSet<QuizAnswer> QuizAnswers => Set<QuizAnswer>();
 

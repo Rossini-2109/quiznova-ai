@@ -14,7 +14,15 @@ public class Folder
 
     public Guid? ParentFolderId { get; set; }
 
+    /// <summary>Hex color code for folder, e.g. "#6366f1"</summary>
+    public string Color { get; set; } = "#6366f1";
+
+    /// <summary>Icon identifier string, e.g. "folder", "book", "star"</summary>
+    public string Icon { get; set; } = "folder";
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime LastModifiedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
     [JsonIgnore]

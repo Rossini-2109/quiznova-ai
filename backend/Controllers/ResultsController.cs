@@ -21,14 +21,25 @@ public class ResultsController : ControllerBase
     public async Task<IActionResult> GetQuizResults(Guid quizId)
     {
         var results = await _context.QuizAttempts
+            .Include(x => x.Student)
             .Where(x => x.QuizId == quizId)
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => x.TimeTakenMilliseconds)
             .Select(x => new
             {
+                x.Id,
                 x.StudentId,
+                StudentName = x.Student != null ? x.Student.Name : "Unknown",
                 x.Score,
                 x.Percentage,
                 x.CorrectAnswers,
+                x.WrongAnswers,
+                x.SkippedQuestions,
                 x.TotalQuestions,
+                x.Accuracy,
+                x.TimeTakenMilliseconds,
+                x.CompletionStatus,
+                x.StartedAt,
                 x.SubmittedAt
             })
             .ToListAsync();

@@ -1,56 +1,56 @@
 using Microsoft.AspNetCore.SignalR;
-using System.Threading.Tasks;
+using backend.Services;
 
 namespace backend.Hubs;
 
 public class QuizHub : Hub
 {
-    // Join a quiz-specific group for real-time alerts
-    public async Task JoinQuizGroup(string quizCode, string userName, bool isTeacher)
+    private readonly ILobbyService _lobbyService;
+
+    public QuizHub(ILobbyService lobbyService)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, quizCode);
-        
-        if (!isTeacher)
+        _lobbyService = lobbyService;
+    }
+
+    // Called by a student to join a session and register their name
+    public async Task JoinSession(string sessionCode, string studentName)
+    {
+        // Register participant
+        _lobbyService.AddParticipant(sessionCode, Context.ConnectionId, studentName);
+        // Add connection to the SignalR group
+        await Groups.AddToGroupAsync(Context.ConnectionId, sessionCode);
+        // Optionally broadcast current participant list
+        var participants = _lobbyService.GetParticipantNames(sessionCode);
+        await Clients.Group(sessionCode).SendAsync("ParticipantListUpdated", participants);
+    }
+
+    public override async Task OnConnectedAsync()
+    {
+        await base.OnConnectedAsync();
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        // Remove participant from any session they belong to
+        var allSessions = _lobbyService.GetAllSessionCodes();
+        foreach (var session in allSessions)
         {
-            // Notify group that student joined
-            await Clients.Group(quizCode).SendAsync("StudentJoined", new {
-                Name = userName,
-                ConnectionId = Context.ConnectionId
-            });
+            _lobbyService.RemoveParticipant(session, Context.ConnectionId);
         }
+        await base.OnDisconnectedAsync(exception);
     }
 
-    // Leave a group when disconnecting
-    public async Task LeaveQuizGroup(string quizCode)
+    // Notify others that a student has joined (can be called separately if needed)
+    public async Task StudentJoined(string sessionCode, string studentName)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, quizCode);
+        // Ensure participant is registered (idempotent)
+        _lobbyService.AddParticipant(sessionCode, Context.ConnectionId, studentName);
+        await Clients.Group(sessionCode).SendAsync("StudentJoined", studentName);
     }
 
-    // Student started the quiz
-    public async Task StudentStart(string quizCode, string userName)
+    // Teacher triggers start of quiz
+    public async Task StartQuiz(string sessionCode)
     {
-        await Clients.Group(quizCode).SendAsync("StudentStarted", new {
-            Name = userName
-        });
-    }
-
-    // Student moved to a new question
-    public async Task StudentProgress(string quizCode, string userName, int questionNumber)
-    {
-        await Clients.Group(quizCode).SendAsync("StudentProgressUpdate", new {
-            Name = userName,
-            QuestionNumber = questionNumber
-        });
-    }
-
-    // Student submitted the quiz
-    public async Task StudentSubmit(string quizCode, string userName, int score, int correct, int total)
-    {
-        await Clients.Group(quizCode).SendAsync("StudentSubmitted", new {
-            Name = userName,
-            Score = score,
-            Correct = correct,
-            Total = total
-        });
+        await Clients.Group(sessionCode).SendAsync("QuizStarted");
     }
 }

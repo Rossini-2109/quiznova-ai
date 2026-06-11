@@ -20,4 +20,14 @@ public class CreateQuestionDto
     public int QuestionTimeLimit { get; set; } = 30;
 
     public string QuestionType { get; set; } = "MCQ";
+
+    public string? QuestionImageUrl { get; set; }
+
+public string? OptionAImageUrl { get; set; }
+
+public string? OptionBImageUrl { get; set; }
+
+public string? OptionCImageUrl { get; set; }
+
+public string? OptionDImageUrl { get; set; }
 }

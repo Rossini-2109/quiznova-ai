@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using backend.Data;
+
 using backend.Services.AI;
 
 using System.IO;
@@ -14,13 +15,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<backend.Services.ILobbyService, backend.Services.LobbyService>();
 
 // AI Services
 builder.Services.AddHttpClient<OpenAIProvider>();
 builder.Services.AddHttpClient<OllamaProvider>();
 builder.Services.AddScoped<LocalQuestionGenerator>();
 builder.Services.AddScoped<QuizGenerationService>();
-
+builder.Services.AddScoped<
+    IQuizService,
+    QuizService
+>();
 builder.Services.AddScoped<IQuizImportService, QuizImportService>();
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -37,7 +42,7 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy
-                .WithOrigins("http://localhost:3000")
+                .WithOrigins("http://localhost:3000", "http://localhost:3001")
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
