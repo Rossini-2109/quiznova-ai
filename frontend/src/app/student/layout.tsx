@@ -17,8 +17,12 @@ export default function StudentLayout({
   const [userName, setUserName] = useState("Student");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const isGuestRoute = pathname.startsWith("/student/lobby") || pathname.startsWith("/student/quiz") || pathname.startsWith("/student/results");
+
   useEffect(() => {
     if (typeof window !== "undefined") {
+      if (isGuestRoute) return; // Do not enforce auth for live session URLs
+
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
         try {
@@ -35,7 +39,7 @@ export default function StudentLayout({
         router.push("/login");
       }
     }
-  }, [router]);
+  }, [router, isGuestRoute]);
 
   const handleLogout = () => {
     logout();
@@ -49,6 +53,10 @@ export default function StudentLayout({
     { name: "Join Quiz", href: "/student/join", icon: Compass },
     { name: "Quiz History", href: "/student/history", icon: History },
   ];
+
+  if (isGuestRoute) {
+    return <div className="min-h-screen bg-zinc-950 text-white">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 flex">
@@ -162,23 +170,23 @@ export default function StudentLayout({
             </nav>
 
             <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-auto">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-9 w-9 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
-                  <User size={16} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{userName}</p>
-                  <p className="text-xs text-zinc-400">Student</p>
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 transition-all duration-200"
-              >
-                <LogOut size={16} />
-                Sign Out
-              </button>
-            </div>
+               <div className="flex items-center gap-3 mb-4">
+                 <div className="h-9 w-9 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
+                   <User size={16} />
+                 </div>
+                 <div>
+                   <p className="text-sm font-semibold">{userName}</p>
+                   <p className="text-xs text-zinc-400">Student</p>
+                 </div>
+               </div>
+               <button
+                 onClick={handleLogout}
+                 className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 transition-all duration-200"
+               >
+                 <LogOut size={16} />
+                 Sign Out
+               </button>
+             </div>
           </aside>
         </div>
       )}

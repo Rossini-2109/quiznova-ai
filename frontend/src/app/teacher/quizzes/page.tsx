@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/services/api";
-import { Plus, BookOpen, Clock, Activity, Share2, Edit3, Trash2, ShieldAlert, Sparkles, Trophy } from "lucide-react";
+import { Plus, BookOpen, Clock, Activity, Share2, Edit3, Trash2, ShieldAlert, Sparkles, Trophy, Play } from "lucide-react";
+import PublishModal from "./publish-modal";
 
 interface Quiz {
   id: string;
@@ -17,6 +19,7 @@ interface Quiz {
 
 export default function QuizManagementPage() {
   const router = useRouter();
+  const [publishModalQuizId, setPublishModalQuizId] = useState<string | null>(null);
 
   const {
     data: quizzes = [],
@@ -30,17 +33,6 @@ export default function QuizManagementPage() {
       return res.data;
     },
   });
-
-  const handlePublish = async (quizId: string) => {
-    try {
-      await api.put(`/quiz/publish/${quizId}`);
-      alert("Quiz published successfully");
-      refetch();
-    } catch (error) {
-      console.error(error);
-      alert("Failed to publish quiz");
-    }
-  };
 
   const handleDelete = async (quizId: string) => {
     const confirmed = window.confirm("Are you sure you want to delete this quiz?");
@@ -57,6 +49,7 @@ export default function QuizManagementPage() {
   };
 
   const handleCopyCode = async (code: string) => {
+    if (!code) return;
     try {
       await navigator.clipboard.writeText(code);
       alert("Quiz code copied!");
@@ -169,23 +162,6 @@ export default function QuizManagementPage() {
                   Edit
                 </button>
 
-                {quiz.status !== "Published" ? (
-                  <button
-                    onClick={() => handlePublish(quiz.id)}
-                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs transition-colors cursor-pointer"
-                  >
-                    Publish
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleCopyCode(quiz.quizCode)}
-                    className="px-3.5 py-2 bg-zinc-950 hover:bg-zinc-900 text-white font-semibold rounded-xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Share2 size={12} />
-                    Copy Code
-                  </button>
-                )}
-
                 <button
                   onClick={() => router.push(`/teacher/results/${quiz.id}`)}
                   className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl text-xs transition-colors flex items-center gap-1 cursor-pointer"
@@ -194,16 +170,50 @@ export default function QuizManagementPage() {
                   Results
                 </button>
 
+                {quiz.status === "Published" && (
+                  <button
+                    onClick={() => handleCopyCode(quiz.quizCode)}
+                    className="px-3.5 py-2 bg-zinc-950 hover:bg-zinc-900 text-white font-semibold rounded-xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer ml-auto"
+                  >
+                    <Share2 size={12} />
+                    Copy Code
+                  </button>
+                )}
+
                 <button
                   onClick={() => handleDelete(quiz.id)}
-                  className="p-2 bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white rounded-xl text-xs transition-colors ml-auto cursor-pointer"
+                  className={`p-2 bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white rounded-xl text-xs transition-colors cursor-pointer ${quiz.status !== "Published" ? 'ml-auto' : ''}`}
                 >
                   <Trash2 size={14} />
+                </button>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/60 flex gap-3">
+                <button
+                  onClick={() => setPublishModalQuizId(quiz.id)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                    quiz.status === "Published"
+                      ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
+                      : "bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900"
+                  }`}
+                >
+                  <Play size={16} className={quiz.status === "Published" ? "fill-indigo-700 dark:fill-indigo-400" : "fill-current"} />
+                  {quiz.status === "Published" ? "Host Live Session" : "Publish & Host"}
                 </button>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {publishModalQuizId && (
+        <PublishModal
+          quizId={publishModalQuizId}
+          onClose={() => {
+            setPublishModalQuizId(null);
+            refetch(); // Refresh list to update status and code
+          }}
+        />
       )}
     </div>
   );

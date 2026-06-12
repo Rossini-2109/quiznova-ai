@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, BookOpen, Sparkles, Trophy, LogOut, Menu, X, User } from "lucide-react";
+import { LayoutDashboard, BookOpen, Sparkles, BarChart2, LogOut, Menu, X, User, FolderOpen } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 
 export default function TeacherLayout({
@@ -48,6 +48,8 @@ export default function TeacherLayout({
     { name: "Dashboard", href: "/teacher/dashboard", icon: LayoutDashboard },
     { name: "Manage Quizzes", href: "/teacher/quizzes", icon: BookOpen },
     { name: "AI Quiz Generator", href: "/teacher/ai-generator", icon: Sparkles },
+    { name: "Library", href: "/teacher/folders", icon: FolderOpen },
+    { name: "Results & Analytics", href: "/teacher/results", icon: BarChart2 },
   ];
 
   return (

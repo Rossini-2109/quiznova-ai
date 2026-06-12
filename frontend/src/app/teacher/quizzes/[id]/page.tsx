@@ -3,21 +3,30 @@
 import { useState, use } from "react";
 import api from "@/services/api";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import {
+  ImagePlus,
+  Copy,
+  Trash2
+} from "lucide-react";
+import { useRef } from "react";
+
 export default function QuizDetailsPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
 
   const [questionText, setQuestionText] = useState("");
   const [optionA, setOptionA] = useState("");
   const [optionB, setOptionB] = useState("");
   const [optionC, setOptionC] = useState("");
   const [optionD, setOptionD] = useState("");
+  const [optionE, setOptionE] = useState("");
   const [correctAnswer, setCorrectAnswer] = useState("");
   const [optionCount, setOptionCount] = useState(4);
-  const [explanation, setExplanation] = useState("");
   const [questionTimeLimit, setQuestionTimeLimit] = useState(30);
   const [questionImage, setQuestionImage] = useState<File | null>(null);
 
@@ -25,38 +34,81 @@ const [optionAImage, setOptionAImage] = useState<File | null>(null);
 const [optionBImage, setOptionBImage] = useState<File | null>(null);
 const [optionCImage, setOptionCImage] = useState<File | null>(null);
 const [optionDImage, setOptionDImage] = useState<File | null>(null);
+const [optionEImage, setOptionEImage] =
+  useState<File | null>(null);
+const [questionNumber, setQuestionNumber] = useState(1);
 
-  const saveQuestion = async () => {
+const questionImageRef = useRef<HTMLInputElement>(null);
+const optionAImageRef = useRef<HTMLInputElement>(null);
+const optionBImageRef = useRef<HTMLInputElement>(null);
+const optionCImageRef = useRef<HTMLInputElement>(null);
+const optionDImageRef = useRef<HTMLInputElement>(null);
+const optionEImageRef =
+  useRef<HTMLInputElement>(null);
+
+const clearForm = () => {
+  setQuestionText("");
+  setOptionA("");
+  setOptionB("");
+  setOptionC("");
+  setOptionD("");
+  setOptionE("");
+  setCorrectAnswer("");
+
+  setQuestionTimeLimit(30);
+  setOptionCount(4);
+
+  setQuestionImage(null);
+  setOptionAImage(null);
+  setOptionBImage(null);
+  setOptionCImage(null);
+  setOptionDImage(null);
+  setOptionEImage(null);
+};
+const saveQuiz = () => {
+  alert("Quiz Saved Successfully");
+  router.push("/teacher/quizzes");
+};
+  const saveQuestion = async (): Promise<boolean> => {
   if (!questionText.trim()) {
     alert("Please enter a question");
-    return;
+    return false;
   }
 
   if (!optionA.trim() || !optionB.trim()) {
     alert("Option A and Option B are required");
-    return;
+    return false;
   }
 
   if (optionCount >= 3 && !optionC.trim()) {
     alert("Option C is required");
-    return;
+    return false;
   }
 
   if (optionCount >= 4 && !optionD.trim()) {
     alert("Option D is required");
-    return;
+    return false;
   }
+
+  if (optionCount >= 5 && !optionE.trim()) {
+  alert("Option E is required");
+  return false;
+}
 
   if (!correctAnswer) {
     alert("Please select the correct answer");
-    return;
+    return false;
   }
+  
 
   let finalOptionC = optionC;
   let finalOptionD = optionD;
+  let finalOptionE = optionE;
+
 
   if (optionCount < 4) finalOptionD = "";
   if (optionCount < 3) finalOptionC = "";
+  if (optionCount < 5) finalOptionE = "";
 
   try {
     let questionImageUrl = "";
@@ -64,6 +116,7 @@ const [optionDImage, setOptionDImage] = useState<File | null>(null);
     let optionBImageUrl = "";
     let optionCImageUrl = "";
     let optionDImageUrl = "";
+    let optionEImageUrl = "";
 
     const uploadFile = async (file: File | null) => {
       if (!file) return "";
@@ -91,6 +144,8 @@ const [optionDImage, setOptionDImage] = useState<File | null>(null);
     optionBImageUrl = await uploadFile(optionBImage);
     optionCImageUrl = await uploadFile(optionCImage);
     optionDImageUrl = await uploadFile(optionDImage);
+    optionEImageUrl =
+  await uploadFile(optionEImage);
 
     await api.post("/quiz/add-question", {
       quizId: id,
@@ -99,8 +154,8 @@ const [optionDImage, setOptionDImage] = useState<File | null>(null);
       optionB,
       optionC: finalOptionC,
       optionD: finalOptionD,
+      optionE: finalOptionE,
       correctAnswer,
-      explanation,
       questionType: "MCQ",
       questionTimeLimit,
 
@@ -109,37 +164,65 @@ const [optionDImage, setOptionDImage] = useState<File | null>(null);
       optionBImageUrl,
       optionCImageUrl,
       optionDImageUrl,
+      optionEImageUrl,
     });
 
     alert("Question Added Successfully");
-
-    setQuestionText("");
-    setOptionA("");
-    setOptionB("");
-    setOptionC("");
-    setOptionD("");
-    setCorrectAnswer("");
-    setExplanation("");
-
-    setQuestionTimeLimit(30);
-    setOptionCount(4);
-
+        
     setQuestionImage(null);
     setOptionAImage(null);
     setOptionBImage(null);
     setOptionCImage(null);
     setOptionDImage(null);
-  } catch (error: any) {
-    console.error(error);
 
-    alert(
-      error?.response?.data?.message ||
-      error?.message ||
-      "Failed to add question"
-    );
+    return true;
+  } catch (error: any) {
+  console.error(error);
+
+  alert(
+    error?.response?.data?.message ||
+    error?.message ||
+    "Failed to add question"
+  );
+
+  return false;
+}
+};
+const duplicateCurrentQuestion = () => {
+
+  navigator.clipboard.writeText(
+    JSON.stringify({
+      questionText,
+      optionA,
+      optionB,
+      optionC,
+      optionD,
+      correctAnswer,
+      questionTimeLimit
+    })
+  );
+
+  alert("Question copied");
+};
+const saveAndNext = async () => {
+  const success = await saveQuestion();
+
+  if (success) {
+    setQuestionNumber((prev) => prev + 1);
+    clearForm();
   }
 };
 
+const deleteCurrentQuestion = () => {
+
+  if (
+    confirm(
+      "Clear current question?"
+    )
+  ) {
+    clearForm();
+  }
+};
   return (
     <div className="max-w-4xl mx-auto p-8">
       <h1 className="text-3xl font-bold mb-2">
@@ -147,14 +230,40 @@ const [optionDImage, setOptionDImage] = useState<File | null>(null);
       </h1>
 
       <p className="text-gray-500 mb-6">
-        Quiz ID: {id}
-      </p>
+  Add questions to your quiz
+</p>
 
       <div className="bg-white rounded-2xl shadow-md border p-6 space-y-5">
 
-        <h2 className="text-xl font-semibold">
-          Create Question
-        </h2>
+       <div className="flex justify-between items-center">
+
+  <h2 className="text-xl font-semibold">
+    Question {questionNumber}
+  </h2>
+
+  <div className="flex gap-3">
+
+    <button
+      type="button"
+      onClick={duplicateCurrentQuestion}
+      className="p-2 rounded-lg border hover:bg-gray-100"
+      title="Copy Question"
+    >
+      <Copy size={18} />
+    </button>
+
+    <button
+      type="button"
+      onClick={deleteCurrentQuestion}
+      className="p-2 rounded-lg border hover:bg-red-50 text-red-600"
+      title="Clear Question"
+    >
+      <Trash2 size={18} />
+    </button>
+
+  </div>
+
+</div>
 
         <input
           className="border rounded-lg p-3 w-full"
@@ -164,19 +273,30 @@ const [optionDImage, setOptionDImage] = useState<File | null>(null);
             setQuestionText(e.target.value)
           }
         />
-        <label className="block font-medium">
-  Question Image (Optional)
-</label>
+        <div className="flex items-center gap-3">
 
-<input
-  type="file"
-  accept="image/*"
-  onChange={(e) =>
-    setQuestionImage(
-      e.target.files?.[0] || null
-    )
-  }
-/>
+  <button
+    type="button"
+    onClick={() => questionImageRef.current?.click()}
+    className="p-2 rounded-lg border hover:bg-gray-100"
+    title="Upload Question Image"
+  >
+    <ImagePlus size={20} />
+  </button>
+
+  <input
+    ref={questionImageRef}
+    type="file"
+    accept="image/*"
+    className="hidden"
+    onChange={(e) =>
+      setQuestionImage(
+        e.target.files?.[0] || null
+      )
+    }
+  />
+
+</div>
 {questionImage && (
   <img
     src={URL.createObjectURL(questionImage)}
@@ -202,20 +322,30 @@ const [optionDImage, setOptionDImage] = useState<File | null>(null);
               setOptionA(e.target.value)
             }
           />
-          <input
+          <button
+  type="button"
+  onClick={() => optionAImageRef.current?.click()}
+  className="p-2 border rounded-lg hover:bg-gray-100"
+>
+  <ImagePlus size={18} />
+</button>
+
+<input
+  ref={optionAImageRef}
   type="file"
   accept="image/*"
+  className="hidden"
   onChange={(e) =>
     setOptionAImage(
       e.target.files?.[0] || null
     )
   }
 />
-{questionImage && (
+{optionAImage && (
   <img
-    src={URL.createObjectURL(questionImage)}
-    alt="Question Preview"
-    className="w-48 rounded-lg border mt-2"
+    src={URL.createObjectURL(optionAImage)}
+    alt="Option A Preview"
+    className="w-24 rounded-lg border mt-2"
   />
 )}
         </div>
@@ -237,15 +367,32 @@ const [optionDImage, setOptionDImage] = useState<File | null>(null);
               setOptionB(e.target.value)
             }
           />
-          <input
+          <button
+  type="button"
+  onClick={() => optionBImageRef.current?.click()}
+  className="p-2 border rounded-lg hover:bg-gray-100"
+>
+  <ImagePlus size={18} />
+</button>
+
+<input
+  ref={optionBImageRef}
   type="file"
   accept="image/*"
+  className="hidden"
   onChange={(e) =>
     setOptionBImage(
       e.target.files?.[0] || null
     )
   }
 />
+{optionBImage && (
+  <img
+    src={URL.createObjectURL(optionBImage)}
+    alt="Option B Preview"
+    className="w-24 rounded-lg border mt-2"
+  />
+)}
         </div>
 
         {/* OPTION C */}
@@ -266,15 +413,32 @@ const [optionDImage, setOptionDImage] = useState<File | null>(null);
                 setOptionC(e.target.value)
               }
             />
-            <input
+            <button
+  type="button"
+  onClick={() => optionCImageRef.current?.click()}
+  className="p-2 border rounded-lg hover:bg-gray-100"
+>
+  <ImagePlus size={18} />
+</button>
+
+<input
+  ref={optionCImageRef}
   type="file"
   accept="image/*"
+  className="hidden"
   onChange={(e) =>
     setOptionCImage(
       e.target.files?.[0] || null
     )
   }
 />
+{optionCImage && (
+  <img
+    src={URL.createObjectURL(optionCImage)}
+    alt="Option C Preview"
+    className="w-24 rounded-lg border mt-2"
+  />
+)}
           </div>
         )}
 
@@ -296,65 +460,136 @@ const [optionDImage, setOptionDImage] = useState<File | null>(null);
                 setOptionD(e.target.value)
               }
             />
-            <input
+           <button
+  type="button"
+  onClick={() => optionDImageRef.current?.click()}
+  className="p-2 border rounded-lg hover:bg-gray-100"
+>
+  <ImagePlus size={18} />
+</button>
+
+<input
+  ref={optionDImageRef}
   type="file"
   accept="image/*"
+  className="hidden"
   onChange={(e) =>
     setOptionDImage(
       e.target.files?.[0] || null
     )
   }
 />
+{optionDImage && (
+  <img
+    src={URL.createObjectURL(optionDImage)}
+    alt="Option D Preview"
+    className="w-24 rounded-lg border mt-2"
+  />
+)}
           </div>
         )}
+{optionCount >= 5 && (
+  <div className="flex items-center gap-3">
 
+    <input
+      type="radio"
+      name="correctAnswer"
+      checked={correctAnswer === "E"}
+      onChange={() => setCorrectAnswer("E")}
+    />
+
+    <input
+      className="border rounded-lg p-3 flex-1"
+      placeholder="Option E"
+      value={optionE}
+      onChange={(e) =>
+        setOptionE(e.target.value)
+      }
+    />
+
+    <button
+      type="button"
+      onClick={() =>
+        optionEImageRef.current?.click()
+      }
+      className="p-2 border rounded-lg hover:bg-gray-100"
+    >
+      <ImagePlus size={18} />
+    </button>
+
+    <input
+      ref={optionEImageRef}
+      type="file"
+      accept="image/*"
+      className="hidden"
+      onChange={(e) =>
+        setOptionEImage(
+          e.target.files?.[0] || null
+        )
+      }
+    />
+
+  </div>
+)}
         <div className="flex gap-3">
 
           <button
-            type="button"
-            className="border px-4 py-2 rounded-lg hover:bg-gray-100"
-            onClick={() => {
-              if (optionCount < 4) {
-                setOptionCount(optionCount + 1);
-              }
-            }}
-          >
-            + Add Option
-          </button>
+  type="button"
+  disabled={optionCount >= 5}
+  className={`
+    border px-4 py-2 rounded-lg
+    ${
+      optionCount >= 5
+        ? "opacity-50 cursor-not-allowed"
+        : "hover:bg-gray-100"
+    }
+  `}
+  onClick={() => {
+    if (optionCount < 5) {
+      setOptionCount(optionCount + 1);
+    }
+  }}
+>
+  + Add Option
+</button>
 
           <button
-            type="button"
-            className="border px-4 py-2 rounded-lg hover:bg-gray-100"
-            onClick={() => {
-              if (optionCount > 2) {
-                const newCount = optionCount - 1;
+  type="button"
+  disabled={optionCount <= 2}
+  className={`
+    border px-4 py-2 rounded-lg
+    ${
+      optionCount <= 2
+        ? "opacity-50 cursor-not-allowed"
+        : "hover:bg-gray-100"
+    }
+  `}
+  onClick={() => {
+    if (optionCount > 2) {
+      const newCount = optionCount - 1;
 
-                setOptionCount(newCount);
+      setOptionCount(newCount);
 
-                if (
-                  (newCount === 3 &&
-                    correctAnswer === "D") ||
-                  (newCount === 2 &&
-                    (correctAnswer === "C" ||
-                      correctAnswer === "D"))
-                ) {
-                  setCorrectAnswer("");
-                }
-              }
-            }}
-          >
-            Remove Option
-          </button>
+      if (
+        (newCount === 4 &&
+          correctAnswer === "E") ||
+        (newCount === 3 &&
+          correctAnswer === "D") ||
+        (newCount === 2 &&
+          (correctAnswer === "C" ||
+            correctAnswer === "D" ||
+            correctAnswer === "E"))
+      ) {
+        setCorrectAnswer("");
+      }
+    }
+  }}
+>
+  Remove Option
+</button>
         </div>
 
-        <textarea
-          className="border rounded-lg p-3 w-full min-h-[120px]"
-          placeholder="Explanation"
-          value={explanation}
-          onChange={(e) =>
-            setExplanation(e.target.value)
-          }
-        />
+        
 
         <div>
           <label className="block mb-2 font-medium">
@@ -379,12 +614,23 @@ const [optionDImage, setOptionDImage] = useState<File | null>(null);
           </select>
         </div>
 
-        <button
-          onClick={saveQuestion}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-semibold"
-        >
-          Save Question
-        </button>
+        <div className="flex gap-3">
+
+  <button
+    onClick={saveAndNext}
+    className="bg-indigo-600 text-white px-6 py-3 rounded-xl"
+  >
+    Save & Add New Question
+  </button>
+
+  <button
+    onClick={saveQuiz}
+    className="bg-green-600 text-white px-6 py-3 rounded-xl"
+  >
+    Save Quiz
+  </button>
+
+</div>
 
       </div>
     </div>
