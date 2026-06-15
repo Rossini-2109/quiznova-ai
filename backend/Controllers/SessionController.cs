@@ -41,7 +41,7 @@ public class SessionController : ControllerBase
             ).ToString();
 
         var joinLink =
-            $"http://localhost:3000/join/{code}";
+            $"https://quiznova-ai-grdq.onrender.com/join/{code}";
 
         var qrCodeUrl =
             $"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={joinLink}";

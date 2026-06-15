@@ -22,7 +22,7 @@ public class QRCodeService : IQRCodeService
             Directory.CreateDirectory(_qrFolder);
         }
         // Get frontend base URL for join links
-        _frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "http://localhost:3000";
+        _frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "https://quiznova-ai-grdq.onrender.com";
     }
 
     public async Task<string?> GenerateQrCodeAsync(string sessionCode)

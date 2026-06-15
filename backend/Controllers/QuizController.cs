@@ -257,7 +257,7 @@ public async Task<IActionResult> UpdateQuiz(
             var session = await _liveQuizService.CreateSessionAsync(quiz.Id, teacherId);
 
             // Construct a shareable link
-            var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "http://localhost:3000";
+            var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "https://quiznova-ai-grdq.onrender.com";
             var shareLink = $"{frontendUrl}/student/lobby/{session.SessionCode}";
 
             // Generate QR code image

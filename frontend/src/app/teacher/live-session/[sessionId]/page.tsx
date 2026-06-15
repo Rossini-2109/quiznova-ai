@@ -521,12 +521,12 @@ export default function TeacherLiveSessionPage({ params }: { params: Promise<{ s
               <div className="mt-4 flex items-center space-x-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 w-full max-w-sm">
                 <input
                   readOnly
-                  value={`${process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/student/lobby/${session.sessionCode}`}
+                  value={`${process.env.NEXT_PUBLIC_FRONTEND_URL || "https://quiznova-ai-grdq.onrender.com"}/student/lobby/${session.sessionCode}`}
                   className="flex-1 bg-transparent text-xs text-zinc-300 outline-none truncate"
                 />
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/student/lobby/${session.sessionCode}`).catch(() => {});
+                    navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_FRONTEND_URL || "https://quiznova-ai-grdq.onrender.com"}/student/lobby/${session.sessionCode}`).catch(() => {});
                   }}
                   className="p-1 rounded hover:bg-white/10 cursor-pointer">
                   <Copy size={14} className="text-zinc-200" />
