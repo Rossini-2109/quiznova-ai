@@ -29,8 +29,8 @@ export default function LiveHostHeader({
       <div className="flex items-center gap-6">
         <div className="flex flex-col items-center">
           <span className="text-xs text-white/50 uppercase tracking-wider">
-            Join at localhost:3000
-          </span>
+  Join at {process.env.NEXT_PUBLIC_APP_URL}
+</span>
           <span className="text-2xl font-black tracking-widest text-white">
             {sessionCode}
           </span>

@@ -12,7 +12,7 @@ export default function ReviewPage() {
   useEffect(() => {
     axios
       .get(
-        `http://localhost:5103/api/attempts/review/${attemptId}`
+        `${process.env.NEXT_PUBLIC_API_URL}/api/attempts/review/${attemptId}`
       )
       .then((res) => setItems(res.data));
   }, [attemptId]);
