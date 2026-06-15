@@ -5,7 +5,7 @@ COPY . .
 RUN dotnet restore backend.csproj
 RUN dotnet publish backend.csproj -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 
 COPY --from=build /app/publish .
