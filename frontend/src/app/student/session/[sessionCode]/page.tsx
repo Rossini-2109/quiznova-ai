@@ -96,7 +96,7 @@ export default function StudentQuizPage({
   useEffect(() => {
     if (!attemptId) return;
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${process.env.NEXT_PUBLIC_API_URL.replace("/api", "")}/quizhub`)
+      .withUrl(`${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5201").replace("/api", "")}/quizhub`)
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Information)
       .build();

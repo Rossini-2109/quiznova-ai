@@ -113,7 +113,7 @@ export default function EditQuizPage() {
 
       alert("Quiz updated successfully");
       router.push(
-  `/teacher/quizzes/edit/${quiz.id}`
+  `/teacher/quizzes/edit/${id}`
 );
     } catch (error) {
       console.error(error);

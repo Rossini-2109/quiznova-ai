@@ -16,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<backend.Services.ILobbyService, backend.Services.LobbyService>();
+builder.Services.AddScoped<backend.Services.ILiveQuizService, backend.Services.LiveQuizService>();
 
 // AI Services
 builder.Services.AddHttpClient<OpenAIProvider>();
@@ -26,6 +27,7 @@ builder.Services.AddScoped<
     IQuizService,
     QuizService
 >();
+builder.Services.AddScoped<IQRCodeService, QRCodeService>();
 builder.Services.AddScoped<IQuizImportService, QuizImportService>();
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -36,13 +38,14 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // CORS
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         policy =>
         {
             policy
-                .WithOrigins("http://localhost:3000", "http://localhost:3001")
+                .SetIsOriginAllowed(_ => true)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
@@ -75,7 +78,9 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
-
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
 var app = builder.Build();
 
@@ -111,7 +116,7 @@ app.UseCors("AllowFrontend");
 // Auth
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseStaticFiles();
 // Controllers
 app.MapControllers();
 app.MapHub<QuizHub>("/quizHub");

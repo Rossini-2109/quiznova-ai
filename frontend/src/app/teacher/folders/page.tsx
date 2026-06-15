@@ -110,7 +110,7 @@ function StatCard({
 }: {
   label: string;
   value: number | string;
-  icon: React.FC<{ size?: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number; className?: string; color?: string }>;
   color: string;
   sub?: string;
 }) {
@@ -124,7 +124,7 @@ function StatCard({
           className="h-9 w-9 rounded-xl flex items-center justify-center"
           style={{ backgroundColor: color + "20" }}
         >
-          <Icon size={17} className="" style={{ color }} />
+          <Icon size={17} className="" color={color} />
         </div>
       </div>
       <p className="text-3xl font-black text-zinc-900 dark:text-zinc-100">

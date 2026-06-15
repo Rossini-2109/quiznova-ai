@@ -6,7 +6,7 @@ import {
 } from "react";
 
 import {
-  connection
+  getConnection
 } from "@/lib/signalr";
 
 export default function LobbyPage() {
@@ -17,15 +17,16 @@ export default function LobbyPage() {
   useEffect(() => {
 
     const init = async () => {
+      const conn = getConnection();
 
       if (
-        connection.state ===
+        conn.state ===
         "Disconnected"
       ) {
-        await connection.start();
+        await conn.start();
       }
 
-      connection.on(
+      conn.on(
         "StudentJoined",
         (name: string) => {
           setStudents(prev => [
@@ -35,7 +36,7 @@ export default function LobbyPage() {
         }
       );
 
-      connection.on(
+      conn.on(
         "QuizStarted",
         () => {
           window.location.href =

@@ -17,7 +17,11 @@ export default function StudentLayout({
   const [userName, setUserName] = useState("Student");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isGuestRoute = pathname.startsWith("/student/lobby") || pathname.startsWith("/student/quiz") || pathname.startsWith("/student/results");
+  const isGuestRoute = pathname.startsWith("/student/lobby") || 
+                       pathname.startsWith("/student/quiz") || 
+                       pathname.startsWith("/student/live") || 
+                       pathname.startsWith("/student/result") || 
+                       pathname.startsWith("/student/results");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -49,7 +53,6 @@ export default function StudentLayout({
   };
 
   const navItems = [
-    { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
     { name: "Join Quiz", href: "/student/join", icon: Compass },
     { name: "Quiz History", href: "/student/history", icon: History },
   ];

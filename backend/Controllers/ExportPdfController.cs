@@ -29,6 +29,7 @@ public class ExportPdfController : ControllerBase
 
     // GET api/exports/quizzes/{quizId}/pdf
     [HttpGet("quizzes/{quizId:guid}/pdf")]
+    [AllowAnonymous]
     public async Task<IActionResult> ExportQuizToPdf([FromRoute] Guid quizId)
     {
         var quiz = await _context.Quizzes
@@ -46,15 +47,72 @@ public class ExportPdfController : ControllerBase
         var page = document.AddPage();
         page.Size = PdfSharpCore.PageSize.A4;
         var gfx = XGraphics.FromPdfPage(page);
-        var font = new XFont("Arial", 12, XFontStyle.Regular);
+        
+        var titleFont = new XFont("Arial", 18, XFontStyle.Bold);
+        var headerFont = new XFont("Arial", 10, XFontStyle.Bold);
+        var bodyFont = new XFont("Arial", 9, XFontStyle.Regular);
+        
         double y = 40;
-        gfx.DrawString($"Quiz Report: {quiz.Title}", new XFont("Arial", 18, XFontStyle.Bold), XBrushes.Black, new XPoint(40, y));
+        gfx.DrawString($"Quiz Report: {quiz.Title}", titleFont, XBrushes.Black, new XPoint(40, y));
+        y += 25;
+        
+        gfx.DrawString($"Total Questions: {quiz.Questions.Count}", bodyFont, XBrushes.Black, new XPoint(40, y));
+        y += 15;
+        gfx.DrawString($"Total Participants: {attempts.Count}", bodyFont, XBrushes.Black, new XPoint(40, y));
         y += 30;
-        // Overview section
-        gfx.DrawString($"Total Participants: {attempts.Count}", font, XBrushes.Black, new XPoint(40, y));
-        y += 20;
-        // Add more sections as needed (summary stats, leaderboards, etc.)
-        // For brevity, only basic info is added.
+
+        if (attempts.Count > 0)
+        {
+            // Table Header
+            gfx.DrawString("Rank", headerFont, XBrushes.Black, new XPoint(40, y));
+            gfx.DrawString("Student Name", headerFont, XBrushes.Black, new XPoint(80, y));
+            gfx.DrawString("Employee ID", headerFont, XBrushes.Black, new XPoint(220, y));
+            gfx.DrawString("Score", headerFont, XBrushes.Black, new XPoint(320, y));
+            gfx.DrawString("Accuracy", headerFont, XBrushes.Black, new XPoint(380, y));
+            gfx.DrawString("Time Taken", headerFont, XBrushes.Black, new XPoint(450, y));
+            
+            y += 15;
+            gfx.DrawLine(XPens.Gray, 40, y, 550, y);
+            y += 20;
+
+            int rank = 1;
+            foreach (var att in attempts.OrderBy(a => a.Rank).ThenByDescending(a => a.Score))
+            {
+                if (y > 780)
+                {
+                    page = document.AddPage();
+                    page.Size = PdfSharpCore.PageSize.A4;
+                    gfx = XGraphics.FromPdfPage(page);
+                    y = 40;
+                    
+                    // Repeat headers on new page
+                    gfx.DrawString("Rank", headerFont, XBrushes.Black, new XPoint(40, y));
+                    gfx.DrawString("Student Name", headerFont, XBrushes.Black, new XPoint(80, y));
+                    gfx.DrawString("Employee ID", headerFont, XBrushes.Black, new XPoint(220, y));
+                    gfx.DrawString("Score", headerFont, XBrushes.Black, new XPoint(320, y));
+                    gfx.DrawString("Accuracy", headerFont, XBrushes.Black, new XPoint(380, y));
+                    gfx.DrawString("Time Taken", headerFont, XBrushes.Black, new XPoint(450, y));
+                    
+                    y += 15;
+                    gfx.DrawLine(XPens.Gray, 40, y, 550, y);
+                    y += 20;
+                }
+
+                gfx.DrawString(rank.ToString(), bodyFont, XBrushes.Black, new XPoint(40, y));
+                gfx.DrawString(att.Student?.Name ?? "Unknown", bodyFont, XBrushes.Black, new XPoint(80, y));
+                gfx.DrawString(att.EmployeeId ?? "—", bodyFont, XBrushes.Black, new XPoint(220, y));
+                gfx.DrawString(att.Score.ToString(), bodyFont, XBrushes.Black, new XPoint(320, y));
+                gfx.DrawString($"{att.Accuracy:F0}%", bodyFont, XBrushes.Black, new XPoint(380, y));
+                gfx.DrawString($"{att.TimeTakenSeconds}s", bodyFont, XBrushes.Black, new XPoint(450, y));
+                
+                y += 20;
+                rank++;
+            }
+        }
+        else
+        {
+            gfx.DrawString("No submissions recorded for this quiz.", bodyFont, XBrushes.DarkRed, new XPoint(40, y));
+        }
 
         using var stream = new MemoryStream();
         document.Save(stream, false);

@@ -188,7 +188,7 @@ public class AuthController : ControllerBase
                 new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Role, user.Role)
             }),
-            Expires = DateTime.UtcNow.AddMinutes(double.Parse(jwtSettings["DurationInMinutes"] ?? "1440")),
+            Expires = DateTime.UtcNow.AddMinutes(double.Parse((jwtSettings["DurationInMinutes"] ?? "1440").ToString())),
             Issuer = jwtSettings["Issuer"] ?? "QuizNovaAIBackend",
             Audience = jwtSettings["Audience"] ?? "QuizNovaAIFrontend",
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256Signature)

@@ -21,9 +21,13 @@ public class Session
 
     public bool IsEnded { get; set; }
 
-    public DateTime CreatedAt
-    {
-        get;
-        set;
-    } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? StartedAt { get; set; }
+    public DateTime? EndedAt { get; set; }
+
+    public int CurrentQuestionIndex { get; set; } = 0;
+    
+    public bool IsPaused { get; set; }
+
+    
 }

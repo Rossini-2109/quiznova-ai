@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import * as signalR from "@microsoft/signalr";
 import Image from "next/image";
 import { X, Users, Play, Square } from "lucide-react";
@@ -10,8 +11,21 @@ interface PublishModalProps {
   quizId: string;
   onClose: () => void;
 }
-
+type Participant = {
+  id: string;
+  name: string;
+  employeeId: string;
+  isConnected: boolean;
+  score: number;
+  correctAnswers: number;
+  wrongAnswers: number;
+  skippedAnswers: number;
+  averageTimeTakenMs: number;
+  suspicionScore: number;
+  rank: number;
+};
 export default function PublishModal({ quizId, onClose }: PublishModalProps) {
+  const router = useRouter();
   const [step, setStep] = useState<"settings" | "lobby">("settings");
   
   // Settings State
@@ -23,7 +37,7 @@ export default function PublishModal({ quizId, onClose }: PublishModalProps) {
   const [quizCode, setQuizCode] = useState("");
   const [qrUrl, setQrUrl] = useState("");
   const [shareLink, setShareLink] = useState("");
-  const [participants, setParticipants] = useState<{name: string, connectionId: string}[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [hubConnection, setHubConnection] = useState<signalR.HubConnection | null>(null);
 
   const handlePublishSubmit = async () => {
@@ -34,32 +48,10 @@ export default function PublishModal({ quizId, onClose }: PublishModalProps) {
         shuffleQuestions
       });
       
-      const { quizCode: newCode, qrUrl: newQr, shareLink: newLink } = res.data;
-      setQuizCode(newCode);
-      setQrUrl(newQr);
-      setShareLink(newLink);
+      const { sessionId, quizCode: newCode, qrUrl: newQr, shareLink: newLink } = res.data;
       
-      // Connect to SignalR as teacher for this session
-      const connection = new signalR.HubConnectionBuilder()
-        .withUrl(`${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000"}/quizhub`)
-        .withAutomaticReconnect()
-        .build();
-
-      connection.on("ParticipantListUpdated", (list: string[]) => {
-        // Teacher receives list of names
-        setParticipants(list.map(name => ({ name, connectionId: "" })));
-      });
-
-      connection.on("StudentJoined", (newName: string) => {
-        setParticipants(prev => [...prev.filter(p => p.name !== newName), { name: newName, connectionId: "" }]);
-      });
-
-      await connection.start();
-      // Join as teacher
-      await connection.invoke("JoinSession", newCode, "Teacher");
-      setHubConnection(connection);
-
-      setStep("lobby");
+      onClose();
+      router.push(`/teacher/live-session/${sessionId}`);
     } catch (error) {
       console.error("Error publishing quiz", error);
       alert("Failed to publish quiz. See console for details.");
@@ -68,18 +60,19 @@ export default function PublishModal({ quizId, onClose }: PublishModalProps) {
     }
   };
 
-  useEffect(() => {
-    return () => {
-      if (hubConnection) {
-        hubConnection.stop();
-      }
-    };
-  }, [hubConnection]);
+ useEffect(() => {
+  return () => {
+    hubConnection?.stop().catch(console.error);
+  };
+}, []);
+useEffect(() => {
+  console.log("Participants State:", participants);
+}, [participants]);
 
   const handleStartQuiz = async () => {
     if (!hubConnection) return;
     try {
-      await hubConnection.invoke("StartQuiz", quizCode);
+      await hubConnection.invoke("TeacherStartedQuiz", quizCode);
       // Optional: teacher stays in lobby or redirects somewhere to monitor
       alert("Quiz started! Students can now begin.");
     } catch (e) {
@@ -90,7 +83,7 @@ export default function PublishModal({ quizId, onClose }: PublishModalProps) {
   const handleEndQuiz = async () => {
     if (!hubConnection) return;
     try {
-      await hubConnection.invoke("EndQuiz", quizCode);
+      await hubConnection.invoke("TeacherEndedQuiz", quizCode);
       alert("Quiz ended.");
       onClose();
     } catch (e) {
@@ -212,12 +205,25 @@ export default function PublishModal({ quizId, onClose }: PublishModalProps) {
                     </div>
                   ) : (
                     <ul className="space-y-2">
-                      {participants.map((p, i) => (
-                        <li key={i} className="bg-white dark:bg-zinc-800 px-3 py-2 rounded-lg text-sm font-medium dark:text-zinc-200 shadow-sm border border-zinc-100 dark:border-zinc-700 animate-in fade-in slide-in-from-bottom-2">
-                          {p.name}
-                        </li>
-                      ))}
-                    </ul>
+  {participants.map((p) => (
+    <li
+      key={p.id}
+      className="bg-white dark:bg-zinc-800 px-3 py-2 rounded-lg shadow-sm border border-zinc-100 dark:border-zinc-700"
+    >
+      <div className="font-medium dark:text-zinc-200">
+        {p.name}
+      </div>
+
+      <div className="text-xs text-zinc-500">
+        {p.employeeId}
+      </div>
+
+      <div className="text-xs text-indigo-600">
+        Rank #{p.rank}
+      </div>
+    </li>
+  ))}
+</ul>
                   )}
                 </div>
 

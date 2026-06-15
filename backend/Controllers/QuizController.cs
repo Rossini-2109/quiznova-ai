@@ -9,6 +9,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using backend.Services;
 
 namespace backend.Controllers;
 
@@ -17,10 +18,12 @@ namespace backend.Controllers;
 public class QuizController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILiveQuizService _liveQuizService;
 
-    public QuizController(ApplicationDbContext context)
+    public QuizController(ApplicationDbContext context, ILiveQuizService liveQuizService)
     {
         _context = context;
+        _liveQuizService = liveQuizService;
     }
 
     [Authorize(Roles = "Teacher")]
@@ -226,7 +229,7 @@ public async Task<IActionResult> UpdateQuiz(
 
 
     [HttpPut("publish/{id}")]
-    public async Task<IActionResult> PublishQuiz(Guid id)
+    public async Task<IActionResult> PublishQuiz(Guid id, [FromBody] PublishQuizDto? dto)
     {
         try
         {
@@ -238,39 +241,41 @@ public async Task<IActionResult> UpdateQuiz(
                 return NotFound("Quiz not found");
             }
 
+            if (dto != null)
+            {
+                quiz.MaxAttempts = dto.MaxAttempts;
+                quiz.ShuffleQuestions = dto.ShuffleQuestions;
+            }
+
             quiz.Status = "Published";
-
-            if (string.IsNullOrEmpty(quiz.QuizCode))
-            {
-                quiz.QuizCode = QuizCodeGenerator.GenerateQuizCode();
-                // Generate QR code image
-                var qrGenerator = new QRCodeGenerator();
-                var qrData = qrGenerator.CreateQrCode(quiz.QuizCode, QRCodeGenerator.ECCLevel.Q);
-                using var qrCode = new QRCode(qrData);
-                using var bitmap = qrCode.GetGraphic(20);
-                var qrPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "qrcodes", $"{quiz.QuizCode}.png");
-                Directory.CreateDirectory(Path.GetDirectoryName(qrPath));
-                bitmap.Save(qrPath, ImageFormat.Png);
-            }
-            else if (!System.IO.File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "qrcodes", $"{quiz.QuizCode}.png")))
-            {
-                // Generate QR if missing
-                var qrGenerator = new QRCodeGenerator();
-                var qrData = qrGenerator.CreateQrCode(quiz.QuizCode, QRCodeGenerator.ECCLevel.Q);
-                using var qrCode = new QRCode(qrData);
-                using var bitmap = qrCode.GetGraphic(20);
-                var qrPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "qrcodes", $"{quiz.QuizCode}.png");
-                Directory.CreateDirectory(Path.GetDirectoryName(qrPath));
-                bitmap.Save(qrPath, ImageFormat.Png);
-            }
-
             await _context.SaveChangesAsync();
+
+            // Create a live session using LiveQuizService
+            var teacherIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            var teacherId = teacherIdClaim != null ? Guid.Parse(teacherIdClaim.Value) : quiz.TeacherId;
+            
+            var session = await _liveQuizService.CreateSessionAsync(quiz.Id, teacherId);
+
+            // Construct a shareable link
+            var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "http://localhost:3000";
+            var shareLink = $"{frontendUrl}/student/lobby/{session.SessionCode}";
+
+            // Generate QR code image
+            var qrGenerator = new QRCodeGenerator();
+            var qrData = qrGenerator.CreateQrCode(shareLink, QRCodeGenerator.ECCLevel.Q);
+            using var qrCode = new QRCode(qrData);
+            using var bitmap = qrCode.GetGraphic(20);
+            var qrPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "qrcodes", $"{session.SessionCode}.png");
+            Directory.CreateDirectory(Path.GetDirectoryName(qrPath));
+            bitmap.Save(qrPath, ImageFormat.Png);
 
             return Ok(new
             {
                 Message = "Quiz published successfully",
-                QuizCode = quiz.QuizCode,
-                QRUrl = $"/qrcodes/{quiz.QuizCode}.png",
+                QuizCode = session.SessionCode,
+                SessionId = session.Id,
+                QRUrl = $"/qrcodes/{session.SessionCode}.png",
+                ShareLink = shareLink,
                 Quiz = quiz
             });
         }

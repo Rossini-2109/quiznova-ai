@@ -49,7 +49,7 @@ export default function LoginPage() {
       );
 
       if (res.data.role === "Student") {
-        router.push("/student/dashboard");
+        router.push("/student/join");
       } else if (res.data.role === "Teacher") {
         router.push("/teacher/dashboard");
       } else {

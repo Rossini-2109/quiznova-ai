@@ -33,6 +33,10 @@ public class Quiz
 
     public int NumberOfQuestions { get; set; }
 
+    public int MaxAttempts { get; set; } = 1;
+
+    public bool ShuffleQuestions { get; set; } = false;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Question> Questions { get; set; }
