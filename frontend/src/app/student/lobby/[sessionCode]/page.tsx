@@ -82,7 +82,7 @@ const [participants, setParticipants] = useState<Participant[]>([]);
         .withUrl(
           `${
             process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
-            "http://localhost:5201"
+            "https://quiznova-ai-grdq.onrender.com"
           }/quizHub`
         )
         .withAutomaticReconnect()

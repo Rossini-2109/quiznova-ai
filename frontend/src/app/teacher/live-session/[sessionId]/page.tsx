@@ -144,7 +144,7 @@ export default function TeacherLiveSessionPage({ params }: { params: Promise<{ s
         setQuestionAnalysis(analysisRes.data);
 
         // Initialize SignalR
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5201";
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://quiznova-ai-grdq.onrender.com";
         const connection = new HubConnectionBuilder()
           .withUrl(`${backendUrl}/quizHub`)
           .configureLogging(LogLevel.Information)
@@ -511,7 +511,7 @@ export default function TeacherLiveSessionPage({ params }: { params: Promise<{ s
               <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-xl pointer-events-none" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
-                src={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5201"}/api/LiveQuiz/${session.sessionCode}/qrcode`} 
+                src={`${process.env.NEXT_PUBLIC_API_URL || "https://quiznova-ai-grdq.onrender.com"}/api/LiveQuiz/${session.sessionCode}/qrcode`} 
                 alt="Lobby QR Code" 
                 className="rounded-2xl border-4 border-white object-contain bg-white shadow-2xl p-2 w-48 h-48 mb-6" 
               />

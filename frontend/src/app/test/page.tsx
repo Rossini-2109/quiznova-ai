@@ -10,7 +10,7 @@ export default function TestPage() {
         const connection =
           new signalR.HubConnectionBuilder()
             .withUrl(
-              "http://localhost:5201/quizHub"
+              "https://quiznova-ai-grdq.onrender.com/quizHub"
             )
             .withAutomaticReconnect()
             .build();

@@ -5,7 +5,7 @@ import * as signalR from "@microsoft/signalr";
 const HUB_URL =
   `${
     process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ??
-    "http://localhost:5201"
+    "https://quiznova-ai-grdq.onrender.com"
   }/quizHub`;
 
 let connection: signalR.HubConnection | null = null;
