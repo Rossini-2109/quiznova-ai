@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import api from "@/services/api";
@@ -81,8 +81,7 @@ const THEME_CLASSES: Record<ThemeType, { bg: string; border: string; accent: str
   }
 };
 
-export default function TeacherLiveSessionPage() {
-  const { sessionId } = useParams();
+export default function TeacherLiveSessionPage({ sessionId }: { sessionId: string }) {
   const router = useRouter();
 
   // State Management
