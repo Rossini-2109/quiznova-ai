@@ -10,7 +10,18 @@ import {
   Palette, Users, Loader2, Check, X, ShieldAlert, ChevronLeft, ChevronRight, Sparkles, Copy 
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import TeacherLiveSessionPage from "@/components/TeacherLiveSessionPage";
+import { useParams } from "next/navigation";
 
+export default function Page() {
+  const params = useParams();
+
+  return (
+    <TeacherLiveSessionPage
+      sessionId={params.sessionId as string}
+    />
+  );
+}
 interface SessionState {
   id: string;
   sessionCode: string;

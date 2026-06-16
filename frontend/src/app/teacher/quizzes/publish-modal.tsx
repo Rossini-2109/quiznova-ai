@@ -72,7 +72,7 @@ export default function PublishModal({ quizId, onClose }: PublishModalProps) {
     setStep("lobby");
 
     // redirect to monitoring dashboard
-    router.push(`/teacher/live-session/${sessionId}`);
+    router.push(`/teacher/folders/live-session/${res.data.sessionId}`);
 
   } catch (error) {
     console.error("Error publishing quiz:", error);
