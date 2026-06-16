@@ -228,7 +228,7 @@ public async Task<IActionResult> UpdateQuiz(
 
 
 
-    [HttpPut("publish/{id}")]
+   [HttpPut("publish/{id}")]
 public async Task<IActionResult> PublishQuiz(Guid id)
 {
     try
@@ -243,27 +243,33 @@ public async Task<IActionResult> PublishQuiz(Guid id)
 
         await _context.SaveChangesAsync();
 
+        // Create live session
+        var session = await _liveQuizService.CreateSessionAsync(
+            quiz.Id,
+            quiz.TeacherId
+        );
+
         return Ok(new
         {
             success = true,
             message = "Quiz published successfully",
+
+            sessionId = session.Id,
+            quizCode = session.SessionCode,
+
             quizId = quiz.Id,
             status = quiz.Status
         });
     }
     catch (Exception ex)
     {
-        Console.WriteLine(ex);
-
         return StatusCode(500, new
         {
             Message = "Error publishing quiz",
             Error = ex.Message
         });
     }
-}
-
-    [HttpDelete("{id}")]
+}    [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteQuiz(Guid id)
     {
         var quiz = await _context.Quizzes

@@ -59,7 +59,8 @@ const { sessionId, quizCode: newCode, qrUrl: newQr, shareLink: newLink } = res.d
 alert("sessionId = " + sessionId);
 
 if (!sessionId) {
-  alert("sessionId is undefined!");
+  console.error("sessionId missing", res.data);
+  alert("Failed to create live session");
   return;
 }
 
