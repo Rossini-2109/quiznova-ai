@@ -64,7 +64,7 @@ if (!sessionId) {
   return;
 }
 
-router.push(`/teacher/live-session/${sessionId}`);
+router.push(`/teacher/live-session/${quizCode}`);
     } catch (error) {
       console.error("Error publishing quiz", error);
       alert("Failed to publish quiz. See console for details.");
