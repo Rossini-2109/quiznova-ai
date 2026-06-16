@@ -20,14 +20,19 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api
-  .get<Attempt[]>("/attempts/student")
-  .then((res: AxiosResponse<Attempt[]>) => {
-    setAttempts(res.data);
-  })
-      .catch((err) => console.error("History error", err))
-      .finally(() => setLoading(false));
-  }, []);
+  const loadHistory = async () => {
+    try {
+      const res = await api.get<Attempt[]>("/attempts/student");
+      setAttempts(res.data);
+    } catch (err: unknown) {
+      console.error("History error", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadHistory();
+}, []);
 
   return (
     <div className="space-y-8">
