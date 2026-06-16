@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, use } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import api from "@/services/api";
@@ -81,8 +81,8 @@ const THEME_CLASSES: Record<ThemeType, { bg: string; border: string; accent: str
   }
 };
 
-export default function TeacherLiveSessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
-  const { sessionId } = use(params);
+export default function TeacherLiveSessionPage() {
+  const { sessionId } = useParams();
   const router = useRouter();
 
   // State Management
@@ -114,7 +114,11 @@ export default function TeacherLiveSessionPage({ params }: { params: Promise<{ s
     submitSoundRef.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav");
 
     const loadSession = async () => {
-      try {
+  if (!sessionId) {
+    // Session ID not yet available; skip loading.
+    return;
+  }
+  try {
         const res = await api.get(`/LiveQuiz/by-id/${sessionId}`);
         const stateData = res.data.state;
         const fullSession = res.data.session;
