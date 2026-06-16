@@ -32,6 +32,7 @@ export default function PublishModal({ quizId, onClose }: PublishModalProps) {
   const [maxAttempts, setMaxAttempts] = useState(1);
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [sessionId, setSessionId] = useState("");
 
   // Lobby State
   const [quizCode, setQuizCode] = useState("");
@@ -41,38 +42,45 @@ export default function PublishModal({ quizId, onClose }: PublishModalProps) {
   const [hubConnection, setHubConnection] = useState<signalR.HubConnection | null>(null);
 
   const handlePublishSubmit = async () => {
-    try {
-      setIsPublishing(true);
-      const res = await api.put(`/quiz/publish/${quizId}`, {
-  maxAttempts,
-  shuffleQuestions
-});
+  try {
+    setIsPublishing(true);
 
-console.log("FULL RESPONSE:");
-console.log(res.data);
+    const res = await api.put(`/quiz/publish/${quizId}`, {
+      maxAttempts,
+      shuffleQuestions,
+    });
 
-console.log("FULL API RESPONSE:");
-console.log(JSON.stringify(res.data, null, 2));
+    console.log("Publish Response:", res.data);
 
-const { sessionId, quizCode: newCode, qrUrl: newQr, shareLink: newLink } = res.data;
+    const {
+      sessionId,
+      quizCode: newCode,
+      qrUrl: newQr,
+      shareLink: newLink,
+    } = res.data;
 
-alert("sessionId = " + sessionId);
-
-if (!sessionId) {
-  console.error("sessionId missing", res.data);
-  alert("Failed to create live session");
-  return;
-}
-
-router.push(`/teacher/live-session/${quizCode}`);
-    } catch (error) {
-      console.error("Error publishing quiz", error);
-      alert("Failed to publish quiz. See console for details.");
-    } finally {
-      setIsPublishing(false);
+    if (!sessionId) {
+      alert("Session ID missing from API response");
+      return;
     }
-  };
 
+    setSessionId(sessionId);
+    setQuizCode(newCode);
+    setQrUrl(newQr);
+    setShareLink(newLink);
+
+    setStep("lobby");
+
+    // redirect to monitoring dashboard
+    router.push(`/teacher/live-session/${sessionId}`);
+
+  } catch (error) {
+    console.error("Error publishing quiz:", error);
+    alert("Failed to publish quiz");
+  } finally {
+    setIsPublishing(false);
+  }
+};
  useEffect(() => {
   return () => {
     hubConnection?.stop().catch(console.error);
@@ -176,8 +184,13 @@ useEffect(() => {
                 {qrUrl && (
                   <div className="p-4 bg-white rounded-xl shadow-sm border border-zinc-100 flex items-center justify-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "")}${qrUrl}`} alt="QR Code" width={200} height={200} className="rounded-lg object-contain" />
-                  </div>
+                   <img
+  src={`${process.env.NEXT_PUBLIC_API_URL}/api/LiveQuiz/${quizCode}/qrcode`}
+  alt="QR Code"
+  width={200}
+  height={200}
+  className="rounded-lg"
+/></div>
                 )}
 
                 <div className="w-full">
