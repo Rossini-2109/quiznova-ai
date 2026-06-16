@@ -1,5 +1,5 @@
 "use client";
-
+import type { AxiosResponse } from "axios";
 import { useEffect, useState, useCallback } from "react";
 import api from "@/services/api";
 import {
@@ -152,9 +152,16 @@ function AddQuizModal({
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    api.get("/folders/unassigned-quizzes").then((r) => setAllQuizzes(r.data));
-  }, []);
+ useEffect(() => {
+  api
+    .get<QuizInFolder[]>("/folders/unassigned-quizzes")
+    .then((r: AxiosResponse<QuizInFolder[]>) => {
+      setAllQuizzes(r.data);
+    })
+    .catch((err: unknown) => {
+      console.error(err);
+    });
+}, []);
 
   const filtered = allQuizzes.filter((q) =>
     q.title.toLowerCase().includes(search.toLowerCase())
