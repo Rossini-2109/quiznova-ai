@@ -199,14 +199,16 @@ export default function TeacherLiveSessionPage({ params }: { params: Promise<{ s
         });
 
         connection.on("QuizEnded", () => {
-          setSession(prev => prev ? { ...prev, isEnded: true } : prev);
-          if (session) {
-            router.push(`/teacher/results/${session.quizId}`);
-          } else {
-            router.push(`/teacher/results/${fullSession.quizId}`);
-          }
-        });
+  setSession(prev => {
+    if (prev) {
+      router.push(`/teacher/results/${prev.quizId}`);
+      return { ...prev, isEnded: true };
+    }
 
+    router.push(`/teacher/results/${fullSession.quizId}`);
+    return prev;
+  });
+});
         await connection.start();
         // Join session group
         await connection.invoke("JoinSession", fullSession.sessionCode, "Teacher", "");
