@@ -44,14 +44,21 @@ export default function PublishModal({ quizId, onClose }: PublishModalProps) {
     try {
       setIsPublishing(true);
       const res = await api.put(`/quiz/publish/${quizId}`, {
-        maxAttempts,
-        shuffleQuestions
-      });
-      
-      const { sessionId, quizCode: newCode, qrUrl: newQr, shareLink: newLink } = res.data;
-      
-      onClose();
-      router.push(`/teacher/live-session/${sessionId}`);
+  maxAttempts,
+  shuffleQuestions
+});
+
+console.log("FULL RESPONSE:");
+console.log(res.data);
+
+const { sessionId, quizCode: newCode, qrUrl: newQr, shareLink: newLink } = res.data;
+
+console.log("sessionId =", sessionId);
+console.log("quizCode =", newCode);
+console.log("qrUrl =", newQr);
+console.log("shareLink =", newLink);
+
+router.push(`/teacher/live-session/${sessionId}`);
     } catch (error) {
       console.error("Error publishing quiz", error);
       alert("Failed to publish quiz. See console for details.");

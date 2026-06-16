@@ -67,9 +67,14 @@ export default function TeacherLiveDashboard() {
         const partsRes = await api.get(`/LiveQuiz/${sessionCode}/participants`);
         const filtered = partsRes.data.filter((p: any) => p.name && p.name.toLowerCase() !== "teacher");
         setParticipants(filtered);
-      } catch (err) {
-        console.error("Failed to load session state", err);
-      }
+      } catch (err: any) {
+  console.error("Error loading session:", err);
+
+  if (err.response) {
+    console.log("Status:", err.response.status);
+    console.log("Data:", err.response.data);
+  }
+}
     };
     
     fetchState();
@@ -136,9 +141,14 @@ export default function TeacherLiveDashboard() {
     }
     try {
       await startQuiz(sessionCode);
-    } catch (err) {
-      console.error('Failed to start quiz', err);
-    }
+    } catch (err: any) {
+  console.error("Error loading session:", err);
+
+  if (err.response) {
+    console.log("Status:", err.response.status);
+    console.log("Data:", err.response.data);
+  }
+}
   };
 
   const handleEndQuiz = async () => {
