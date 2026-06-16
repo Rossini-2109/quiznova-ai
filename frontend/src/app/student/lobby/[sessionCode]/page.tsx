@@ -1,6 +1,5 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import * as signalR from "@microsoft/signalr";
 import api from "@/services/api";
@@ -71,11 +70,16 @@ const [participants, setParticipants] = useState<Participant[]>([]);
     if (!isRegistered || !studentName) return;
 
     // Check if session is already started
-    api.get(`/LiveQuiz/${sessionCode}/state`).then((res) => {
-      if (res.data.isStarted && !res.data.isEnded) {
-        router.push(`/student/live/${sessionCode}`);
-      }
-    }).catch(console.error);
+    api
+  .get(`/LiveQuiz/${sessionCode}/state`)
+  .then((res: any) => {
+    if (res.data.isStarted && !res.data.isEnded) {
+      router.push(`/student/live/${sessionCode}`);
+    }
+  })
+  .catch((err: unknown) => {
+    console.error(err);
+  });
 
     const hubConnection =
       new signalR.HubConnectionBuilder()
