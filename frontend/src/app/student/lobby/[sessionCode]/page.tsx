@@ -1,9 +1,31 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import * as signalR from "@microsoft/signalr";
 import api from "@/services/api";
-import { Users,User, Loader2 } from "lucide-react";
+import type { AxiosResponse } from "axios";
+import { Users, User, Loader2 } from "lucide-react";
+
+interface Participant {
+  id: string;
+  name: string;
+  employeeId: string;
+  isConnected: boolean;
+  score: number;
+  correctAnswers: number;
+  wrongAnswers: number;
+  skippedAnswers: number;
+  averageTimeTakenMs: number;
+  suspicionScore: number;
+  rank: number;
+  currentQuestionIndex: number;
+}
+
+interface SessionState {
+  isStarted: boolean;
+  isEnded: boolean;
+}
 
 export default function LobbyPage() {
   const router = useRouter();
@@ -20,28 +42,10 @@ export default function LobbyPage() {
   const [empIdInput, setEmpIdInput] = useState("");
 
   const [studentName, setStudentName] = useState("");
-interface Participant {
-  id: string;
-  name: string;
-  employeeId: string;
-  isConnected: boolean;
-  score: number;
-  correctAnswers: number;
-  wrongAnswers: number;
-  skippedAnswers: number;
-  averageTimeTakenMs: number;
-  suspicionScore: number;
-  rank: number;
-  currentQuestionIndex: number;
-}
 
-const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
 
   const [countdown, setCountdown] = useState<number | null>(null);
-
-  // ----------------------------------------------------
-  // Registration
-  // ----------------------------------------------------
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,8 +55,7 @@ const [participants, setParticipants] = useState<Participant[]>([]);
       return;
     }
 
-    const combinedName =
-      `${nameInput.trim()} (${empIdInput.trim()})`;
+    const combinedName = `${nameInput.trim()} (${empIdInput.trim()})`;
 
     setStudentName(combinedName);
 
@@ -62,36 +65,30 @@ const [participants, setParticipants] = useState<Participant[]>([]);
     setIsRegistered(true);
   };
 
-  // ----------------------------------------------------
-  // SignalR Connection
-  // ----------------------------------------------------
-
   useEffect(() => {
     if (!isRegistered || !studentName) return;
 
-    // Check if session is already started
     api
-  .get(`/LiveQuiz/${sessionCode}/state`)
-  .then((res: any) => {
-    if (res.data.isStarted && !res.data.isEnded) {
-      router.push(`/student/live/${sessionCode}`);
-    }
-  })
-  .catch((err: unknown) => {
-    console.error(err);
-  });
+      .get(`/LiveQuiz/${sessionCode}/state`)
+      .then((res: AxiosResponse<SessionState>) => {
+        if (res.data.isStarted && !res.data.isEnded) {
+          router.push(`/student/live/${sessionCode}`);
+        }
+      })
+      .catch((err: unknown) => {
+        console.error("Session state error:", err);
+      });
 
-    const hubConnection =
-      new signalR.HubConnectionBuilder()
-        .withUrl(
-          `${
-            process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
-            "https://quiznova-ai-grdq.onrender.com"
-          }/quizHub`
-        )
-        .withAutomaticReconnect()
-        .configureLogging(signalR.LogLevel.Information)
-        .build();
+    const hubConnection = new signalR.HubConnectionBuilder()
+      .withUrl(
+        `${
+          process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+          "https://quiznova-ai-grdq.onrender.com"
+        }/quizHub`
+      )
+      .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Information)
+      .build();
 
     const connect = async () => {
       try {
@@ -105,8 +102,6 @@ const [participants, setParticipants] = useState<Participant[]>([]);
           studentName,
           localStorage.getItem("employeeId") || ""
         );
-        
-        
       } catch (err) {
         console.error("SignalR Error:", err);
       }
@@ -114,24 +109,41 @@ const [participants, setParticipants] = useState<Participant[]>([]);
 
     connect();
 
-    hubConnection.on("ParticipantListUpdated", (list: Participant[]) => {
-      const filtered = list.filter(
-        (p) => p.name && p.name.toLowerCase() !== "teacher"
-      );
-      setParticipants(filtered);
-    });
+    hubConnection.on(
+      "ParticipantListUpdated",
+      (list: Participant[]) => {
+        const filtered = list.filter(
+          (p) =>
+            p.name &&
+            p.name.toLowerCase() !== "teacher"
+        );
 
-    hubConnection.on("ParticipantJoined", (participant: Participant) => {
-      // Exclude teacher from the list
-      if (participant.name && participant.name.toLowerCase() === "teacher") return;
-      setParticipants((prev) => {
-        const exists = prev.some((p) => p.id === participant.id);
-        if (exists) return prev;
-        return [...prev, participant];
-      });
-    });
+        setParticipants(filtered);
+      }
+    );
 
-    // Teacher starts quiz
+    hubConnection.on(
+      "ParticipantJoined",
+      (participant: Participant) => {
+        if (
+          participant.name &&
+          participant.name.toLowerCase() === "teacher"
+        ) {
+          return;
+        }
+
+        setParticipants((prev) => {
+          const exists = prev.some(
+            (p) => p.id === participant.id
+          );
+
+          if (exists) return prev;
+
+          return [...prev, participant];
+        });
+      }
+    );
+
     hubConnection.on("QuizStarted", () => {
       setCountdown(3);
     });
@@ -143,27 +155,20 @@ const [participants, setParticipants] = useState<Participant[]>([]);
       hubConnection.off("ParticipantJoined");
       hubConnection.off("QuizStarted");
 
-      hubConnection
-        .stop()
-        .catch(() => {});
+      hubConnection.stop().catch(() => {});
     };
   }, [
     isRegistered,
     studentName,
     sessionCode,
+    router,
   ]);
-
-  // ----------------------------------------------------
-  // Countdown Logic
-  // ----------------------------------------------------
 
   useEffect(() => {
     if (countdown === null) return;
 
     if (countdown === 0) {
-      router.push(
-        `/student/live/${sessionCode}`
-      );
+      router.push(`/student/live/${sessionCode}`);
       return;
     }
 
@@ -174,20 +179,11 @@ const [participants, setParticipants] = useState<Participant[]>([]);
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [
-    countdown,
-    router,
-    sessionCode,
-  ]);
-
-  // ----------------------------------------------------
-  // UI
-  // ----------------------------------------------------
+  }, [countdown, router, sessionCode]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-zinc-900 via-indigo-950 to-zinc-900 p-4 text-white relative">
+    <div className="min-h-screen bg-gradient-to-br from-[#09041a] to-[#04020a] text-white flex items-center justify-center p-6">
 
-      {/* Countdown Overlay */}
       {countdown !== null && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-50">
           <div className="text-8xl font-black text-indigo-400 animate-pulse">
@@ -196,7 +192,6 @@ const [participants, setParticipants] = useState<Participant[]>([]);
         </div>
       )}
 
-      {/* Registration Modal */}
       {!isRegistered && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
           <div className="bg-white/10 border border-white/20 backdrop-blur-xl p-8 rounded-3xl shadow-2xl w-full max-w-sm">
@@ -253,7 +248,6 @@ const [participants, setParticipants] = useState<Participant[]>([]);
         </div>
       )}
 
-      {/* Lobby */}
       <div
         className={`bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl max-w-md w-full text-center transition-all duration-500 ${
           !isRegistered
@@ -296,9 +290,15 @@ const [participants, setParticipants] = useState<Participant[]>([]);
                   className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-left flex items-center space-x-3"
                 >
                   <User className="w-5 h-5 text-purple-400" />
+
                   <div className="flex flex-col">
-                    <span className="font-medium text-white">{p.name}</span>
-                    <span className="text-xs text-zinc-500">{p.employeeId}</span>
+                    <span className="font-medium text-white">
+                      {p.name}
+                    </span>
+
+                    <span className="text-xs text-zinc-500">
+                      {p.employeeId}
+                    </span>
                   </div>
                 </li>
               ))
