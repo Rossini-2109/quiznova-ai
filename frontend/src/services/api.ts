@@ -1,8 +1,12 @@
 import axios from "axios";
 
 const base = process.env.NEXT_PUBLIC_BACKEND_URL ? process.env.NEXT_PUBLIC_BACKEND_URL.replace(/\/+$/, "") : "https://quiznova-ai-grdq.onrender.com";
+const apiBase = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://quiznova-ai-grdq.onrender.com")
+  .replace(/\/+$/, "") // strip trailing slashes
+  .replace(/\/api$/i, "");
+
 const api = axios.create({
-  baseURL: `${base}/api`,
+  baseURL: `${apiBase}/api`,
 });
 
 if (process.env.NODE_ENV !== "production") {
