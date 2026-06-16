@@ -1,4 +1,5 @@
 "use client";
+import type { AxiosResponse } from "axios";
 
 import { useEffect, useState } from "react";
 import api from "@/services/api";
@@ -19,7 +20,12 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get<Attempt[]>("/attempts/student").then((res) => setAttempts(res.data))
+    api
+      .get("/attempts/student")
+      .then((res) => {
+        const data = res.data as Attempt[];
+        setAttempts(data);
+      })
       .catch((err) => console.error("History error", err))
       .finally(() => setLoading(false));
   }, []);
