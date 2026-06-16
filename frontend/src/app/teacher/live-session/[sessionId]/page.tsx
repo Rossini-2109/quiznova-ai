@@ -10,18 +10,9 @@ import {
   Palette, Users, Loader2, Check, X, ShieldAlert, ChevronLeft, ChevronRight, Sparkles, Copy 
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import TeacherLiveSessionPage from "@/components/TeacherLiveSessionPage";
 import { useParams } from "next/navigation";
 
-export default function Page() {
-  const params = useParams();
 
-  return (
-    <TeacherLiveSessionPage
-      sessionId={params.sessionId as string}
-    />
-  );
-}
 interface SessionState {
   id: string;
   sessionCode: string;
@@ -92,8 +83,10 @@ const THEME_CLASSES: Record<ThemeType, { bg: string; border: string; accent: str
   }
 };
 
-export default function TeacherLiveSessionPage({ sessionId }: { sessionId: string }) {
+export default function TeacherLiveSessionPage() {
+  const { sessionId } = useParams();
   const router = useRouter();
+  // sessionId obtained from URL params
 
   // State Management
   const [session, setSession] = useState<SessionState | null>(null);
