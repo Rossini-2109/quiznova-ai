@@ -51,12 +51,17 @@ export default function PublishModal({ quizId, onClose }: PublishModalProps) {
 console.log("FULL RESPONSE:");
 console.log(res.data);
 
+console.log("FULL API RESPONSE:");
+console.log(JSON.stringify(res.data, null, 2));
+
 const { sessionId, quizCode: newCode, qrUrl: newQr, shareLink: newLink } = res.data;
 
-console.log("sessionId =", sessionId);
-console.log("quizCode =", newCode);
-console.log("qrUrl =", newQr);
-console.log("shareLink =", newLink);
+alert("sessionId = " + sessionId);
+
+if (!sessionId) {
+  alert("sessionId is undefined!");
+  return;
+}
 
 router.push(`/teacher/live-session/${sessionId}`);
     } catch (error) {
