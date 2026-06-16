@@ -229,65 +229,39 @@ public async Task<IActionResult> UpdateQuiz(
 
 
     [HttpPut("publish/{id}")]
-    public async Task<IActionResult> PublishQuiz(Guid id, [FromBody] PublishQuizDto? dto)
+public async Task<IActionResult> PublishQuiz(Guid id)
+{
+    try
     {
-        try
+        var quiz = await _context.Quizzes
+            .FirstOrDefaultAsync(q => q.Id == id);
+
+        if (quiz == null)
+            return NotFound("Quiz not found");
+
+        quiz.Status = "Published";
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
         {
-            var quiz = await _context.Quizzes
-                .FirstOrDefaultAsync(q => q.Id == id);
-
-            if (quiz == null)
-            {
-                return NotFound("Quiz not found");
-            }
-
-            if (dto != null)
-            {
-                quiz.MaxAttempts = dto.MaxAttempts;
-                quiz.ShuffleQuestions = dto.ShuffleQuestions;
-            }
-
-            quiz.Status = "Published";
-            await _context.SaveChangesAsync();
-
-            // Create a live session using LiveQuizService
-            var teacherIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            var teacherId = teacherIdClaim != null ? Guid.Parse(teacherIdClaim.Value) : quiz.TeacherId;
-            
-            var session = await _liveQuizService.CreateSessionAsync(quiz.Id, teacherId);
-
-            // Construct a shareable link
-            var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "https://quiznova-ai-grdq.onrender.com";
-            var shareLink = $"{frontendUrl}/student/lobby/{session.SessionCode}";
-
-            // Generate QR code image
-            var qrGenerator = new QRCodeGenerator();
-            var qrData = qrGenerator.CreateQrCode(shareLink, QRCodeGenerator.ECCLevel.Q);
-            using var qrCode = new QRCode(qrData);
-            using var bitmap = qrCode.GetGraphic(20);
-            var qrPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "qrcodes", $"{session.SessionCode}.png");
-            Directory.CreateDirectory(Path.GetDirectoryName(qrPath));
-            bitmap.Save(qrPath, ImageFormat.Png);
-
-            return Ok(new
-            {
-                Message = "Quiz published successfully",
-                QuizCode = session.SessionCode,
-                SessionId = session.Id,
-                QRUrl = $"/qrcodes/{session.SessionCode}.png",
-                ShareLink = shareLink,
-                Quiz = quiz
-            });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new
-            {
-                Message = "Error publishing quiz",
-                Error = ex.Message
-            });
-        }
+            success = true,
+            message = "Quiz published successfully",
+            quizId = quiz.Id,
+            status = quiz.Status
+        });
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine(ex);
+
+        return StatusCode(500, new
+        {
+            Message = "Error publishing quiz",
+            Error = ex.Message
+        });
+    }
+}
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteQuiz(Guid id)
