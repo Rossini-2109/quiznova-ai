@@ -2,11 +2,7 @@
 
 import * as signalR from "@microsoft/signalr";
 
-const HUB_URL =
-  `${
-    process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ??
-    "https://quiznova-ai-grdq.onrender.com"
-  }/quizHub`;
+const HUB_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/\/+$/, "").replace(/\/api$/i, "") ?? "https://quiznova-ai-grdq.onrender.com"}/quizHub`;
 
 let connection: signalR.HubConnection | null = null;
 
