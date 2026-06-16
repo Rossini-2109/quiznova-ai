@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://quiznova-ai-grdq.onrender.com/api",
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || "https://quiznova-ai-grdq.onrender.com/api",
 });
 
 api.interceptors.request.use((config) => {
