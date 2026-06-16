@@ -19,8 +19,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/attempts/student")
-      .then((res) => setAttempts(res.data))
+    api.get<Attempt[]>("/attempts/student").then((res) => setAttempts(res.data))
       .catch((err) => console.error("History error", err))
       .finally(() => setLoading(false));
   }, []);
