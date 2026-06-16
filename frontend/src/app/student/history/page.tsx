@@ -21,11 +21,10 @@ export default function HistoryPage() {
 
   useEffect(() => {
     api
-      .get("/attempts/student")
-      .then((res) => {
-        const data = res.data as Attempt[];
-        setAttempts(data);
-      })
+  .get<Attempt[]>("/attempts/student")
+  .then((res: AxiosResponse<Attempt[]>) => {
+    setAttempts(res.data);
+  })
       .catch((err) => console.error("History error", err))
       .finally(() => setLoading(false));
   }, []);
