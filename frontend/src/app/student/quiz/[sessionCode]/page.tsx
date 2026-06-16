@@ -56,20 +56,20 @@ const [hub, setHub] = useState<signalR.HubConnection | null>(null);
       try {
         const res = await api.get(`/quiz/code/${sessionCode}`);
         const data = res.data;
+        const defaultTime = data.defaultQuestionTimeSeconds || data.timeLimit || 10;
         const loadedQuiz: Quiz = {
           id: data.id,
           title: data.title,
           description: data.description,
           difficulty: data.difficulty,
           timeLimit: data.timeLimit,
-          defaultQuestionTimeSeconds: data.defaultQuestionTimeSeconds || 10,
-          questions: data.questions,
+          defaultQuestionTimeSeconds: defaultTime,
+          questions: data.questions.map((q: Question) => ({
+            ...q,
+            questionTimeLimit: q.questionTimeLimit || defaultTime
+          })),
         } as Quiz;
         setQuiz(loadedQuiz);
-        // Initialise timer for the first question
-        const defaultTime = loadedQuiz.defaultQuestionTimeSeconds || 10;
-        const limit = loadedQuiz.questions?.[0]?.questionTimeLimit || defaultTime;
-        setTimeLeft(limit);
       } catch (e) {
         console.error(e);
         // Redirect back to lobby on error
