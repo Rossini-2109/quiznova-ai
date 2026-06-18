@@ -199,56 +199,6 @@ function deriveStats(results: StudentResult[], quiz: QuizDetails | undefined, pa
     incorrectTotal,
   };
 }
-  if (!results.length || !quiz) return null;
-
-  const scores      = results.map((r,ri) => r.percentage);
-  const avg         = scores.reduce((a, b) => a + b, 0) / scores.length;
-  const highest     = Math.max(...scores);
-  const lowest      = Math.min(...scores);
-  const passed      = results.filter((r) => r.percentage >= passPercentage).length;
-  const failed      = results.length - passed;
-  const passRate    = (passed / results.length) * 100;
-
-  const accuracies  = results.map((r,ri) => {
-    const attempted = r.attemptedQuestions ?? (r.correctAnswers + (r.wrongAnswers ?? 0));
-    if (!attempted) return 0;
-    return (r.correctAnswers / attempted) * 100;
-  });
-  const avgAccuracy = accuracies.reduce((a, b) => a + b, 0) / accuracies.length;
-
-  const times       = results.map((r,ri) => r.timeTaken).filter(Boolean) as number[];
-  const avgTime     = times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
-  const fastestTime = times.length ? Math.min(...times) : 0;
-  const slowestTime = times.length ? Math.max(...times) : 0;
-
-  // Ranked results: highest score → highest accuracy → fastest time
-  const ranked = [...results].sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    const accA = a.accuracy ?? (a.correctAnswers / Math.max(a.attemptedQuestions ?? a.totalQuestions, 1)) * 100;
-    const accB = b.accuracy ?? (b.correctAnswers / Math.max(b.attemptedQuestions ?? b.totalQuestions, 1)) * 100;
-    if (accB !== accA) return accB - accA;
-    return (a.timeTaken ?? Infinity) - (b.timeTaken ?? Infinity);
-  });
-
-  // Per-question accuracy from answers
-  const questionAccuracy: Record<number, { correct: number; wrong: number; skipped: number; total: number }> = {};
-  for (let i = 0; i < (quiz?.totalQuestions ?? 0); i++) {
-    questionAccuracy[i] = { correct: 0, wrong: 0, skipped: 0, total: 0 };
-  }
-  results.forEach((r) => {
-    if (!r.answers) return;
-    r.answers.forEach((a) => {
-      const idx = a.questionIndex;
-      if (questionAccuracy[idx] === undefined) questionAccuracy[idx] = { correct: 0, wrong: 0, skipped: 0, total: 0 };
-      questionAccuracy[idx].total++;
-      if (a.isCorrect === null || a.selectedAnswer === null) questionAccuracy[idx].skipped++;
-      else if (a.isCorrect) questionAccuracy[idx].correct++;
-      else questionAccuracy[idx].wrong++;
-    });
-  });
-
-  return { avg, highest, lowest, passed, failed, passRate, avgAccuracy, avgTime, fastestTime, slowestTime, ranked, questionAccuracy, accuracies };
-}
 
 /* ═══════════════════════════════ SUBCOMPONENTS ══════════════════════════════ */
 
