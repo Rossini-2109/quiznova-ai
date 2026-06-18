@@ -210,13 +210,75 @@ public async Task<IActionResult> UpdateQuiz(
     [FromBody] UpdateQuizDto dto)
 {
     var quiz = await _context.Quizzes
+        .Include(q => q.Questions)
         .FirstOrDefaultAsync(q => q.Id == id);
 
     if (quiz == null)
         return NotFound("Quiz not found");
 
     quiz.Title = dto.Title;
-    
+    quiz.Description = dto.Description;
+    quiz.Difficulty = dto.Difficulty;
+    quiz.TimeLimit = dto.TimeLimit;
+    if (dto.FolderId != null) quiz.FolderId = dto.FolderId;
+    if (dto.Tags != null) quiz.Tags = dto.Tags;
+    if (dto.Instructions != null) quiz.Instructions = dto.Instructions;
+    if (dto.DefaultQuestionTimeSeconds.HasValue) quiz.DefaultQuestionTimeSeconds = dto.DefaultQuestionTimeSeconds.Value;
+
+    if (dto.Questions != null)
+    {
+        var existingQuestions = quiz.Questions.ToList();
+        var incomingIds = dto.Questions
+            .Where(q => q.Id.HasValue)
+            .Select(q => q.Id!.Value)
+            .ToHashSet();
+
+        // Delete removed questions
+        foreach (var existingQ in existingQuestions)
+        {
+            if (!incomingIds.Contains(existingQ.Id))
+            {
+                _context.Questions.Remove(existingQ);
+            }
+        }
+
+        // Add or Update questions
+        int orderIndex = 0;
+        foreach (var incomingQ in dto.Questions)
+        {
+            Question? targetQ = null;
+            if (incomingQ.Id.HasValue)
+            {
+                targetQ = existingQuestions.FirstOrDefault(q => q.Id == incomingQ.Id.Value);
+            }
+
+            if (targetQ == null)
+            {
+                targetQ = new Question
+                {
+                    Id = incomingQ.Id ?? Guid.NewGuid(),
+                    QuizId = id
+                };
+                _context.Questions.Add(targetQ);
+            }
+
+            targetQ.QuestionText = incomingQ.QuestionText;
+            targetQ.OptionA = incomingQ.OptionA;
+            targetQ.OptionB = incomingQ.OptionB;
+            targetQ.OptionC = incomingQ.OptionC;
+            targetQ.OptionD = incomingQ.OptionD;
+            targetQ.OptionE = incomingQ.OptionE;
+            targetQ.CorrectAnswer = incomingQ.CorrectAnswer;
+            targetQ.QuestionTimeLimit = incomingQ.QuestionTimeLimit;
+            targetQ.OrderIndex = orderIndex++;
+            targetQ.QuestionImageUrl = incomingQ.QuestionImageUrl;
+            targetQ.OptionAImageUrl = incomingQ.OptionAImageUrl;
+            targetQ.OptionBImageUrl = incomingQ.OptionBImageUrl;
+            targetQ.OptionCImageUrl = incomingQ.OptionCImageUrl;
+            targetQ.OptionDImageUrl = incomingQ.OptionDImageUrl;
+            targetQ.OptionEImageUrl = incomingQ.OptionEImageUrl;
+        }
+    }
 
     await _context.SaveChangesAsync();
 
