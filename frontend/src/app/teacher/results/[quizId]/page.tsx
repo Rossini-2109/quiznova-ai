@@ -123,6 +123,84 @@ const rankMedal = (rank: number) => {
 function deriveStats(results: StudentResult[], quiz: QuizDetails | undefined, passPercentage: number) {
   if (!results.length || !quiz) return null;
 
+  const scores = results.map(r => r.percentage);
+  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const highest = Math.max(...scores);
+  const lowest = Math.min(...scores);
+
+  // total correct and incorrect answers across all students
+  const correctTotal = results.reduce((sum, r) => sum + r.correctAnswers, 0);
+  const incorrectTotal = results.reduce((sum, r) => {
+    const wrong = r.wrongAnswers ?? (
+      r.attemptedQuestions
+        ? r.attemptedQuestions - r.correctAnswers
+        : r.totalQuestions - r.correctAnswers - (r.unansweredQuestions ?? 0)
+    );
+    return sum + (wrong ?? 0);
+  }, 0);
+
+  const passed = results.filter(r => r.percentage >= passPercentage).length;
+  const failed = results.length - passed;
+  const passRate = (passed / results.length) * 100;
+
+  const accuracies = results.map(r => {
+    const attempted = r.attemptedQuestions ?? (r.correctAnswers + (r.wrongAnswers ?? 0));
+    if (!attempted) return 0;
+    return (r.correctAnswers / attempted) * 100;
+  });
+  const avgAccuracy = accuracies.reduce((a, b) => a + b, 0) / accuracies.length;
+
+  const times = results.map(r => r.timeTaken).filter(Boolean) as number[];
+  const avgTime = times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+  const fastestTime = times.length ? Math.min(...times) : 0;
+  const slowestTime = times.length ? Math.max(...times) : 0;
+
+  // Ranked results: highest score → highest accuracy → fastest time
+  const ranked = [...results].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const accA = a.accuracy ?? (a.correctAnswers / Math.max(a.attemptedQuestions ?? a.totalQuestions, 1)) * 100;
+    const accB = b.accuracy ?? (b.correctAnswers / Math.max(b.attemptedQuestions ?? b.totalQuestions, 1)) * 100;
+    if (accB !== accA) return accB - accA;
+    return (a.timeTaken ?? Infinity) - (b.timeTaken ?? Infinity);
+  });
+
+  // Per-question accuracy from answers
+  const questionAccuracy: Record<number, { correct: number; wrong: number; skipped: number; total: number }> = {};
+  for (let i = 0; i < (quiz?.totalQuestions ?? 0); i++) {
+    questionAccuracy[i] = { correct: 0, wrong: 0, skipped: 0, total: 0 };
+  }
+  results.forEach(r => {
+    if (!r.answers) return;
+    r.answers.forEach(a => {
+      const idx = a.questionIndex;
+      if (questionAccuracy[idx] === undefined) questionAccuracy[idx] = { correct: 0, wrong: 0, skipped: 0, total: 0 };
+      questionAccuracy[idx].total++;
+      if (a.isCorrect === null || a.selectedAnswer === null) questionAccuracy[idx].skipped++;
+      else if (a.isCorrect) questionAccuracy[idx].correct++;
+      else questionAccuracy[idx].wrong++;
+    });
+  });
+
+  return {
+    avg,
+    highest,
+    lowest,
+    passed,
+    failed,
+    passRate,
+    avgAccuracy,
+    avgTime,
+    fastestTime,
+    slowestTime,
+    ranked,
+    questionAccuracy,
+    accuracies,
+    correctTotal,
+    incorrectTotal,
+  };
+}
+  if (!results.length || !quiz) return null;
+
   const scores      = results.map((r,ri) => r.percentage);
   const avg         = scores.reduce((a, b) => a + b, 0) / scores.length;
   const highest     = Math.max(...scores);
@@ -418,18 +496,18 @@ export default function TeacherResultsPage({
           sub={quiz ? `${quiz.timeLimit} min limit` : undefined}
           color="emerald"
         />
-        <StatCard
+                <StatCard
           icon={<CheckCircle2 size={18} />}
-          label="Passed"
-          value={stats?.passed ?? "—"}
-          sub={stats ? `Pass rate: ${stats.passRate.toFixed(0)}%` : undefined}
+          label="Correct"
+          value={stats?.correctTotal ?? "—"}
+          sub={stats ? `Avg: ${stats.avgAccuracy.toFixed(1)}%` : undefined}
           color="emerald"
         />
         <StatCard
           icon={<XCircle size={18} />}
-          label="Failed"
-          value={stats?.failed ?? "—"}
-          sub={`Pass mark: ${passPercentage}%`}
+          label="Incorrect"
+          value={stats?.incorrectTotal ?? "—"}
+          sub={stats ? `Avg Incorrect: ${(100 - stats.avgAccuracy).toFixed(1)}%` : undefined}
           color="red"
         />
         <StatCard
@@ -654,28 +732,28 @@ export default function TeacherResultsPage({
                   )}
                 </div>
 
-                {/* Pass/Fail mini chart */}
-                {stats && (
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
-                    <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 mb-4">Pass vs Fail</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Passed ({stats.passed})</span>
-                          <span className="font-mono text-zinc-400">{stats.passRate.toFixed(0)}%</span>
-                        </div>
-                        <ProgressBar value={stats.passRate} color="bg-emerald-500" />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="text-red-500 font-semibold">Failed ({stats.failed})</span>
-                          <span className="font-mono text-zinc-400">{(100 - stats.passRate).toFixed(0)}%</span>
-                        </div>
-                        <ProgressBar value={100 - stats.passRate} color="bg-red-400" />
-                      </div>
-                    </div>
-                  </div>
-                )}
+{/* Correct/Incorrect mini chart */}
+{stats && (
+  <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
+    <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 mb-4">Correct vs Incorrect</h3>
+    <div className="space-y-3">
+      <div>
+        <div className="flex justify-between text-xs mb-1">
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Correct ({stats.correctTotal})</span>
+          <span className="font-mono text-zinc-400">{stats.avgAccuracy.toFixed(0)}%</span>
+        </div>
+        <ProgressBar value={stats.avgAccuracy} color="bg-emerald-500" />
+      </div>
+      <div>
+        <div className="flex justify-between text-xs mb-1">
+          <span className="text-red-500 font-semibold">Incorrect ({stats.incorrectTotal})</span>
+          <span className="font-mono text-zinc-400">{(100 - stats.avgAccuracy).toFixed(0)}%</span>
+        </div>
+        <ProgressBar value={100 - stats.avgAccuracy} color="bg-red-400" />
+      </div>
+    </div>
+  </div>
+)}
               </div>
             </div>
           )}
@@ -798,7 +876,7 @@ export default function TeacherResultsPage({
                             </span>
                           </th>
                         ))}
-                        <th className="py-3.5 px-5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Status</th>
+                        <th className="py-3.5 px-5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Correct/Incorrect</th>
                         <th className="py-3.5 px-5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 text-right">Submitted</th>
                         <th className="py-3.5 px-5 w-10" />
                       </tr>
@@ -826,10 +904,6 @@ export default function TeacherResultsPage({
                             {/* Student */}
                             <td className="py-4 px-5">
                               <div className="flex items-center gap-2.5">
-                                <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 text-xs font-black flex items-center justify-center shrink-0">
-                                  {(r.studentName ?? r.studentId)[0].toUpperCase()}
-                                </div>
-                                <div>
                                   <p className="font-semibold text-zinc-900 dark:text-zinc-100">
                                     {r.studentName ?? r.studentRegister ?? r.studentId.substring(0, 8) + "…"}
                                   </p>
@@ -837,7 +911,6 @@ export default function TeacherResultsPage({
                                     <p className="text-[10px] text-zinc-400 font-mono">{r.studentRegister}</p>
                                   )}
                                 </div>
-                              </div>
                             </td>
 
                             {/* Score */}

@@ -85,7 +85,7 @@ const [hub, setHub] = useState<signalR.HubConnection | null>(null);
   useEffect(() => {
     if (!sessionCode) return;
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:5000"}/quizHub`)
+      .withUrl(`${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "https://quiznova-ai-grdq.onrender.com"}/quizHub`)
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Information)
       .build();

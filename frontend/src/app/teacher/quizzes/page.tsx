@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/services/api";
-import { Plus, BookOpen, Clock, Activity, Share2, Edit3, Trash2, ShieldAlert, Sparkles, Trophy, Play } from "lucide-react";
+import { Plus, BookOpen, Clock, Activity, Share2, Edit3, Trash2, ShieldAlert, Sparkles, Trophy, Play, Search } from "lucide-react";
 import PublishModal from "./publish-modal";
 
 interface Quiz {
@@ -20,6 +20,7 @@ interface Quiz {
 export default function QuizManagementPage() {
   const router = useRouter();
   const [publishModalQuizId, setPublishModalQuizId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const {
     data: quizzes = [],
@@ -58,6 +59,11 @@ export default function QuizManagementPage() {
     }
   };
 
+  const filteredQuizzes = quizzes.filter((quiz) =>
+    quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (quiz.quizCode && quiz.quizCode.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   if (isLoading) {
     return <div className="p-8 text-center text-zinc-400">Loading quizzes...</div>;
   }
@@ -84,6 +90,20 @@ export default function QuizManagementPage() {
         </button>
       </div>
 
+      {/* Search Bar & Stats */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-3.5 top-3 text-zinc-400" size={18} />
+          <input
+            type="text"
+            placeholder="Search quizzes by title or code..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+          />
+        </div>
+      </div>
+
       {quizzes.length === 0 ? (
         /* Empty State */
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/50 rounded-3xl p-10 text-center max-w-md mx-auto shadow-sm">
@@ -101,10 +121,12 @@ export default function QuizManagementPage() {
             Create Your First Quiz
           </button>
         </div>
+      ) : filteredQuizzes.length === 0 ? (
+        <div className="text-center py-12 text-zinc-500">No quizzes match your search query.</div>
       ) : (
         /* Quizzes Grid */
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {quizzes.map((quiz) => (
+          {filteredQuizzes.map((quiz) => (
             <div
               key={quiz.id}
               className="bg-white dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/50 rounded-2xl p-6 shadow-sm flex flex-col justify-between hover:border-indigo-500/20 transition-all duration-300"
@@ -128,14 +150,10 @@ export default function QuizManagementPage() {
                 </p>
 
                 {/* Info row */}
-                <div className="grid grid-cols-3 gap-2 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800/50 rounded-xl p-3 mb-6 text-xs text-zinc-500 dark:text-zinc-400">
-                  <div className="text-center">
-                    <p className="font-semibold text-zinc-400">Difficulty</p>
-                    <p className="font-bold text-zinc-700 dark:text-zinc-300 mt-0.5">{quiz.difficulty}</p>
-                  </div>
-                  <div className="text-center border-x border-zinc-200/50 dark:border-zinc-800/50">
+                <div className="grid grid-cols-2 gap-2 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800/50 rounded-xl p-3 mb-6 text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="text-center border-r border-zinc-200/50 dark:border-zinc-800/50">
                     <p className="font-semibold text-zinc-400">Time Limit</p>
-                    <p className="font-bold text-zinc-700 dark:text-zinc-300 mt-0.5">{quiz.timeLimit}m</p>
+                    <p className="font-bold text-zinc-700 dark:text-zinc-300 mt-0.5">{quiz.timeLimit}s</p>
                   </div>
                   <div className="text-center">
                     <p className="font-semibold text-zinc-400">Join Code</p>
@@ -152,7 +170,7 @@ export default function QuizManagementPage() {
                   onClick={() => router.push(`/teacher/quizzes/${quiz.id}`)}
                   className="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
                 >
-                  Questions
+                  Add Question
                 </button>
 
                 <button
@@ -182,7 +200,7 @@ export default function QuizManagementPage() {
 
                 <button
                   onClick={() => handleDelete(quiz.id)}
-                  className={`p-2 bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white rounded-xl text-xs transition-colors cursor-pointer ${quiz.status !== "Published" ? 'ml-auto' : ''}`}
+                  className={`p-2 bg-red-500/10 hover:bg-red-50 text-red-600 hover:text-white rounded-xl text-xs transition-colors cursor-pointer ${quiz.status !== "Published" ? 'ml-auto' : ''}`}
                 >
                   <Trash2 size={14} />
                 </button>
