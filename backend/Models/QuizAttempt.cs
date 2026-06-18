@@ -52,6 +52,10 @@ public class QuizAttempt
     /// Completion status: Completed, Incomplete
     /// </summary>
     public string CompletionStatus { get; set; } = "Completed";
+    // New fields for batch reporting and snapshot of questions
+    public string BatchName { get; set; } = string.Empty; // e.g., "Session_20260615_1015"
+    public DateTime ExecutedAt { get; set; } = DateTime.UtcNow;
+    public string AttemptedQuestionsJson { get; set; } = string.Empty; // JSON snapshot of shuffled questions & answers
 
     // Stored in milliseconds
     public int TimeTakenMilliseconds { get; set; }
@@ -69,6 +73,8 @@ public class QuizAttempt
     public DateTime StartedAt { get; set; }
 
     public DateTime SubmittedAt { get; set; }
+    // Alias for when quiz ends
+    public DateTime? CompletedAt { get; set; }
 
     public DateTime? CompletedAt { get; set; }
 }

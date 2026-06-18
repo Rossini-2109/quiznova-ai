@@ -6,9 +6,5 @@ public class CreateQuizDto
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; } // optional now
     // other properties unchanged
-}
-{
-    public string Title { get; set; } = "";
-
 
 }

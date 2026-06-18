@@ -4,7 +4,7 @@ public class UpdateQuizDto
 {
     public string Title { get; set; } = string.Empty;
 
-    public string Description { get; set; } = string.Empty;
+    public string? Description { get; set; } = string.Empty; // optional
 
     public string Difficulty { get; set; } = string.Empty;
 
