@@ -103,6 +103,7 @@ interface QuizDetails {
   passPercentage?: number;
   createdAt?: string;
   questions?: QuizQuestion[];
+  tags?: string;
 }
 
 interface AIAnalytics {
@@ -1466,12 +1467,14 @@ export default function TeacherResultsPage({
               </div>
               
               <div className="flex flex-wrap gap-2.5">
-                {quiz?.tags && quiz.tags.split(",").map(t => t.trim()).filter(Boolean).length > 0 ? (
-                  quiz.tags.split(",").map(tag => (
-                    <span key={tag} className="text-xs px-3.5 py-1.5 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-xl border border-indigo-105 dark:border-indigo-805 font-semibold uppercase tracking-wide">
-                      🏷️ {tag}
-                    </span>
-                  ))
+                {quiz?.tags?.split(",")
+  .map(tag => tag.trim())
+  .filter(Boolean)
+  .map(tag => (
+    <span key={tag}>
+      🏷️ {tag}
+    </span>
+  )
                 ) : (
                   <>
                     <span className="text-xs px-3.5 py-1.5 bg-zinc-50 text-zinc-550 dark:bg-zinc-800 dark:text-zinc-400 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold">
