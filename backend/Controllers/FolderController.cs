@@ -1,7 +1,7 @@
 using backend.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using backend.Models;
 namespace backend.Controllers;
 
 [ApiController]
@@ -74,7 +74,7 @@ public class FolderController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateFolder([FromBody] CreateFolderLegacyDto dto)
     {
-        var folder = new Folder
+        var folder = new backend.Models.Folder
         {
             Id = Guid.NewGuid(),
             Name = dto.Name,
