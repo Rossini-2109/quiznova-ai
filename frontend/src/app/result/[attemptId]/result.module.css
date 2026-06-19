@@ -1,0 +1,103 @@
+.container {
+  padding: 2rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.badge {
+  background: #22c55e;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
+.dates {
+  margin-top: 1rem;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.icon {
+  font-size: 2rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.tabActive {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: white;
+}
+
+.overview {
+  margin-bottom: 2rem;
+}
+
+.questions {
+  margin-top: 2rem;
+}
+
+.questionCard {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.options {
+  margin-top: 10px;
+}
+
+.loader {
+  padding: 2rem;
+}
+
+.error {
+  color: red;
+  padding: 2rem;
+}
