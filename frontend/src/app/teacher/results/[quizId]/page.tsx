@@ -59,6 +59,8 @@ interface StudentResult {
 
   tabSwitches?: number;
   windowBlurs?: number;
+
+  completionStatus?: string;
 }
 
 interface QuestionAnswer {
@@ -1263,7 +1265,7 @@ export default function TeacherResultsPage({
                                   #{rank}
                                 </span>
                                 <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${
-                                  r.completionStatus === "Completed"
+                                  r.submittedAt
                                     ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
                                     : "bg-amber-50 text-amber-705 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
                                 }`}>
