@@ -395,19 +395,17 @@ export default function TeacherResultsPage({
         .map((q, idx) => [q.id, idx])
     );
     
-    return results.map(r => {
-      if (!r.answers) return r;
-      // Convert timeTaken to seconds
-      const timeTakenSecs = r.timeTakenMilliseconds ? r.timeTakenMilliseconds / 1000 : 0;
-      return {
-        ...r,
-        timeTaken: timeTakenSecs,
-        answers: r.answers.map(a => ({
-          ...a,
-          questionIndex: questionIdToIndex.get(a.questionId) ?? a.questionIndex
-        }))
-      };
-    });
+  return results.map(r => {
+  if (!r.answers) return r;
+
+  return {
+    ...r,
+    answers: r.answers.map(a => ({
+      ...a,
+      questionIndex: questionIdToIndex.get(a.questionId) ?? a.questionIndex
+    }))
+  };
+});
   }, [results, quiz]);
 
   const stats = useMemo(
