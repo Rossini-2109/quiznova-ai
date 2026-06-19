@@ -38,17 +38,25 @@ interface StudentResult {
   studentId: string;
   studentName?: string;
   studentRegister?: string;
+
   score: number;
   percentage: number;
+
   correctAnswers: number;
   wrongAnswers?: number;
   unansweredQuestions?: number;
+
   totalQuestions: number;
   attemptedQuestions?: number;
+
   accuracy?: number;
-  timeTaken?: number; // seconds
+  timeTaken?: number;
+
+  startedAt?: string;      // ADD THIS
   submittedAt: string;
+
   answers?: QuestionAnswer[];
+
   tabSwitches?: number;
   windowBlurs?: number;
 }
