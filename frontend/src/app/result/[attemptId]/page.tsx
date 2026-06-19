@@ -48,16 +48,24 @@ const createShareToken = async (attemptId: string): Promise<ShareResponse> => {
 export default function ResultPage() {
   const { attemptId } = useParams<{ attemptId: string }>();
 
-  const { data, isLoading, error } = useQuery(['attempt', attemptId], () => fetchAttempt(attemptId!));
-  const shareMutation = useMutation(() => createShareToken(attemptId!), {
-    onSuccess: (res) => {
-      navigator.clipboard.writeText(res.ShareUrl);
-      alert('Share link copied to clipboard!');
-    },
-    onError: () => {
-      alert('Failed to create share link');
-    },
-  });
+  const { data, isLoading, error } = useQuery({
+  queryKey: ["attempt", attemptId],
+  queryFn: () => fetchAttempt(attemptId!),
+  enabled: !!attemptId,
+});
+
+const shareMutation = useMutation({
+  mutationFn: () => createShareToken(attemptId!),
+
+  onSuccess: (res) => {
+    navigator.clipboard.writeText(res.ShareUrl);
+    alert("Share link copied to clipboard!");
+  },
+
+  onError: () => {
+    alert("Failed to create share link");
+  },
+});
 
   if (isLoading) return <div className={styles.loader}>Loading...</div>;
   if (error) return <div className={styles.error}>Error loading result.</div>;
