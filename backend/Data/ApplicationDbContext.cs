@@ -28,6 +28,7 @@ public class ApplicationDbContext : DbContext
     // Persisted Live Session Results
     public DbSet<QuizResult> QuizResults => Set<QuizResult>();
     public DbSet<StudentAnswer> StudentAnswers => Set<StudentAnswer>();
+    public DbSet<ShareToken> ShareTokens => Set<ShareToken>();
 
     // AI
     public DbSet<AIQuizLog> AIQuizLogs => Set<AIQuizLog>();

@@ -182,13 +182,39 @@ public class AttemptsController : ControllerBase
 
         return Ok(new
         {
+        return Ok(new
+        {
+            attempt.Id,
             attempt.Score,
             attempt.CorrectAnswers,
-            WrongAnswers =
-                attempt.TotalQuestions -
-                attempt.CorrectAnswers,
-            attempt.Percentage
+            WrongAnswers = attempt.TotalQuestions - attempt.CorrectAnswers,
+            attempt.Percentage,
+            attempt.StartedAt,
+            attempt.SubmittedAt,
+            attempt.TimeTakenMilliseconds
         });
+
+        // New endpoint to generate a shareable token for a quiz attempt
+        [HttpPost("share/{attemptId}")]
+        public async Task<IActionResult> CreateShareToken(Guid attemptId)
+        {
+            var attempt = await _context.QuizAttempts.FindAsync(attemptId);
+            if (attempt == null)
+                return NotFound("Attempt not found");
+
+            var token = new ShareToken
+            {
+                AttemptId = attemptId,
+                // Token generated automatically, no expiration by default
+            };
+            _context.ShareTokens.Add(token);
+            await _context.SaveChangesAsync();
+
+            var request = HttpContext.Request;
+            var baseUrl = $"{request.Scheme}://{request.Host}";
+            var shareUrl = $"{baseUrl}/share/{token.Token}";
+            return Ok(new { shareUrl });
+        }
     }
 
     
