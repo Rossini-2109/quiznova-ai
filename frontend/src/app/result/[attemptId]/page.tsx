@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import React from 'react';
+import api from "@/services/api";
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Check, X, Minus } from 'lucide-react';
@@ -37,12 +38,12 @@ interface ShareResponse {
 }
 
 const fetchAttempt = async (attemptId: string): Promise<AttemptResult> => {
-  const { data } = await axios.get(`/api/attempts/${attemptId}`);
+  const { data } = await api.get(`/attempts/${attemptId}`);
   return data;
 };
 
 const createShareToken = async (attemptId: string): Promise<ShareResponse> => {
-  const { data } = await axios.post(`/api/attempts/share/${attemptId}`);
+  const { data } = await api.post(`/attempts/share/${attemptId}`);
   return data;
 };
 
