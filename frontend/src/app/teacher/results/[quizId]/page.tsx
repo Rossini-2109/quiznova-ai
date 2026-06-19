@@ -1555,39 +1555,4 @@ export default function TeacherResultsPage({
       )}
     </div>
   );
-
-                        return (
-                          <tr key={`${r.studentId}-${ri}`} className="hover:bg-zinc-50/40 dark:hover:bg-zinc-800/20 transition-colors">
-                            <td className="py-4 px-5 font-semibold text-zinc-900 dark:text-zinc-100">
-                              {r.studentName ?? r.studentRegister ?? r.studentId.substring(0, 10) + "…"}
-                            </td>
-                            <td className="py-4 px-5">
-                              <span className={`font-mono font-bold ${tabs > 2 ? "text-amber-600 dark:text-amber-400" : "text-zinc-500"}`}>
-                                {tabs}
-                              </span>
-                            </td>
-                            <td className="py-4 px-5">
-                              <span className={`font-mono font-bold ${blurs > 3 ? "text-red-500" : "text-zinc-500"}`}>
-                                {blurs}
-                              </span>
-                            </td>
-                            <td className="py-4 px-5">
-                              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${riskCx}`}>
-                                {risk === "High" && <AlertTriangle size={10} />}
-                                {risk} Risk
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
 }
