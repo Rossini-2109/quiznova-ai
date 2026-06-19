@@ -133,9 +133,59 @@
   margin: 0.25rem 0;
 }
 
-.loader, .error {
+.participantsTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+}
+
+.participantsTable th,
+.participantsTable td {
+  padding: 0.75rem 0.5rem;
   text-align: center;
-  padding: 2rem;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.participantsTable th {
+  background: rgba(255,255,255,0.12);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.participantsTable tbody tr:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.answerCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.correct {
+  background: rgba(34,197,94,0.3); /* green */
+  color: #fff;
+}
+
+.wrong {
+  background: rgba(239,68,68,0.3); /* red */
+  color: #fff;
+}
+
+.notAttempted {
+  background: rgba(156,163,175,0.3); /* gray */
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .participantsTable th {
+    background: rgba(0,0,0,0.4);
+  }
+  .correct { background: rgba(76,173,80,0.5); }
+  .wrong { background: rgba(239,68,68,0.5); }
+  .notAttempted { background: rgba(107,114,128,0.5); }
 }
 .error { color: #f44336; }
 

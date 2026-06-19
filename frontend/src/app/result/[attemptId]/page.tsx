@@ -3,7 +3,7 @@ import { useState } from 'react';
 import React from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import axios from 'axios';
+import { Check, X, Minus } from 'lucide-react';
 import styles from './result.module.css';
 
 // Types
