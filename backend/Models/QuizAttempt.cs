@@ -76,5 +76,5 @@ public class QuizAttempt
     // Alias for when quiz ends
     public DateTime? CompletedAt { get; set; }
 
-    public DateTime? CompletedAt { get; set; }
+    
 }
