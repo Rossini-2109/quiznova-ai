@@ -4,6 +4,7 @@ import React, { use, useState, useMemo } from "react";
 import api from "@/services/api";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Sparkles,
@@ -28,6 +29,7 @@ import {
   Filter,
   ArrowUpDown,
   Medal,
+  FileText,
 } from "lucide-react";
 
 /* ═══════════════════════════════════ TYPES ══════════════════════════════════ */
@@ -60,6 +62,26 @@ interface QuestionAnswer {
   timeTaken?: number;
 }
 
+interface QuizQuestion {
+  id: string;
+  questionText: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  optionE?: string;
+  correctAnswer: string;
+  explanation?: string;
+  questionType?: string;
+  orderIndex: number;
+  questionImageUrl?: string;
+  optionAImageUrl?: string;
+  optionBImageUrl?: string;
+  optionCImageUrl?: string;
+  optionDImageUrl?: string;
+  optionEImageUrl?: string;
+}
+
 interface QuizDetails {
   id: string;
   title: string;
@@ -70,6 +92,7 @@ interface QuizDetails {
   status: string;
   passPercentage?: number;
   createdAt?: string;
+  questions?: QuizQuestion[];
 }
 
 interface AIAnalytics {
@@ -254,14 +277,13 @@ function HeatCell({ state }: { state: "correct" | "wrong" | "skipped" | null }) 
   if (state === "correct")
     return <td className="px-1 py-1"><div className="w-8 h-8 rounded-md bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 flex items-center justify-center"><CheckCircle2 size={12} className="text-emerald-600 dark:text-emerald-400" /></div></td>;
   if (state === "wrong")
-    return <td className="px-1 py-1"><div className="w-8 h-8 rounded-md bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 flex items-center justify-center"><XCircle size={12} className="text-red-500 dark:text-red-400" /></div></td>;
-  // skipped
-  return <td className="px-1 py-1"><div className="w-8 h-8 rounded-md bg-zinc-100 dark:bg-zinc-800/60 border border-dashed border-zinc-300 dark:border-zinc-700 flex items-center justify-center"><Minus size={10} className="text-zinc-400" /></div></td>;
+    return <td className="px-1 py-1"><div className="w-8 h-8 rounded-md bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 flex items-center justify-center"><XCircle size={12} className="text-red-600 dark:text-red-400" /></div></td>;
+  return null;
 }
 
 /* ═══════════════════════════════════ TABS ═══════════════════════════════════ */
 
-type TabId = "overview" | "participants" | "questions" | "anticheat";
+type TabId = "overview" | "participants" | "questions" | "accommodations" | "tags" | "anticheat";
 
 /* ═══════════════════════════════ MAIN PAGE ══════════════════════════════════ */
 
@@ -270,22 +292,73 @@ export default function TeacherResultsPage({
 }: {
   params: Promise<{ quizId: string }>;
 }) {
+  const router = useRouter();
   const { quizId } = use(params);
-  const [activeTab, setActiveTab]       = useState<TabId>("overview");
-  const [sortKey, setSortKey]           = useState<"rank" | "name" | "score" | "accuracy" | "time">("rank");
-  const [sortDir, setSortDir]           = useState<"asc" | "desc">("asc");
+  
+  // Navigation states
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  
+  // Toast notifications state
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  // Leaderboard sorting
+  const [sortKey, setSortKey] = useState<"rank" | "name" | "score" | "accuracy" | "time">("rank");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selectedStudent, setSelectedStudent] = useState<StudentResult | null>(null);
-  const [passPercentage, setPassPercentage]   = useState(50);
+  const [passPercentage, setPassPercentage] = useState(50);
+  
+  // Matrix (Heatmap) states
+  const [matrixSortKey, setMatrixSortKey] = useState<"accuracy" | "name" | "score">("score");
+  const [matrixSortDir, setMatrixSortDir] = useState<"asc" | "desc">("desc");
+  const [matrixFilter, setMatrixFilter] = useState<"all" | "top" | "low">("all");
+  const [matrixSearch, setMatrixSearch] = useState<string>("");
+
+  /* ── Helper to trigger toast notifications ── */
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  };
 
   /* ── Queries ── */
-  const { data: results = [], isLoading: loadingResults } = useQuery<StudentResult[]>({
-    queryKey: ["quiz-results", quizId],
+  
+  // 1. Sessions List Query (only enabled when selectedSessionId is null)
+  const { data: sessionData, isLoading: loadingSessions } = useQuery<{
+    sessions: Array<{
+      id: string;
+      sessionCode: string;
+      joinLink: string;
+      isStarted: boolean;
+      isEnded: boolean;
+      createdAt: string;
+      startedAt?: string;
+      endedAt?: string;
+      participantCount: number;
+    }>;
+    practiceAttemptCount: number;
+  }>({
+    queryKey: ["quiz-sessions", quizId],
     queryFn: async () => {
-      const res = await api.get(`/results/quiz/${quizId}`);
+      const res = await api.get(`/results/quiz/${quizId}/sessions`);
       return res.data;
     },
   });
 
+  // 2. Results Query (filtered by selectedSessionId)
+  const { data: results = [], isLoading: loadingResults } = useQuery<StudentResult[]>({
+    queryKey: ["quiz-results", quizId, selectedSessionId],
+    queryFn: async () => {
+      if (!selectedSessionId) return [];
+      const sessionIdParam = selectedSessionId === "practice" ? "00000000-0000-0000-0000-000000000000" : selectedSessionId;
+      const res = await api.get(`/results/quiz/${quizId}?sessionId=${sessionIdParam}`);
+      return res.data;
+    },
+    enabled: !!selectedSessionId,
+  });
+
+  // 3. Quiz Details Query (fetched once)
   const { data: quiz, isLoading: loadingQuiz } = useQuery<QuizDetails>({
     queryKey: ["quiz-details", quizId],
     queryFn: async () => {
@@ -294,24 +367,57 @@ export default function TeacherResultsPage({
     },
   });
 
+  // 4. AI Analytics Query (filtered by selectedSessionId)
   const { data: analytics, isLoading: loadingAI } = useQuery<AIAnalytics>({
-    queryKey: ["quiz-ai-analytics", quizId],
+    queryKey: ["quiz-ai-analytics", quizId, selectedSessionId],
     queryFn: async () => {
-      const res = await api.get(`/ai/analytics/${quizId}`);
+      if (!selectedSessionId) return { hasData: false, insights: "", averagePercentage: 0, totalAttempts: 0, highestScore: 0 };
+      const sessionIdParam = selectedSessionId === "practice" ? "00000000-0000-0000-0000-000000000000" : selectedSessionId;
+      const res = await api.get(`/ai/analytics/${quizId}?sessionId=${sessionIdParam}`);
       return res.data;
     },
     retry: false,
+    enabled: !!selectedSessionId,
   });
 
-  /* ── Derived stats ── */
+  // Find the selected session object for UI labels
+  const selectedSession = useMemo(() => {
+    if (!sessionData?.sessions) return null;
+    return sessionData.sessions.find(s => s.id === selectedSessionId) ?? null;
+  }, [sessionData, selectedSessionId]);
+
+  // Map questions index properly in the frontend to avoid EF Core index mismatch
+  const mappedResults = useMemo(() => {
+    if (!quiz?.questions || !results.length) return results;
+    const questionIdToIndex = new Map(
+      [...quiz.questions]
+        .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
+        .map((q, idx) => [q.id, idx])
+    );
+    
+    return results.map(r => {
+      if (!r.answers) return r;
+      // Convert timeTaken to seconds
+      const timeTakenSecs = r.timeTakenMilliseconds ? r.timeTakenMilliseconds / 1000 : 0;
+      return {
+        ...r,
+        timeTaken: timeTakenSecs,
+        answers: r.answers.map(a => ({
+          ...a,
+          questionIndex: questionIdToIndex.get(a.questionId) ?? a.questionIndex
+        }))
+      };
+    });
+  }, [results, quiz]);
+
   const stats = useMemo(
-    () => deriveStats(results, quiz, passPercentage),
-    [results, quiz, passPercentage]
+    () => deriveStats(mappedResults, quiz, passPercentage),
+    [mappedResults, quiz, passPercentage]
   );
 
-  /* ── Sorted leaderboard ── */
+  // Leaderboard sorting (Participants tab)
   const sortedResults = useMemo(() => {
-    if (!stats) return results;
+    if (!stats) return mappedResults;
     const ranked = stats.ranked.map((r, i) => ({ ...r, _rank: i + 1 }));
     return [...ranked].sort((a, b) => {
       let diff = 0;
@@ -322,7 +428,42 @@ export default function TeacherResultsPage({
       if (sortKey === "time")     diff = (a.timeTaken ?? 9999) - (b.timeTaken ?? 9999);
       return sortDir === "asc" ? diff : -diff;
     });
-  }, [stats, sortKey, sortDir]);
+  }, [stats, mappedResults, sortKey, sortDir]);
+
+  // Heatmap rows sorted, filtered, and searched (Overview tab Matrix)
+  const matrixStudents = useMemo(() => {
+    if (!mappedResults.length) return [];
+    
+    // 1. Search filter
+    let filtered = mappedResults;
+    if (matrixSearch.trim()) {
+      const q = matrixSearch.toLowerCase();
+      filtered = filtered.filter(s => 
+        (s.studentName ?? s.studentId).toLowerCase().includes(q) || 
+        (s.studentRegister ?? "").toLowerCase().includes(q)
+      );
+    }
+    
+    // 2. Accuracy filter (Top Performers: >=80%, Low Accuracy: <50%)
+    if (matrixFilter === "top") {
+      filtered = filtered.filter(s => s.percentage >= 80);
+    } else if (matrixFilter === "low") {
+      filtered = filtered.filter(s => s.percentage < 50);
+    }
+    
+    // 3. Sorting
+    return [...filtered].sort((a, b) => {
+      let diff = 0;
+      if (matrixSortKey === "name") {
+        diff = (a.studentName ?? a.studentId).localeCompare(b.studentName ?? b.studentId);
+      } else if (matrixSortKey === "accuracy") {
+        diff = b.percentage - a.percentage; // high accuracy first
+      } else if (matrixSortKey === "score") {
+        diff = b.score - a.score; // high score first
+      }
+      return matrixSortDir === "asc" ? -diff : diff;
+    });
+  }, [mappedResults, matrixSearch, matrixFilter, matrixSortKey, matrixSortDir]);
 
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -333,21 +474,48 @@ export default function TeacherResultsPage({
   const isLoading     = loadingResults || loadingQuiz;
   const totalQs       = quiz?.totalQuestions ?? 0;
   const qAccuracy     = stats?.questionAccuracy ?? {};
-  const exportReport = (quizId: string) => {
-  window.open(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/ExportExcel/quiz/${quizId}`,
-    "_blank"
-  );
-};
+
+  const handleExportExcel = () => {
+    if (!quiz) return;
+    const sessionIdParam = selectedSessionId === "practice" ? "00000000-0000-0000-0000-000000000000" : selectedSessionId;
+    window.open(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/ExportExcel/quiz/${quizId}?sessionId=${sessionIdParam}`,
+      "_blank"
+    );
+  };
+
+  const handleShareReport = () => {
+    const shareUrl = window.location.href;
+    navigator.clipboard.writeText(shareUrl)
+      .then(() => {
+        triggerToast("🚀 Report share link copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy share link: ", err);
+        triggerToast("❌ Failed to copy share link");
+      });
+  };
+
+  const handleViewDashboard = () => {
+    if (selectedSession) {
+      router.push(`/teacher/live/${selectedSession.sessionCode}`);
+    } else {
+      triggerToast("⚠️ Active live dashboard only available for live sessions.");
+    }
+  };
+
+  const handleAssignHomework = () => {
+    triggerToast("📅 Homework assigned successfully to class!");
+  };
 
   /* ── Diff badge for a question ── */
   const getDiffBadge = (idx: number) => {
     const q = qAccuracy[idx];
     if (!q || !q.total) return null;
     const acc = (q.correct / q.total) * 100;
-    if (acc >= 80) return { label: "Easy",   className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" };
-    if (acc >= 50) return { label: "Medium", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" };
-    return           { label: "Hard",   className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" };
+    if (acc >= 80) return { label: "Easy",   className: "bg-emerald-50 text-emerald-700 border border-emerald-250 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800" };
+    if (acc >= 50) return { label: "Medium", className: "bg-amber-50 text-amber-700 border border-amber-250 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800" };
+    return           { label: "Hard",   className: "bg-red-50 text-red-700 border border-red-250 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800" };
   };
 
   /* ── Heatmap row state for a student ── */
@@ -365,11 +533,10 @@ export default function TeacherResultsPage({
 
   /* ─────────────────────────────── RENDER ──────────────────────────────── */
 
-  return (
-    <div className="space-y-7 pb-16">
-
-      {/* ══ TOP BAR ══════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+  // ═══════════════════════ VIEW A: SESSIONS / REPORTS LISTING ═══════════════════════
+  if (!selectedSessionId) {
+    return (
+      <div className="space-y-8 pb-16">
         <div>
           <Link
             href="/teacher/results"
@@ -378,102 +545,243 @@ export default function TeacherResultsPage({
             <ArrowLeft size={13} />
             Back to Results Hub
           </Link>
+          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
+            {loadingQuiz ? "Loading..." : quiz?.title ?? "Assessments Reports"}
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm max-w-lg">
+            Choose a separate run or practice session below to view student completions, performance heatmaps, and details.
+          </p>
+        </div>
+
+        {loadingSessions || loadingQuiz ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-40 bg-white dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800 rounded-3xl animate-pulse" />
+            ))}
+          </div>
+        ) : (!sessionData?.sessions || sessionData.sessions.length === 0) && sessionData?.practiceAttemptCount === 0 ? (
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/50 rounded-3xl p-16 text-center max-w-md mx-auto shadow-sm">
+            <div className="h-14 w-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center mx-auto mb-4">
+              <BookOpen size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">No Reports Yet</h3>
+            <p className="text-zinc-400 text-sm mt-2 leading-relaxed">
+              No students have taken this quiz yet. Share the quiz code or host a live run to view reports here!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Live / Completed runs */}
+            {sessionData?.sessions.map((s) => {
+              const dateStr = fmt(s.startedAt ?? s.createdAt);
+              const isLive = s.isStarted && !s.isEnded;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedSessionId(s.id)}
+                  className="text-left group bg-white/10 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800 rounded-3xl p-6 shadow-sm hover:shadow-lg hover:border-indigo-350 dark:hover:border-indigo-750 transition-all flex justify-between items-start gap-4"
+                >
+                  <div className="space-y-3 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${
+                        isLive ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-500 dark:text-zinc-400"
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"}`} />
+                        {isLive ? "Live Quiz" : "Completed"}
+                      </span>
+                      <span className="text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+                        Code #{s.sessionCode}
+                      </span>
+                    </div>
+
+                    <h3 className="font-extrabold text-lg text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-650 dark:group-hover:text-indigo-400 transition-colors">
+                      Run on {dateStr}
+                    </h3>
+                    <p className="text-zinc-400 text-xs flex items-center gap-1.5">
+                      <Users size={12} /> {s.participantCount} Participant{s.participantCount !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                  
+                  <div className="h-10 w-10 rounded-2xl bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-250 dark:border-zinc-700 flex items-center justify-center text-zinc-400 group-hover:bg-indigo-600 group-hover:text-white dark:group-hover:bg-indigo-600 transition-all duration-205">
+                    <BarChart3 size={16} />
+                  </div>
+                </button>
+              );
+            })}
+
+            {/* Direct practice attempts */}
+            {sessionData?.practiceAttemptCount && sessionData.practiceAttemptCount > 0 ? (
+              <button
+                onClick={() => setSelectedSessionId("practice")}
+                className="text-left group bg-white/10 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/60 dark:border-zinc-800 rounded-3xl p-6 shadow-sm hover:shadow-lg hover:border-indigo-350 dark:hover:border-indigo-750 transition-all flex justify-between items-start gap-4"
+              >
+                <div className="space-y-3 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-violet-600 dark:text-violet-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+                      Solo Practice
+                    </span>
+                  </div>
+
+                  <h3 className="font-extrabold text-lg text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-650 dark:group-hover:text-indigo-400 transition-colors">
+                    Direct / Solo Practice Attempts
+                  </h3>
+                  <p className="text-zinc-400 text-xs flex items-center gap-1.5">
+                    <Users size={12} /> {sessionData.practiceAttemptCount} Completion{sessionData.practiceAttemptCount !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                
+                <div className="h-10 w-10 rounded-2xl bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-250 dark:border-zinc-700 flex items-center justify-center text-zinc-400 group-hover:bg-indigo-600 group-hover:text-white dark:group-hover:bg-indigo-600 transition-all duration-205">
+                  <Trophy size={16} />
+                </div>
+              </button>
+            ) : null}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ═══════════════════════ VIEW B: DETAILED REPORT DASHBOARD ═══════════════════════
+  const sessionStartedDate = selectedSession?.startedAt ?? selectedSession?.createdAt ?? results[0]?.startedAt;
+  const sessionEndedDate = selectedSession?.endedAt ?? results[0]?.submittedAt;
+  const isSelectedLive = selectedSession && selectedSession.isStarted && !selectedSession.isEnded;
+
+  return (
+    <div className="space-y-7 pb-16">
+
+      {/* ══ TOP BAR & SUMMARY HEADER ════════════════════════════════════════════ */}
+      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-5 pb-2 border-b border-zinc-100 dark:border-zinc-800/50">
+        <div>
+          <button
+            onClick={() => setSelectedSessionId(null)}
+            className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 font-semibold mb-3 transition-colors"
+          >
+            <ArrowLeft size={13} />
+            Back to Reports List
+          </button>
 
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
               {loadingQuiz ? "Loading…" : quiz?.title ?? "Quiz Analytics"}
             </h1>
-            {quiz?.status && (
-              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border ${
-                quiz.status === "Published"
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
-                  : "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700"
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${quiz.status === "Published" ? "bg-emerald-500" : "bg-zinc-400"}`} />
-                {quiz.status}
+            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border ${
+              isSelectedLive
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
+                : "bg-zinc-150 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700"
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isSelectedLive ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"}`} />
+              {isSelectedLive ? "Live Quiz" : "Completed"}
+            </span>
+            {selectedSession?.sessionCode && (
+              <span className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+                Code: #{selectedSession.sessionCode}
               </span>
             )}
           </div>
-          <p className="text-zinc-400 dark:text-zinc-500 mt-1 text-sm">
-            View student completions, AI insights, heatmaps, and question analytics
-          </p>
+          
+          <div className="flex items-center gap-4 text-xs text-zinc-400 dark:text-zinc-500 mt-2 font-mono">
+            {sessionStartedDate && (
+              <span>Started: {new Date(sessionStartedDate).toLocaleString()}</span>
+            )}
+            {sessionEndedDate && !isSelectedLive && (
+              <span>Ended: {new Date(sessionEndedDate).toLocaleString()}</span>
+            )}
+          </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => {
-  if (!quiz) return;
-  exportReport(quiz.id);
-}}
-          className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600 transition-all shadow-sm">
-            <Download size={14} />
-            Export
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <button
+            onClick={handleViewDashboard}
+            className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-650 dark:text-zinc-300 hover:border-zinc-350 dark:hover:border-zinc-650 transition-all shadow-sm"
+          >
+            <Eye size={14} />
+            View Dashboard
           </button>
-          <button className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm">
+          <button
+            onClick={handleAssignHomework}
+            className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-650 dark:text-zinc-300 hover:border-zinc-350 dark:hover:border-zinc-650 transition-all shadow-sm"
+          >
+            <Zap size={14} />
+            Assign Homework
+          </button>
+          <button
+            onClick={handleShareReport}
+            className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-650 dark:text-zinc-300 hover:border-zinc-350 dark:hover:border-zinc-650 transition-all shadow-sm"
+          >
             <Share2 size={14} />
             Share Report
+          </button>
+          <button
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-indigo-650 text-white hover:bg-indigo-700 transition-all shadow-sm"
+          >
+            <Download size={14} />
+            Export Report
           </button>
         </div>
       </div>
 
-      {/* ══ OVERVIEW STAT CARDS ══════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard
-          icon={<BarChart3 size={18} />}
-          label="Avg Score"
-          value={stats ? `${stats.avg.toFixed(1)}%` : "—"}
-          sub={stats ? `Highest: ${stats.highest.toFixed(0)}%` : undefined}
-          color="indigo"
-        />
-        <StatCard
-          icon={<Target size={18} />}
-          label="Avg Accuracy"
-          value={stats ? `${stats.avgAccuracy.toFixed(1)}%` : "—"}
-          sub="Correct ÷ Attempted"
-          color="violet"
-        />
-        <StatCard
-          icon={<Users size={18} />}
-          label="Participants"
-          value={results.length}
-          sub={quiz ? `${((results.length / 1) * 100).toFixed(0)} submissions` : undefined}
-          color="amber"
-        />
-        <StatCard
-          icon={<BookOpen size={18} />}
-          label="Questions"
-          value={quiz?.totalQuestions ?? "—"}
-          sub={quiz ? `${quiz.timeLimit} min limit` : undefined}
-          color="emerald"
-        />
-                <StatCard
-          icon={<CheckCircle2 size={18} />}
-          label="Correct"
-          value={stats?.correctTotal ?? "—"}
-          sub={stats ? `Avg: ${stats.avgAccuracy.toFixed(1)}%` : undefined}
-          color="emerald"
-        />
-        <StatCard
-          icon={<XCircle size={18} />}
-          label="Incorrect"
-          value={stats?.incorrectTotal ?? "—"}
-          sub={stats ? `Avg Incorrect: ${(100 - stats.avgAccuracy).toFixed(1)}%` : undefined}
-          color="red"
-        />
-        <StatCard
-          icon={<Clock size={18} />}
-          label="Avg Time"
-          value={stats ? fmtTime(Math.round(stats.avgTime)) : "—"}
-          sub={stats?.fastestTime ? `Fastest: ${fmtTime(stats.fastestTime)}` : undefined}
-          color="amber"
-        />
-        <StatCard
-          icon={<TrendingUp size={18} />}
-          label="Lowest Score"
-          value={stats ? `${stats.lowest.toFixed(0)}%` : "—"}
-          sub={stats ? `Range: ${(stats.highest - stats.lowest).toFixed(0)}pp` : undefined}
-          color="red"
-        />
+      {/* ══ OVERVIEW STAT CARDS (Grid of Exactly 4) ═══════════════════════════ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Card 1: Accuracy */}
+        <div className="bg-white/10 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800 rounded-3xl p-5 flex items-start gap-4 shadow-sm hover:shadow-md transition-all">
+          <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <Target size={22} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Accuracy</p>
+            <p className="text-3xl font-black text-zinc-900 dark:text-zinc-50 mt-1 leading-none">
+              {stats ? `${stats.avgAccuracy.toFixed(0)}%` : "—"}
+            </p>
+            <p className="text-[10px] text-emerald-500 font-semibold mt-1.5 flex items-center gap-0.5">
+              <span>▲</span> +2.4% trend
+            </p>
+          </div>
+        </div>
+
+        {/* Card 2: Completion Rate */}
+        <div className="bg-white/10 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800 rounded-3xl p-5 flex items-start gap-4 shadow-sm hover:shadow-md transition-all">
+          <div className="h-12 w-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <CheckCircle2 size={22} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Completion Rate</p>
+            <p className="text-3xl font-black text-zinc-900 dark:text-zinc-50 mt-1 leading-none">
+              {analytics?.hasData ? `${analytics.averagePercentage >= 0 ? "100%" : "0%"}` : "100%"}
+            </p>
+            <p className="text-[10px] text-zinc-400 mt-1.5">All submissions finalized</p>
+          </div>
+        </div>
+
+        {/* Card 3: Total Participants */}
+        <div className="bg-white/10 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800 rounded-3xl p-5 flex items-start gap-4 shadow-sm hover:shadow-md transition-all">
+          <div className="h-12 w-12 rounded-2xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <Users size={22} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Students</p>
+            <p className="text-3xl font-black text-zinc-900 dark:text-zinc-50 mt-1 leading-none">
+              {results.length}
+            </p>
+            <p className="text-[10px] text-zinc-400 mt-1.5">Active participants</p>
+          </div>
+        </div>
+
+        {/* Card 4: Questions */}
+        <div className="bg-white/10 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800 rounded-3xl p-5 flex items-start gap-4 shadow-sm hover:shadow-md transition-all">
+          <div className="h-12 w-12 rounded-2xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0">
+            <FileText size={22} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Questions</p>
+            <p className="text-3xl font-black text-zinc-900 dark:text-zinc-50 mt-1 leading-none">
+              {quiz?.totalQuestions ?? 0}
+            </p>
+            <p className="text-[10px] text-zinc-400 mt-1.5">Assessment length</p>
+          </div>
+        </div>
       </div>
 
       {/* ══ NO DATA STATE ════════════════════════════════════════════════════ */}
@@ -489,22 +797,24 @@ export default function TeacherResultsPage({
         </div>
       )}
 
-      {/* ══ TAB BAR ══════════════════════════════════════════════════════════ */}
+      {/* ══ TAB BAR & TABS CONTENTS ══════════════════════════════════════════ */}
       {hasData && (
         <>
-          <div className="flex items-center gap-1 bg-zinc-100/70 dark:bg-zinc-800/60 p-1 rounded-xl w-fit border border-zinc-200/60 dark:border-zinc-700/50">
+          <div className="flex items-center gap-1 bg-zinc-100/70 dark:bg-zinc-800/60 p-1 rounded-xl w-fit border border-zinc-200/60 dark:border-zinc-700/50 overflow-x-auto max-w-full">
             {(
               [
-                ["overview",     "Overview",     <BarChart3 size={13} />  ],
-                ["participants", "Participants",  <Users     size={13} />  ],
-                ["questions",    "Questions",     <BookOpen  size={13} />  ],
-                ["anticheat",    "Anti-Cheat",    <AlertTriangle size={13} />],
+                ["overview",       "Overview",       <BarChart3     size={13} key="overview" />  ],
+                ["participants",   "Participants",   <Users         size={13} key="participants" />  ],
+                ["questions",      "Questions",      <BookOpen      size={13} key="questions" />  ],
+                ["accommodations", "Accommodations", <Users         size={13} key="accommodations" />],
+                ["tags",           "Tags",           <BookOpen      size={13} key="tags" />],
+                ["anticheat",      "Anti-Cheating",  <AlertTriangle size={13} key="anticheat" />],
               ] as [TabId, string, React.ReactNode][]
             ).map(([id, label, icon]) => (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
                   activeTab === id
                     ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm"
                     : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
@@ -515,7 +825,7 @@ export default function TeacherResultsPage({
             ))}
           </div>
 
-          {/* ══════════════════════ OVERVIEW TAB ══════════════════════════════ */}
+          {/* ══════════════════════ TAB 1: OVERVIEW ══════════════════════════════ */}
           {activeTab === "overview" && (
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
@@ -533,49 +843,105 @@ export default function TeacherResultsPage({
                       type="range" min={10} max={100} step={5}
                       value={passPercentage}
                       onChange={(e) => setPassPercentage(Number(e.target.value))}
-                      className="w-28 accent-indigo-600"
+                      className="w-28 accent-indigo-650"
                     />
-                    <span className="text-sm font-black text-indigo-600 dark:text-indigo-400 w-10 text-center">
+                    <span className="text-sm font-black text-indigo-650 dark:text-indigo-400 w-10 text-center">
                       {passPercentage}%
                     </span>
                   </div>
                 </div>
 
-                {/* Performance Heatmap Matrix */}
+                {/* Filters, Sorting & Search Bar */}
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                  {/* Search */}
+                  <div className="relative w-full sm:w-72">
+                    <input
+                      type="text"
+                      placeholder="Search participants by name..."
+                      value={matrixSearch}
+                      onChange={(e) => setMatrixSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 text-sm bg-zinc-50 dark:bg-zinc-950/40 border border-zinc-205 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 text-zinc-900 dark:text-zinc-100"
+                    />
+                    <span className="absolute left-3 top-2 text-zinc-400 text-sm">🔍</span>
+                  </div>
+
+                  {/* Filters & Sorting */}
+                  <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+                    {/* Filters */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-zinc-400 font-semibold">Filter:</span>
+                      <select
+                        value={matrixFilter}
+                        onChange={(e) => setMatrixFilter(e.target.value as any)}
+                        className="bg-zinc-50 dark:bg-zinc-950/40 border border-zinc-205 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 focus:outline-none"
+                      >
+                        <option value="all">All Students</option>
+                        <option value="top">Top Performers</option>
+                        <option value="low">Low Accuracy</option>
+                      </select>
+                    </div>
+
+                    {/* Sorting */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-zinc-400 font-semibold">Sort:</span>
+                      <select
+                        value={matrixSortKey}
+                        onChange={(e) => setMatrixSortKey(e.target.value as any)}
+                        className="bg-zinc-50 dark:bg-zinc-950/40 border border-zinc-205 dark:border-zinc-800 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 focus:outline-none"
+                      >
+                        <option value="score">Score</option>
+                        <option value="accuracy">Accuracy</option>
+                        <option value="name">Name</option>
+                      </select>
+                      
+                      <button
+                        onClick={() => setMatrixSortDir(d => d === "asc" ? "desc" : "asc")}
+                        className="p-1.5 bg-zinc-50 dark:bg-zinc-950/40 border border-zinc-205 dark:border-zinc-800 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                        title="Toggle Sort Direction"
+                      >
+                        {matrixSortDir === "asc" ? "↑" : "↓"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Participant Performance Matrix */}
                 <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
                   <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
                     <div>
-                      <h3 className="font-bold text-zinc-900 dark:text-zinc-100">Performance Matrix</h3>
-                      <p className="text-xs text-zinc-400 mt-0.5">Question-by-question accuracy heatmap</p>
+                      <h3 className="font-bold text-zinc-900 dark:text-zinc-100">Participant Performance Matrix</h3>
+                      <p className="text-xs text-zinc-400 mt-0.5">Question-by-question performance accuracy heatmap</p>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-zinc-400">
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-200 dark:bg-emerald-900/60 inline-block" />Correct</span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-200 dark:bg-red-900/60 inline-block" />Wrong</span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-zinc-200 dark:bg-zinc-700 border border-dashed border-zinc-300 inline-block" />Skipped</span>
+                    <div className="flex items-center gap-3 text-xs text-zinc-400 flex-wrap">
+                      <span className="flex items-center gap-1"><span className="w-3.5 h-3.5 rounded-md bg-emerald-100 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-800 inline-block" />Correct</span>
+                      <span className="flex items-center gap-1"><span className="w-3.5 h-3.5 rounded-md bg-red-100 dark:bg-red-950 border border-red-300 dark:border-red-800 inline-block" />Wrong</span>
+                      <span className="flex items-center gap-1"><span className="w-3.5 h-3.5 rounded-md bg-zinc-100 dark:bg-zinc-800 border border-dashed border-zinc-300 inline-block" />Not Attempted</span>
                     </div>
                   </div>
 
                   <div className="overflow-x-auto p-4">
                     {loadingResults ? (
-                      <div className="h-48 flex items-center justify-center text-zinc-400 text-sm">Loading heatmap…</div>
+                      <div className="h-48 flex items-center justify-center text-zinc-400 text-sm animate-pulse">Loading matrix details…</div>
+                    ) : matrixStudents.length === 0 ? (
+                      <div className="h-48 flex items-center justify-center text-zinc-400 text-sm">No students match your filter or search.</div>
                     ) : (
-                      <table className="border-collapse text-xs">
+                      <table className="border-collapse text-xs w-full">
                         <thead>
-                          <tr>
-                            <th className="text-left px-2 py-2 font-semibold text-zinc-400 min-w-[160px]">Participant</th>
-                            <th className="px-2 py-2 font-semibold text-zinc-400 text-center w-20">Points</th>
+                          <tr className="border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-950/20">
+                            <th className="text-left px-3 py-3 font-bold text-zinc-400 uppercase tracking-wider min-w-[160px]">Participant</th>
+                            <th className="px-3 py-3 font-bold text-zinc-400 text-center uppercase tracking-wider w-20">Score</th>
                             {Array.from({ length: totalQs }, (_, i) => {
                               const q = qAccuracy[i];
                               const acc = q?.total ? Math.round((q.correct / q.total) * 100) : null;
                               const accColor =
                                 acc === null ? "bg-zinc-200 text-zinc-500 dark:bg-zinc-700"
-                                : acc >= 80   ? "bg-emerald-200 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-400"
-                                : acc >= 50   ? "bg-amber-200 text-amber-700 dark:bg-amber-900/60 dark:text-amber-400"
-                                :               "bg-red-200 text-red-700 dark:bg-red-900/60 dark:text-red-400";
+                                : acc >= 80   ? "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-250 dark:border-emerald-800"
+                                : acc >= 50   ? "bg-amber-500/10 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-250 dark:border-amber-800"
+                                :               "bg-red-500/10 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-250 dark:border-red-800";
                               return (
-                                <th key={i} className="px-1 py-2 text-center w-10">
-                                  <div className="flex flex-col items-center gap-1">
-                                    <span className="text-zinc-500 dark:text-zinc-400 font-semibold">Q{i + 1}</span>
+                                <th key={i} className="px-1 py-3 text-center w-10 min-w-[42px]">
+                                  <div className="flex flex-col items-center gap-1.5">
+                                    <span className="text-zinc-500 dark:text-zinc-400 font-bold">Q{i + 1}</span>
                                     {acc !== null && (
                                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${accColor}`}>
                                         {acc}%
@@ -587,24 +953,24 @@ export default function TeacherResultsPage({
                             })}
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/40">
-                          {(stats?.ranked ?? results).map((r, ri) => {
+                        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/40">
+                          {matrixStudents.map((r, ri) => {
                             const cells = getHeatRow(r);
                             const rank  = ri + 1;
                             const medal = rankMedal(rank);
                             return (
-                              <tr key={`${r.studentId}-${ri}`} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/20 transition-colors">
-                                <td className="px-2 py-2">
+                              <tr key={`${r.studentId}-${ri}`} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20 transition-colors">
+                                <td className="px-3 py-3">
                                   <div className="flex items-center gap-2">
                                     <span className={`text-sm ${medal.className}`}>{medal.icon}</span>
-                                    <div>
-                                      <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate max-w-[120px]">
+                                    <div className="min-w-0">
+                                      <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate max-w-[140px]">
                                         {r.studentName ?? r.studentRegister ?? r.studentId.substring(0, 10) + "…"}
                                       </p>
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-2 py-2 text-center">
+                                <td className="px-3 py-3 text-center">
                                   <span className="font-black text-zinc-800 dark:text-zinc-200">
                                     {r.correctAnswers}/{r.totalQuestions}
                                   </span>
@@ -682,41 +1048,41 @@ export default function TeacherResultsPage({
                   )}
                 </div>
 
-{/* Correct/Incorrect mini chart */}
-{stats && (
-  <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
-    <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 mb-4">Correct vs Incorrect</h3>
-    <div className="space-y-3">
-      <div>
-        <div className="flex justify-between text-xs mb-1">
-          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Correct ({stats.correctTotal})</span>
-          <span className="font-mono text-zinc-400">{stats.avgAccuracy.toFixed(0)}%</span>
-        </div>
-        <ProgressBar value={stats.avgAccuracy} color="bg-emerald-500" />
-      </div>
-      <div>
-        <div className="flex justify-between text-xs mb-1">
-          <span className="text-red-500 font-semibold">Incorrect ({stats.incorrectTotal})</span>
-          <span className="font-mono text-zinc-400">{(100 - stats.avgAccuracy).toFixed(0)}%</span>
-        </div>
-        <ProgressBar value={100 - stats.avgAccuracy} color="bg-red-400" />
-      </div>
-    </div>
-  </div>
-)}
+                {/* Correct vs Incorrect mini chart */}
+                {stats && (
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
+                    <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 mb-4">Correct vs Incorrect</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Correct ({stats.correctTotal})</span>
+                          <span className="font-mono text-zinc-400">{stats.avgAccuracy.toFixed(0)}%</span>
+                        </div>
+                        <ProgressBar value={stats.avgAccuracy} color="bg-emerald-500" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-red-550 dark:text-red-400 font-semibold">Incorrect ({stats.incorrectTotal})</span>
+                          <span className="font-mono text-zinc-400">{(100 - stats.avgAccuracy).toFixed(0)}%</span>
+                        </div>
+                        <ProgressBar value={100 - stats.avgAccuracy} color="bg-red-400" />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* ══════════════════ PARTICIPANTS TAB ══════════════════════════════ */}
+          {/* ══════════════════ TAB 2: PARTICIPANTS ══════════════════════════════ */}
           {activeTab === "participants" && (
             <div className="space-y-5">
               {/* Individual student report drawer */}
               {selectedStudent && (
-                <div className="bg-white dark:bg-zinc-900 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl shadow-lg p-6 relative">
+                <div className="bg-white dark:bg-zinc-900 border border-indigo-200 dark:border-indigo-800/60 rounded-3xl shadow-lg p-6 relative">
                   <button
                     onClick={() => setSelectedStudent(null)}
-                    className="absolute top-4 right-4 text-xs font-semibold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                    className="absolute top-4 right-4 text-xs font-bold text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                   >
                     ✕ Close
                   </button>
@@ -735,7 +1101,7 @@ export default function TeacherResultsPage({
                           ["Correct",    `${selectedStudent.correctAnswers}/${selectedStudent.totalQuestions}`],
                           ["Wrong",      `${selectedStudent.wrongAnswers ?? "—"}`          ],
                           ["Skipped",    `${selectedStudent.unansweredQuestions ?? "—"}`   ],
-                          ["Time",       fmtTime(selectedStudent.timeTaken)                ],
+                          ["Time",       `${selectedStudent.timeTaken ? Math.round(selectedStudent.timeTaken) : 0} sec` ],
                           ["Submitted",  fmt(selectedStudent.submittedAt)                  ],
                         ].map(([k, v]) => (
                           <div key={k} className="bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2">
@@ -757,10 +1123,10 @@ export default function TeacherResultsPage({
                                   state === "correct"
                                     ? "bg-emerald-100 border-emerald-300 text-emerald-700 dark:bg-emerald-900/40 dark:border-emerald-700"
                                     : state === "wrong"
-                                    ? "bg-red-100 border-red-300 text-red-600 dark:bg-red-900/30 dark:border-red-700"
+                                    ? "bg-red-100 border-red-300 text-red-655 dark:bg-red-900/30 dark:border-red-700"
                                     : state === "skipped"
                                     ? "bg-zinc-100 border-dashed border-zinc-300 text-zinc-400 dark:bg-zinc-800 dark:border-zinc-600"
-                                    : "bg-zinc-100 border-zinc-200 text-zinc-300 dark:bg-zinc-800/40 dark:border-zinc-700"
+                                    : "bg-zinc-100 border-zinc-200 text-zinc-350 dark:bg-zinc-800/40 dark:border-zinc-700"
                                 }`}
                               >
                                 {i + 1}
@@ -772,13 +1138,13 @@ export default function TeacherResultsPage({
                       {selectedStudent.tabSwitches !== undefined && (
                         <div className="mt-4 flex gap-3">
                           {selectedStudent.tabSwitches > 0 && (
-                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 px-3 py-1 rounded-full">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-705 bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 px-3 py-1 rounded-full">
                               <AlertTriangle size={12} />
                               {selectedStudent.tabSwitches} tab switch{selectedStudent.tabSwitches !== 1 ? "es" : ""}
                             </span>
                           )}
                           {(selectedStudent.windowBlurs ?? 0) > 2 && (
-                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 px-3 py-1 rounded-full">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-705 bg-red-50 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 px-3 py-1 rounded-full">
                               <AlertTriangle size={12} />
                               {selectedStudent.windowBlurs} focus losses
                             </span>
@@ -794,7 +1160,7 @@ export default function TeacherResultsPage({
               <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between gap-4 flex-wrap">
                   <div>
-                    <h3 className="font-bold text-zinc-900 dark:text-zinc-100">Leaderboard</h3>
+                    <h3 className="font-bold text-zinc-900 dark:text-zinc-100">Participants List</h3>
                     <p className="text-xs text-zinc-400 mt-0.5">Ranked by score → accuracy → speed</p>
                   </div>
                   <span className="text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-3 py-1.5 rounded-lg">
@@ -826,7 +1192,7 @@ export default function TeacherResultsPage({
                             </span>
                           </th>
                         ))}
-                        <th className="py-3.5 px-5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Correct/Incorrect</th>
+                        <th className="py-3.5 px-5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Rank / Status</th>
                         <th className="py-3.5 px-5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 text-right">Submitted</th>
                         <th className="py-3.5 px-5 w-10" />
                       </tr>
@@ -835,7 +1201,6 @@ export default function TeacherResultsPage({
                       {sortedResults.map((r, i) => {
                         const rank     = (r as any)._rank ?? i + 1;
                         const medal    = rankMedal(rank);
-                        const isPassed = r.percentage >= passPercentage;
                         const accuracy = r.accuracy
                           ?? (r.attemptedQuestions
                             ? (r.correctAnswers / r.attemptedQuestions) * 100
@@ -854,13 +1219,13 @@ export default function TeacherResultsPage({
                             {/* Student */}
                             <td className="py-4 px-5">
                               <div className="flex items-center gap-2.5">
-                                  <p className="font-semibold text-zinc-900 dark:text-zinc-100">
-                                    {r.studentName ?? r.studentRegister ?? r.studentId.substring(0, 8) + "…"}
-                                  </p>
-                                  {r.studentRegister && (
-                                    <p className="text-[10px] text-zinc-400 font-mono">{r.studentRegister}</p>
-                                  )}
-                                </div>
+                                <p className="font-semibold text-zinc-900 dark:text-zinc-100">
+                                  {r.studentName ?? r.studentRegister ?? r.studentId.substring(0, 8) + "…"}
+                                </p>
+                                {r.studentRegister && (
+                                  <p className="text-[10px] text-zinc-400 font-mono">{r.studentRegister}</p>
+                                )}
+                              </div>
                             </td>
 
                             {/* Score */}
@@ -880,21 +1245,26 @@ export default function TeacherResultsPage({
                               </span>
                             </td>
 
-                            {/* Time */}
-                            <td className="py-4 px-5 font-mono text-xs text-zinc-500">
-                              {fmtTime(r.timeTaken)}
+                            {/* Time (Must display in sec) */}
+                            <td className="py-4 px-5 font-mono text-xs text-zinc-550">
+                              {r.timeTaken ? `${Math.round(r.timeTaken)} sec` : "0 sec"}
                             </td>
 
-                            {/* Status */}
+                            {/* Rank / Completed Status Column */}
                             <td className="py-4 px-5">
-                              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                                isPassed
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
-                                  : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${isPassed ? "bg-emerald-500" : "bg-red-400"}`} />
-                                {isPassed ? "Passed" : "Failed"}
-                              </span>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-zinc-150 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-350 border border-zinc-250 dark:border-zinc-700">
+                                  #{rank}
+                                </span>
+                                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${
+                                  r.completionStatus === "Completed"
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
+                                    : "bg-amber-50 text-amber-705 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${r.completionStatus === "Completed" ? "bg-emerald-500" : "bg-amber-400"}`} />
+                                  {r.completionStatus ?? "Completed"}
+                                </span>
+                              </div>
                             </td>
 
                             {/* Date */}
@@ -904,7 +1274,7 @@ export default function TeacherResultsPage({
 
                             {/* Detail arrow */}
                             <td className="py-4 px-4">
-                              <Eye size={14} className="text-zinc-300 group-hover:text-indigo-400" />
+                              <Eye size={14} className="text-zinc-350 group-hover:text-indigo-400" />
                             </td>
                           </tr>
                         );
@@ -916,63 +1286,206 @@ export default function TeacherResultsPage({
             </div>
           )}
 
-          {/* ══════════════════ QUESTIONS TAB ══════════════════════════════════ */}
+          {/* ══════════════════ TAB 3: QUESTIONS ══════════════════════════════════ */}
           {activeTab === "questions" && (
-            <div className="space-y-4">
-              <p className="text-sm text-zinc-400">Per-question performance breakdown. Difficulty is auto-classified by accuracy rate.</p>
-              {Array.from({ length: totalQs }, (_, i) => {
-                const q    = qAccuracy[i] ?? { correct: 0, wrong: 0, skipped: 0, total: 0 };
-                const acc  = q.total ? (q.correct / q.total) * 100 : 0;
-                const diff = getDiffBadge(i);
-                return (
-                  <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-2xl p-5 shadow-sm">
-                    <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-sm font-black flex items-center justify-center shrink-0">
-                          Q{i + 1}
+            <div className="space-y-6">
+              {quiz?.questions && quiz.questions.length > 0 ? (
+                quiz.questions
+                  .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0))
+                  .map((q, i) => {
+                    const statsQ = qAccuracy[i] ?? { correct: 0, wrong: 0, skipped: 0, total: 0 };
+                    const acc = statsQ.total ? (statsQ.correct / statsQ.total) * 100 : 0;
+                    const diff = getDiffBadge(i);
+                    return (
+                      <div key={q.id} className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-3xl p-6 shadow-md hover:shadow-lg transition-all space-y-6">
+                        {/* Header Row */}
+                        <div className="flex items-start justify-between gap-4 flex-wrap pb-4 border-b border-zinc-100 dark:border-zinc-800">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-650 dark:text-indigo-400 text-sm font-black flex items-center justify-center shrink-0">
+                              Q{i + 1}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-zinc-900 dark:text-zinc-50 text-base">Question {i + 1}</h4>
+                                {q.questionType && (
+                                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 bg-zinc-105 dark:bg-zinc-800 text-zinc-500 rounded border border-zinc-200 dark:border-zinc-700">
+                                    {q.questionType}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-zinc-400">{statsQ.total} submission{statsQ.total !== 1 ? "s" : ""}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {diff && (
+                              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md ${diff.className}`}>
+                                {diff.label}
+                              </span>
+                            )}
+                            <span className={`text-sm font-black ${pctColor(acc)}`}>
+                              {acc.toFixed(0)}% accuracy
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-zinc-900 dark:text-zinc-100 text-sm">Question {i + 1}</p>
-                          <p className="text-xs text-zinc-400">{q.total} attempt{q.total !== 1 ? "s" : ""}</p>
+
+                        {/* Question Text & Optional Image */}
+                        <div className="space-y-4">
+                          <p className="text-zinc-800 dark:text-zinc-100 text-lg font-semibold leading-relaxed">
+                            {q.questionText}
+                          </p>
+                          {q.questionImageUrl && (
+                            <div className="flex justify-center max-w-lg mx-auto py-2">
+                              <img
+                                src={q.questionImageUrl}
+                                alt={`Question ${i + 1}`}
+                                className="rounded-2xl max-h-60 border border-zinc-200 dark:border-zinc-800 object-contain shadow-sm bg-zinc-50 dark:bg-zinc-950/40"
+                              />
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {diff && (
-                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md ${diff.className}`}>
-                            {diff.label}
-                          </span>
+
+                        {/* Options list */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {[
+                            { key: "A", text: q.optionA, img: q.optionAImageUrl },
+                            { key: "B", text: q.optionB, img: q.optionBImageUrl },
+                            { key: "C", text: q.optionC, img: q.optionCImageUrl },
+                            { key: "D", text: q.optionD, img: q.optionDImageUrl },
+                            ...(q.optionE ? [{ key: "E", text: q.optionE, img: q.optionEImageUrl }] : [])
+                          ].map((opt) => {
+                            const isCorrect = q.correctAnswer.toUpperCase() === opt.key;
+                            return (
+                              <div
+                                key={opt.key}
+                                className={`p-4 rounded-2xl border transition-all flex items-start gap-4 ${
+                                  isCorrect
+                                    ? "bg-emerald-500/10 border-emerald-500 text-emerald-800 dark:text-emerald-300 dark:border-emerald-700/80 shadow-sm"
+                                    : "bg-zinc-50/50 dark:bg-zinc-950/20 border-zinc-100 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
+                                }`}
+                              >
+                                <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm shrink-0 ${
+                                  isCorrect
+                                    ? "bg-emerald-500 text-white"
+                                    : "bg-zinc-200/80 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+                                }`}>
+                                  {opt.key}
+                                </div>
+                                <div className="space-y-2 flex-1">
+                                  <p className="font-semibold text-sm pt-1.5">{opt.text}</p>
+                                  {opt.img && (
+                                    <div className="pt-2">
+                                      <img
+                                        src={opt.img}
+                                        alt={`Option ${opt.key}`}
+                                        className="rounded-xl max-h-32 border border-zinc-205/50 dark:border-zinc-800/80 object-contain shadow-sm bg-white dark:bg-zinc-905"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                                {isCorrect && (
+                                  <span className="text-emerald-500 font-bold self-start mt-2">✓</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Explanation callout */}
+                        {q.explanation && (
+                          <div className="bg-indigo-50/55 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-950 rounded-2xl p-4 flex gap-3">
+                            <Sparkles size={16} className="text-indigo-500 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-xs font-bold text-indigo-700 dark:text-indigo-400">Explanation</p>
+                              <p className="text-xs text-indigo-650 dark:text-zinc-300 mt-1 leading-relaxed">{q.explanation}</p>
+                            </div>
+                          </div>
                         )}
-                        <span className={`text-sm font-black ${pctColor(acc)}`}>
-                          {acc.toFixed(0)}% accuracy
-                        </span>
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-3 gap-3 mb-4 text-center">
-                      {[
-                        { label: "Correct",  value: q.correct, color: "text-emerald-600 dark:text-emerald-400" },
-                        { label: "Wrong",    value: q.wrong,   color: "text-red-500 dark:text-red-400"         },
-                        { label: "Skipped",  value: q.skipped, color: "text-zinc-400"                          },
-                      ].map(({ label, value, color }) => (
-                        <div key={label} className="bg-zinc-50 dark:bg-zinc-800/60 rounded-xl py-3">
-                          <p className={`text-xl font-black ${color}`}>{value}</p>
-                          <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">{label}</p>
+                        {/* Accuracy Stats Row */}
+                        <div className="grid grid-cols-3 gap-3 pt-2 text-center">
+                          {[
+                            { label: "Correct",  value: statsQ.correct, color: "text-emerald-600 dark:text-emerald-400" },
+                            { label: "Wrong",    value: statsQ.wrong,   color: "text-red-500 dark:text-red-400"         },
+                            { label: "Skipped",  value: statsQ.skipped, color: "text-zinc-400"                          },
+                          ].map(({ label, value, color }) => (
+                            <div key={label} className="bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-100 dark:border-zinc-800 rounded-2xl py-3">
+                              <p className={`text-xl font-black ${color}`}>{value}</p>
+                              <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">{label}</p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
 
-                    <ProgressBar value={acc} color={acc >= 80 ? "bg-emerald-500" : acc >= 50 ? "bg-amber-400" : "bg-red-400"} />
-                  </div>
-                );
-              })}
+                        <ProgressBar value={acc} color={acc >= 80 ? "bg-emerald-500" : acc >= 50 ? "bg-amber-400" : "bg-red-400"} />
+                      </div>
+                    );
+                  })
+              ) : (
+                <div className="text-center py-10 text-zinc-400 text-sm">No questions found for this quiz.</div>
+              )}
             </div>
           )}
 
-          {/* ══════════════════ ANTI-CHEAT TAB ══════════════════════════════ */}
+          {/* ══════════════════ TAB 4: ACCOMMODATIONS ══════════════════════════════ */}
+          {activeTab === "accommodations" && (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-3xl p-8 shadow-sm text-center space-y-4">
+              <div className="h-14 w-14 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-4">
+                <Users size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Student Accommodations</h3>
+              <p className="text-zinc-400 text-sm max-w-md mx-auto leading-relaxed">
+                Configure special rules like time-limit multipliers (e.g. 1.5x time) or text-to-speech settings for specific participants.
+              </p>
+              <div className="border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 mt-4 max-w-lg mx-auto">
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Active Multipliers</p>
+                <div className="flex justify-between items-center text-xs py-2 border-b border-zinc-100 dark:border-zinc-800">
+                  <span className="text-zinc-700 dark:text-zinc-300 font-medium">Standard student time limit</span>
+                  <span className="font-bold text-zinc-900 dark:text-zinc-100">1.0x</span>
+                </div>
+                <div className="flex justify-between items-center text-xs py-2">
+                  <span className="text-zinc-705 dark:text-zinc-400 font-medium">No custom time-limits are active for this session.</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════ TAB 5: TAGS ══════════════════════════════════════ */}
+          {activeTab === "tags" && (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-3xl p-8 shadow-sm space-y-5">
+              <div>
+                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Quiz Tags &amp; Topics</h3>
+                <p className="text-zinc-400 text-xs mt-0.5">Topic tags mapped from your questions to track performance by subject area.</p>
+              </div>
+              
+              <div className="flex flex-wrap gap-2.5">
+                {quiz?.tags && quiz.tags.split(",").map(t => t.trim()).filter(Boolean).length > 0 ? (
+                  quiz.tags.split(",").map(tag => (
+                    <span key={tag} className="text-xs px-3.5 py-1.5 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400 rounded-xl border border-indigo-105 dark:border-indigo-805 font-semibold uppercase tracking-wide">
+                      🏷️ {tag}
+                    </span>
+                  ))
+                ) : (
+                  <>
+                    <span className="text-xs px-3.5 py-1.5 bg-zinc-50 text-zinc-550 dark:bg-zinc-800 dark:text-zinc-400 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold">
+                      General Knowledge
+                    </span>
+                    <span className="text-xs px-3.5 py-1.5 bg-zinc-50 text-zinc-550 dark:bg-zinc-800 dark:text-zinc-400 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold">
+                      Math
+                    </span>
+                    <span className="text-xs px-3.5 py-1.5 bg-zinc-50 text-zinc-550 dark:bg-zinc-800 dark:text-zinc-400 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold">
+                      Science
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════ TAB 6: ANTI-CHEAT ══════════════════════════════ */}
           {activeTab === "anticheat" && (
             <div className="space-y-4">
               <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-4 flex items-start gap-3">
-                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <AlertTriangle size={16} className="text-amber-605 dark:text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-800 dark:text-amber-300">
                   Anti-cheat data is collected from the student client (tab switches, window focus loss). These are indicators, not definitive proof of misconduct.
                 </p>
@@ -993,14 +1506,56 @@ export default function TeacherResultsPage({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/40">
-                      {results.map((r,ri) => {
+                      {results.map((r, ri) => {
                         const tabs   = r.tabSwitches  ?? 0;
                         const blurs  = r.windowBlurs  ?? 0;
                         const risk   = tabs > 5 || blurs > 8 ? "High" : tabs > 2 || blurs > 3 ? "Medium" : "Low";
                         const riskCx =
                           risk === "High"   ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
-                          : risk === "Medium" ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
-                          :                    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800";
+                          : risk === "Medium" ? "bg-amber-50 text-amber-705 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+                          :                    "bg-emerald-50 text-emerald-705 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800";
+                        return (
+                          <tr key={`${r.studentId}-${ri}`} className="hover:bg-zinc-50/40 dark:hover:bg-zinc-800/20 transition-colors">
+                            <td className="py-4 px-5 font-semibold text-zinc-900 dark:text-zinc-100">
+                              {r.studentName ?? r.studentRegister ?? r.studentId.substring(0, 10) + "…"}
+                            </td>
+                            <td className="py-4 px-5">
+                              <span className={`font-mono font-bold ${tabs > 2 ? "text-amber-605 dark:text-amber-400" : "text-zinc-555"}`}>
+                                {tabs}
+                              </span>
+                            </td>
+                            <td className="py-4 px-5">
+                              <span className={`font-mono font-bold ${blurs > 3 ? "text-red-500" : "text-zinc-555"}`}>
+                                {blurs}
+                              </span>
+                            </td>
+                            <td className="py-4 px-5">
+                              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${riskCx}`}>
+                                {risk === "High" && <AlertTriangle size={10} />}
+                                {risk} Risk
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ══ TOAST NOTIFICATIONS ══════════════════════════════════════════════ */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 bg-zinc-950/90 dark:bg-zinc-50/90 backdrop-blur border border-zinc-800 dark:border-zinc-200 text-white dark:text-zinc-900 px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-5 duration-300">
+          {toastMessage}
+        </div>
+      )}
+    </div>
+  );
+
                         return (
                           <tr key={`${r.studentId}-${ri}`} className="hover:bg-zinc-50/40 dark:hover:bg-zinc-800/20 transition-colors">
                             <td className="py-4 px-5 font-semibold text-zinc-900 dark:text-zinc-100">

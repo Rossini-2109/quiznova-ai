@@ -17,7 +17,7 @@ public class ExportExcelController : ControllerBase
     }
 
     [HttpGet("quiz/{quizId}")]
-    public async Task<IActionResult> ExportQuizReport(Guid quizId)
+    public async Task<IActionResult> ExportQuizReport(Guid quizId, [FromQuery] Guid? sessionId = null)
     {
         var quiz = await _context.Quizzes
             .FirstOrDefaultAsync(q => q.Id == quizId);
@@ -27,8 +27,22 @@ public class ExportExcelController : ControllerBase
             return NotFound("Quiz not found");
         }
 
-        var attempts = await _context.QuizAttempts
-            .Where(a => a.QuizId == quizId)
+        var query = _context.QuizAttempts
+            .Where(a => a.QuizId == quizId);
+
+        if (sessionId.HasValue)
+        {
+            if (sessionId.Value == Guid.Empty)
+            {
+                query = query.Where(a => a.SessionId == null);
+            }
+            else
+            {
+                query = query.Where(a => a.SessionId == sessionId.Value);
+            }
+        }
+
+        var attempts = await query
             .OrderByDescending(a => a.Score)
             .ToListAsync();
 

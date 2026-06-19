@@ -30,17 +30,30 @@ public class ExportPdfController : ControllerBase
     // GET api/exports/quizzes/{quizId}/pdf
     [HttpGet("quizzes/{quizId:guid}/pdf")]
     [AllowAnonymous]
-    public async Task<IActionResult> ExportQuizToPdf([FromRoute] Guid quizId)
+    public async Task<IActionResult> ExportQuizToPdf([FromRoute] Guid quizId, [FromQuery] Guid? sessionId = null)
     {
         var quiz = await _context.Quizzes
             .Include(q => q.Questions)
             .FirstOrDefaultAsync(q => q.Id == quizId);
         if (quiz == null) return NotFound("Quiz not found.");
 
-        var attempts = await _context.QuizAttempts
+        var query = _context.QuizAttempts
             .Include(a => a.Student)
-            .Where(a => a.QuizId == quizId)
-            .ToListAsync();
+            .Where(a => a.QuizId == quizId);
+
+        if (sessionId.HasValue)
+        {
+            if (sessionId.Value == Guid.Empty)
+            {
+                query = query.Where(a => a.SessionId == null);
+            }
+            else
+            {
+                query = query.Where(a => a.SessionId == sessionId.Value);
+            }
+        }
+
+        var attempts = await query.ToListAsync();
 
         // Create PDF document
         var document = new PdfDocument();

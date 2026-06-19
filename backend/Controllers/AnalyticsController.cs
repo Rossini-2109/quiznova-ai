@@ -23,7 +23,7 @@ public class AnalyticsController : ControllerBase
     // Full quiz summary dashboard
     // ─────────────────────────────────────────────
     [HttpGet("quiz/{quizId:guid}")]
-    public async Task<IActionResult> GetQuizAnalytics([FromRoute] Guid quizId)
+    public async Task<IActionResult> GetQuizAnalytics([FromRoute] Guid quizId, [FromQuery] Guid? sessionId = null)
     {
         var quiz = await _context.Quizzes
             .Include(q => q.Questions)
@@ -31,10 +31,23 @@ public class AnalyticsController : ControllerBase
 
         if (quiz == null) return NotFound("Quiz not found.");
 
-        var attempts = await _context.QuizAttempts
+        var query = _context.QuizAttempts
             .Include(a => a.Student)
-            .Where(a => a.QuizId == quizId)
-            .ToListAsync();
+            .Where(a => a.QuizId == quizId);
+
+        if (sessionId.HasValue)
+        {
+            if (sessionId.Value == Guid.Empty)
+            {
+                query = query.Where(a => a.SessionId == null);
+            }
+            else
+            {
+                query = query.Where(a => a.SessionId == sessionId.Value);
+            }
+        }
+
+        var attempts = await query.ToListAsync();
 
         if (!attempts.Any())
         {
@@ -91,12 +104,25 @@ public class AnalyticsController : ControllerBase
     // Ranked list: highest marks → fastest time → highest accuracy
     // ─────────────────────────────────────────────
     [HttpGet("quiz/{quizId:guid}/leaderboard")]
-    public async Task<IActionResult> GetLeaderboard([FromRoute] Guid quizId)
+    public async Task<IActionResult> GetLeaderboard([FromRoute] Guid quizId, [FromQuery] Guid? sessionId = null)
     {
-        var attempts = await _context.QuizAttempts
+        var query = _context.QuizAttempts
             .Include(a => a.Student)
-            .Where(a => a.QuizId == quizId)
-            .ToListAsync();
+            .Where(a => a.QuizId == quizId);
+
+        if (sessionId.HasValue)
+        {
+            if (sessionId.Value == Guid.Empty)
+            {
+                query = query.Where(a => a.SessionId == null);
+            }
+            else
+            {
+                query = query.Where(a => a.SessionId == sessionId.Value);
+            }
+        }
+
+        var attempts = await query.ToListAsync();
 
         if (!attempts.Any()) return Ok(new List<object>());
 
@@ -133,7 +159,7 @@ public class AnalyticsController : ControllerBase
     // Student × Question performance matrix
     // ─────────────────────────────────────────────
     [HttpGet("quiz/{quizId:guid}/heatmap")]
-    public async Task<IActionResult> GetHeatmap([FromRoute] Guid quizId)
+    public async Task<IActionResult> GetHeatmap([FromRoute] Guid quizId, [FromQuery] Guid? sessionId = null)
     {
         var quiz = await _context.Quizzes
             .Include(q => q.Questions)
@@ -141,10 +167,23 @@ public class AnalyticsController : ControllerBase
 
         if (quiz == null) return NotFound("Quiz not found.");
 
-        var attempts = await _context.QuizAttempts
+        var query = _context.QuizAttempts
             .Include(a => a.Student)
-            .Where(a => a.QuizId == quizId)
-            .ToListAsync();
+            .Where(a => a.QuizId == quizId);
+
+        if (sessionId.HasValue)
+        {
+            if (sessionId.Value == Guid.Empty)
+            {
+                query = query.Where(a => a.SessionId == null);
+            }
+            else
+            {
+                query = query.Where(a => a.SessionId == sessionId.Value);
+            }
+        }
+
+        var attempts = await query.ToListAsync();
 
         if (!attempts.Any()) return Ok(new { questions = new List<object>(), students = new List<object>() });
 
@@ -156,7 +195,7 @@ public class AnalyticsController : ControllerBase
         var questions = quiz.Questions.OrderBy(q => q.OrderIndex).ToList();
 
         // Per-question accuracy for difficulty classification
-        var questionStats = questions.Select(q =>
+        var questionStats = questions.Select((q, qIndex) =>
         {
             var qAnswers = answers.Where(a => a.QuestionId == q.Id).ToList();
             var correctCount = qAnswers.Count(a => a.IsCorrect);
@@ -175,7 +214,8 @@ public class AnalyticsController : ControllerBase
                 SkippedCount = attempts.Count - qAnswers.Count,
                 Accuracy = accuracy,
                 Difficulty = difficulty,
-                AverageResponseMs = qAnswers.Any() ? (int)qAnswers.Average(a => a.ResponseTimeMs) : 0
+                AverageResponseMs = qAnswers.Any() ? (int)qAnswers.Average(a => a.ResponseTimeMs) : 0,
+                Label = $"Q{qIndex + 1}"
             };
         }).ToList();
 
@@ -219,7 +259,7 @@ public class AnalyticsController : ControllerBase
     // Per-question detailed analytics
     // ─────────────────────────────────────────────
     [HttpGet("quiz/{quizId:guid}/questions")]
-    public async Task<IActionResult> GetQuestionAnalytics([FromRoute] Guid quizId)
+    public async Task<IActionResult> GetQuestionAnalytics([FromRoute] Guid quizId, [FromQuery] Guid? sessionId = null)
     {
         var quiz = await _context.Quizzes
             .Include(q => q.Questions)
@@ -227,9 +267,22 @@ public class AnalyticsController : ControllerBase
 
         if (quiz == null) return NotFound("Quiz not found.");
 
-        var attempts = await _context.QuizAttempts
-            .Where(a => a.QuizId == quizId)
-            .ToListAsync();
+        var query = _context.QuizAttempts
+            .Where(a => a.QuizId == quizId);
+
+        if (sessionId.HasValue)
+        {
+            if (sessionId.Value == Guid.Empty)
+            {
+                query = query.Where(a => a.SessionId == null);
+            }
+            else
+            {
+                query = query.Where(a => a.SessionId == sessionId.Value);
+            }
+        }
+
+        var attempts = await query.ToListAsync();
 
         var attemptIds = attempts.Select(a => a.Id).ToList();
         var answers = await _context.QuizAnswers
@@ -270,7 +323,7 @@ public class AnalyticsController : ControllerBase
     // Individual student detailed report
     // ─────────────────────────────────────────────
     [HttpGet("quiz/{quizId:guid}/student/{studentId:guid}")]
-    public async Task<IActionResult> GetStudentReport([FromRoute] Guid quizId, [FromRoute] Guid studentId)
+    public async Task<IActionResult> GetStudentReport([FromRoute] Guid quizId, [FromRoute] Guid studentId, [FromQuery] Guid? sessionId = null)
     {
         var quiz = await _context.Quizzes
             .Include(q => q.Questions)
@@ -278,15 +331,43 @@ public class AnalyticsController : ControllerBase
 
         if (quiz == null) return NotFound("Quiz not found.");
 
-        var attempt = await _context.QuizAttempts
+        var attemptQuery = _context.QuizAttempts
             .Include(a => a.Student)
-            .FirstOrDefaultAsync(a => a.QuizId == quizId && a.StudentId == studentId);
+            .Where(a => a.QuizId == quizId && a.StudentId == studentId);
+
+        if (sessionId.HasValue)
+        {
+            if (sessionId.Value == Guid.Empty)
+            {
+                attemptQuery = attemptQuery.Where(a => a.SessionId == null);
+            }
+            else
+            {
+                attemptQuery = attemptQuery.Where(a => a.SessionId == sessionId.Value);
+            }
+        }
+
+        var attempt = await attemptQuery.FirstOrDefaultAsync();
 
         if (attempt == null) return NotFound("No attempt found for this student.");
 
         // Rank calculation
-        var allAttempts = await _context.QuizAttempts
-            .Where(a => a.QuizId == quizId)
+        var allAttemptsQuery = _context.QuizAttempts
+            .Where(a => a.QuizId == quizId);
+
+        if (sessionId.HasValue)
+        {
+            if (sessionId.Value == Guid.Empty)
+            {
+                allAttemptsQuery = allAttemptsQuery.Where(a => a.SessionId == null);
+            }
+            else
+            {
+                allAttemptsQuery = allAttemptsQuery.Where(a => a.SessionId == sessionId.Value);
+            }
+        }
+
+        var allAttempts = await allAttemptsQuery
             .OrderByDescending(a => a.Score)
             .ThenBy(a => a.TimeTakenMilliseconds)
             .ThenByDescending(a => a.Accuracy)

@@ -156,13 +156,26 @@ public class AIController : ControllerBase
     }
 
     [HttpGet("analytics/{quizId}")]
-    public async Task<IActionResult> GetQuizAnalytics(Guid quizId)
+    public async Task<IActionResult> GetQuizAnalytics(Guid quizId, [FromQuery] Guid? sessionId = null)
     {
         try
         {
-            var attempts = await _context.QuizAttempts
-                .Where(a => a.QuizId == quizId)
-                .ToListAsync();
+            var query = _context.QuizAttempts
+                .Where(a => a.QuizId == quizId);
+
+            if (sessionId.HasValue)
+            {
+                if (sessionId.Value == Guid.Empty)
+                {
+                    query = query.Where(a => a.SessionId == null);
+                }
+                else
+                {
+                    query = query.Where(a => a.SessionId == sessionId.Value);
+                }
+            }
+
+            var attempts = await query.ToListAsync();
 
             if (!attempts.Any())
             {
