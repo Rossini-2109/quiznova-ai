@@ -1,103 +1,148 @@
 .container {
+  min-height: 100vh;
   padding: 2rem;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.1);
 }
 
 .header {
   margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: saturate(180%) blur(20px);
+  padding: 1.5rem;
+  border-radius: 12px;
 }
 
 .title {
   font-size: 2rem;
-  font-weight: bold;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .badge {
-  background: #22c55e;
-  color: white;
   padding: 4px 12px;
   border-radius: 999px;
+  font-weight: 600;
+}
+.badgeCompleted {
+  background: #22c55e;
+  color: #fff;
+}
+.badgeLive {
+  background: #2563eb;
+  color: #fff;
 }
 
-.dates {
-  margin-top: 1rem;
+.dates p {
+  margin: 0.2rem 0;
+  color: var(--text-secondary);
 }
 
 .actions {
   display: flex;
-  gap: 10px;
-  margin-top: 1rem;
   flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
 .btn {
-  padding: 8px 14px;
+  padding: 0.5rem 1rem;
+  background: rgba(255,255,255,0.2);
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  color: var(--text-primary);
+  backdrop-filter: blur(4px);
+  transition: transform 0.2s, background 0.2s;
+}
+.btn:hover {
+  background: rgba(255,255,255,0.3);
+  transform: translateY(-2px);
 }
 
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
   gap: 1rem;
   margin: 2rem 0;
 }
 
 .card {
-  border: 1px solid #ddd;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 12px;
   padding: 1rem;
   text-align: center;
+  backdrop-filter: blur(6px);
+  transition: transform 0.2s;
+}
+.card:hover {
+  transform: translateY(-4px);
 }
 
 .icon {
   font-size: 2rem;
+  margin-bottom: 0.5rem;
 }
 
 .tabs {
   display: flex;
-  gap: 10px;
-  margin-bottom: 2rem;
   flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .tab {
-  padding: 8px 14px;
-  border-radius: 8px;
+  padding: 0.5rem 1rem;
   border: 1px solid #ddd;
-}
-
-.tabActive {
-  padding: 8px 14px;
   border-radius: 8px;
+  background: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.tab:hover {
+  background: rgba(255,255,255,0.8);
+}
+.tabActive {
   background: #2563eb;
-  color: white;
+  color: #fff;
+  border-color: #2563eb;
 }
 
-.overview {
-  margin-bottom: 2rem;
-}
-
-.questions {
-  margin-top: 2rem;
+.overview, .questions {
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .questionCard {
-  border: 1px solid #ddd;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1rem;
 }
 
-.options {
-  margin-top: 10px;
+.options li {
+  margin: 0.25rem 0;
 }
 
-.loader {
+.loader, .error {
+  text-align: center;
   padding: 2rem;
 }
+.error { color: #f44336; }
 
-.error {
-  color: red;
-  padding: 2rem;
+@media (prefers-color-scheme: dark) {
+  .container { background: rgba(0,0,0,0.4); }
+  .title, .badge, .btn, .card, .tab { color: #e0e0e0; }
+  .badgeCompleted { background: #4ade80; }
+  .badgeLive { background: #1e40af; }
+  .header, .overview, .questions { background: rgba(0,0,0,0.3); }
 }

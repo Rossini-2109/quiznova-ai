@@ -77,13 +77,14 @@ const shareMutation = useMutation({
   const attempt = data!;
   const accuracy = attempt.percentage;
   const totalQuestions = attempt.attempt.questions.length;
+  const isCompleted = !!attempt.submittedAt;
 
   return (
     <div className={styles.container}>
       {/* Header */}
       <section className={styles.header}>
         <h1 className={styles.title}>{attempt.attempt.title}</h1>
-        <span className={styles.badge}>Completed</span>
+        <span className={`${styles.badge} ${isCompleted ? styles.badgeCompleted : styles.badgeLive}`}>{isCompleted ? "Completed" : "Live Quiz"}</span>
         <div className={styles.dates}>
           <p>Started: {new Date(attempt.startedAt).toLocaleString()}</p>
           <p>Submitted: {new Date(attempt.submittedAt).toLocaleString()}</p>
