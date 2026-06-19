@@ -1,4 +1,5 @@
 "use client";
+import { useState } from 'react';
 import React from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -67,6 +68,9 @@ const shareMutation = useMutation({
   },
 });
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'overview' | 'participants' | 'questions' | 'accommodations' | 'tags' | 'anti-cheating'>('overview');
+
   if (isLoading) return <div className={styles.loader}>Loading...</div>;
   if (error) return <div className={styles.error}>Error loading result.</div>;
 
@@ -102,7 +106,7 @@ const shareMutation = useMutation({
         <div className={styles.card}>
           <div className={styles.icon}>✅</div>
           <h3>Completion Rate</h3>
-          <p>{attempt.timeTakenMilliseconds ? 100 : 0}%</p>
+          <p>{attempt.timeTakenMilliseconds ? Math.round((attempt.timeTakenMilliseconds / (attempt.attempt.timeLimit * 1000)) * 100) : 0}%</p>
         </div>
         <div className={styles.card}>
           <div className={styles.icon}>👥</div>
@@ -118,38 +122,42 @@ const shareMutation = useMutation({
 
       {/* Tabs */}
       <section className={styles.tabs}>
-        <button className={styles.tabActive}>Overview</button>
-        <button className={styles.tab}>Participants</button>
-        <button className={styles.tab}>Questions</button>
-        <button className={styles.tab}>Accommodations</button>
-        <button className={styles.tab}>Tags</button>
-        <button className={styles.tab}>Anti‑Cheating</button>
+        <button className={activeTab === 'overview' ? styles.tabActive : styles.tab} onClick={() => setActiveTab('overview')}>Overview</button>
+        <button className={activeTab === 'participants' ? styles.tabActive : styles.tab} onClick={() => setActiveTab('participants')}>Participants</button>
+        <button className={activeTab === 'questions' ? styles.tabActive : styles.tab} onClick={() => setActiveTab('questions')}>Questions</button>
+        <button className={activeTab === 'accommodations' ? styles.tabActive : styles.tab} onClick={() => setActiveTab('accommodations')}>Accommodations</button>
+        <button className={activeTab === 'tags' ? styles.tabActive : styles.tab} onClick={() => setActiveTab('tags')}>Tags</button>
+        <button className={activeTab === 'anti-cheating' ? styles.tabActive : styles.tab} onClick={() => setActiveTab('anti-cheating')}>Anti‑Cheating</button>
       </section>
 
       {/* Overview Content */}
-      <section className={styles.overview}>
-        <h2>Score Summary</h2>
-        <p>Score: {attempt.score} / {totalQuestions * 5}</p>
-        <p>Correct Answers: {attempt.correctAnswers}</p>
-        <p>Wrong Answers: {attempt.wrongAnswers}</p>
-        <p>Time Taken: {Math.round(attempt.timeTakenMilliseconds / 1000)} seconds</p>
-      </section>
+      {activeTab === 'overview' && (
+        <section className={styles.overview}>
+          <h2>Score Summary</h2>
+          <p>Score: {attempt.score} / {totalQuestions * 5}</p>
+          <p>Correct Answers: {attempt.correctAnswers}</p>
+          <p>Wrong Answers: {attempt.wrongAnswers}</p>
+          <p>Time Taken: {Math.round(attempt.timeTakenMilliseconds / 1000)} seconds</p>
+        </section>
+      )}
 
       {/* Questions List */}
-      <section className={styles.questions}>
-        <h2>Questions</h2>
-        {attempt.attempt.questions.map((q, idx) => (
-          <div key={q.id} className={styles.questionCard}>
-            <h4>{idx + 1}. {q.questionText}</h4>
-            <ul className={styles.options}>
-              <li>A. {q.optionA}</li>
-              <li>B. {q.optionB}</li>
-              <li>C. {q.optionC}</li>
-              <li>D. {q.optionD}</li>
-            </ul>
-          </div>
-        ))}
-      </section>
+      {activeTab === 'questions' && (
+        <section className={styles.questions}>
+          <h2>Questions</h2>
+          {attempt.attempt.questions.map((q, idx) => (
+            <div key={q.id} className={styles.questionCard}>
+              <h4>{idx + 1}. {q.questionText}</h4>
+              <ul className={styles.options}>
+                <li>A. {q.optionA}</li>
+                <li>B. {q.optionB}</li>
+                <li>C. {q.optionC}</li>
+                <li>D. {q.optionD}</li>
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
     </div>
   );
 }
