@@ -1459,39 +1459,49 @@ export default function TeacherResultsPage({
           )}
 
           {/* ══════════════════ TAB 5: TAGS ══════════════════════════════════════ */}
-          {activeTab === "tags" && (
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-3xl p-8 shadow-sm space-y-5">
-              <div>
-                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Quiz Tags &amp; Topics</h3>
-                <p className="text-zinc-400 text-xs mt-0.5">Topic tags mapped from your questions to track performance by subject area.</p>
-              </div>
-              
-              <div className="flex flex-wrap gap-2.5">
-                {quiz?.tags?.split(",")
-  .map(tag => tag.trim())
-  .filter(Boolean)
-  .map(tag => (
-    <span key={tag}>
-      🏷️ {tag}
-    </span>
-  )
-                ) : (
-                  <>
-                    <span className="text-xs px-3.5 py-1.5 bg-zinc-50 text-zinc-550 dark:bg-zinc-800 dark:text-zinc-400 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold">
-                      General Knowledge
-                    </span>
-                    <span className="text-xs px-3.5 py-1.5 bg-zinc-50 text-zinc-550 dark:bg-zinc-800 dark:text-zinc-400 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold">
-                      Math
-                    </span>
-                    <span className="text-xs px-3.5 py-1.5 bg-zinc-50 text-zinc-550 dark:bg-zinc-800 dark:text-zinc-400 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold">
-                      Science
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
+{activeTab === "tags" && (
+  <div className="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-3xl p-8 shadow-sm space-y-5">
+    <div>
+      <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+        Quiz Tags & Topics
+      </h3>
+      <p className="text-zinc-400 text-xs mt-0.5">
+        Topic tags mapped from your questions to track performance by subject area.
+      </p>
+    </div>
 
+    <div className="flex flex-wrap gap-2.5">
+      {quiz?.tags ? (
+        quiz.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+          .map((tag) => (
+            <span
+              key={tag}
+              className="text-xs px-3.5 py-1.5 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 rounded-xl border border-indigo-200 dark:border-indigo-800 font-semibold"
+            >
+              🏷️ {tag}
+            </span>
+          ))
+      ) : (
+        <>
+          <span className="text-xs px-3.5 py-1.5 bg-zinc-50 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold">
+            General Knowledge
+          </span>
+
+          <span className="text-xs px-3.5 py-1.5 bg-zinc-50 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold">
+            Math
+          </span>
+
+          <span className="text-xs px-3.5 py-1.5 bg-zinc-50 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 rounded-xl border border-zinc-200 dark:border-zinc-700 font-semibold">
+            Science
+          </span>
+        </>
+      )}
+    </div>
+  </div>
+)}
           {/* ══════════════════ TAB 6: ANTI-CHEAT ══════════════════════════════ */}
           {activeTab === "anticheat" && (
             <div className="space-y-4">
