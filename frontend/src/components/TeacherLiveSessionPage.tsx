@@ -89,8 +89,8 @@ export default function TeacherLiveSessionPage() {
   // sessionId obtained from URL params
 
   // State Management
-  const [session, setSession] = useState<SessionState | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const filteredParticipants = participants.filter(p => p.name !== "Teacher");
   const [theme, setTheme] = useState<ThemeType>("dark-purple");
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [activeTab, setActiveTab] = useState<"leaderboard" | "questions" | "anticheat">("leaderboard");
@@ -274,6 +274,14 @@ export default function TeacherLiveSessionPage() {
   const handlePauseToggle = async () => {
     if (!connectionRef.current) return;
     try {
+        const handleRemoveParticipant = async (participantId: string) => {
+          if (!connectionRef.current) return;
+          try {
+            await connectionRef.current.invoke("TeacherRemoveStudent", session?.sessionCode, participantId);
+          } catch (e) {
+            console.error("Failed to remove participant", e);
+          }
+        };
       if (session.isPaused) {
         await connectionRef.current.invoke("TeacherResumedQuiz", session.sessionCode);
         setSession(prev => prev ? { ...prev, isPaused: false } : prev);
@@ -396,7 +404,7 @@ export default function TeacherLiveSessionPage() {
   const currentTheme = THEME_CLASSES[theme] || THEME_CLASSES["dark-purple"];
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${currentTheme.bg} text-white flex flex-col transition-all duration-500 font-sans overflow-hidden`}>
+    <div className="h-screen w-screen bg-gradient-to-br ${currentTheme.bg} text-white flex flex-col transition-all duration-500 font-sans overflow-hidden">
       
       {/* 1. FIXED TOP NAVIGATION HEADER */}
       <header className="sticky top-0 z-40 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
@@ -464,14 +472,6 @@ export default function TeacherLiveSessionPage() {
             {isFullscreen ? <X size={14} /> : <Maximize size={14} />}
           </button>
 
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all cursor-pointer"
-            title={soundEnabled ? "Mute Alerts" : "Unmute Alerts"}
-          >
-            {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} className="text-red-400" />}
-          </button>
-
           {/* Theme Selector */}
           <div className="relative group">
             <button className="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer">
@@ -506,7 +506,7 @@ export default function TeacherLiveSessionPage() {
       {/* 2. LOBBY OR STARTED VIEWS */}
       {!session.isStarted ? (
         /* LOBBY SCREEN (Waiting to Start) */
-        <main className="flex-1 p-8 max-w-7xl mx-auto w-full flex flex-col items-center justify-center gap-8 overflow-y-auto">
+        <main className="flex-1 p-8 w-full flex flex-col items-center justify-center gap-8 overflow-y-auto">
           <div className="text-center space-y-3 max-w-lg">
             <h2 className="text-4xl font-extrabold tracking-tight">Waiting Room</h2>
             <p className="text-zinc-400 text-sm">
@@ -553,7 +553,7 @@ export default function TeacherLiveSessionPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto pr-1 space-y-2">
-                {participants.length === 0 ? (
+                {filteredParticipants.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-zinc-500 text-xs py-10 gap-3">
                     <Loader2 className="animate-spin text-purple-400" size={20} />
                     <span>No students joined yet...</span>
@@ -561,16 +561,21 @@ export default function TeacherLiveSessionPage() {
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     <AnimatePresence>
-                      {participants.map((p) => (
+                      {filteredParticipants.map((p) => (
                         <motion.div
                           key={p.id}
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0 }}
-                          className="bg-white/5 border border-white/5 rounded-xl p-3 flex flex-col justify-center"
+                          className="bg-white/5 border border-white/5 rounded-xl p-3 flex items-center justify-between"
                         >
-                          <span className="font-bold text-xs text-zinc-200 truncate">{p.name}</span>
-                          <span className="text-[9px] text-zinc-500 font-semibold truncate font-mono mt-0.5">{p.employeeId || "No Emp ID"}</span>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-xs text-zinc-200 truncate">{p.name}</span>
+                            <span className="text-[9px] text-zinc-500 font-semibold truncate font-mono mt-0.5">{p.employeeId || "No Emp ID"}</span>
+                          </div>
+                          <button onClick={() => handleRemoveParticipant(p.id)} className="p-1 hover:text-red-300">
+                            <X size={14} className="text-red-400" />
+                          </button>
                         </motion.div>
                       ))}
                     </AnimatePresence>
@@ -709,11 +714,16 @@ export default function TeacherLiveSessionPage() {
                                   </span>
                                 </td>
                                 <td className="py-4 px-4 font-bold text-zinc-200">
-                                  <div className="flex items-center gap-2">
-                                    <div className="h-6 h-6 rounded-full bg-indigo-500/20 text-indigo-300 flex items-center justify-center text-xs font-bold uppercase w-6">
-                                      {p.name.charAt(0)}
-                                    </div>
-                                    <span>{p.name}</span>
+                                  <div className="flex items-center justify-between">
+                                    <span className="flex items-center gap-2">
+                                      <div className="h-6 h-6 rounded-full bg-indigo-500/20 text-indigo-300 flex items-center justify-center text-xs font-bold uppercase w-6">
+                                        {p.name.charAt(0)}
+                                      </div>
+                                      <span>{p.name}</span>
+                                    </span>
+                                    <button onClick={() => handleRemoveParticipant(p.id)} className="p-1 hover:text-red-300">
+                                      <X size={12} className="text-red-400" />
+                                    </button>
                                   </div>
                                 </td>
                                 <td className="py-4 px-4 font-black text-indigo-400">{p.score}</td>

@@ -119,10 +119,22 @@ public class QuizHub : Hub
         await Clients.Group(sessionCode).SendAsync("QuestionJumped", questionIndex);
     }
 
+    // Teacher ends quiz – persist results and expire session
     public async Task TeacherEndedQuiz(string sessionCode)
     {
         await _liveQuizService.EndSessionAndPersistResultsAsync(sessionCode);
+        // Mark session as expired so future joins fail
+        await _liveQuizService.ExpireSessionAsync(sessionCode);
         await Clients.Group(sessionCode).SendAsync("QuizEnded");
+    }
+
+    // New method: Teacher removes a participant (student)
+    public async Task TeacherRemoveStudent(string sessionCode, string participantId)
+    {
+        await _liveQuizService.RemoveParticipantAsync(sessionCode, participantId);
+        var participants = await _liveQuizService.GetParticipantsAsync(sessionCode);
+        await Clients.Group(sessionCode).SendAsync("ParticipantRemoved", participantId);
+        await Clients.Group(sessionCode).SendAsync("ParticipantListUpdated", participants);
     }
 
     public async Task ChangeTheme(string sessionCode, string themeName)
