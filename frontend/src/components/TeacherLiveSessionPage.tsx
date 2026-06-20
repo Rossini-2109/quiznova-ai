@@ -427,7 +427,9 @@ const handlePauseToggle = async () => {
   const currentTheme = THEME_CLASSES[theme] || THEME_CLASSES["dark-purple"];
 
   return (
-    <div className={`h-screen w-screen bg-gradient-to-br ${currentTheme.bg} text-white flex flex-col transition-all duration-500 font-sans overflow-x-hidden overflow-y-hidden min-w-0`}>
+    return (
+  <div className="fixed inset-0 bg-gradient-to-br ${currentTheme.bg} text-white flex flex-col overflow-hidden font-sans">
+    {/* header and content will follow */
       
       {/* 1. FIXED TOP NAVIGATION HEADER */}
       <header className="sticky top-0 z-40 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
