@@ -427,7 +427,7 @@ const handlePauseToggle = async () => {
   const currentTheme = THEME_CLASSES[theme] || THEME_CLASSES["dark-purple"];
 
   return (
-    <div className="h-screen w-screen bg-gradient-to-br ${currentTheme.bg} text-white flex flex-col transition-all duration-500 font-sans overflow-hidden">
+    <div className={`h-screen w-screen bg-gradient-to-br ${currentTheme.bg} text-white flex flex-col transition-all duration-500 font-sans overflow-x-hidden overflow-y-hidden min-w-0`}>
       
       {/* 1. FIXED TOP NAVIGATION HEADER */}
       <header className="sticky top-0 z-40 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
@@ -619,10 +619,10 @@ const handlePauseToggle = async () => {
         </main>
       ) : (
         /* LIVE MONITORING DASHBOARD VIEW */
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-y-auto min-w-0">
           
           {/* A. LEFT / CENTER PRIMARY MONITORING COLUMN */}
-          <main className="flex-1 flex flex-col overflow-y-auto p-6 gap-6">
+          <main className="flex-1 flex flex-col overflow-y-auto p-6 gap-6 min-w-0">
             
             {/* 1. CLASS ACCURACY BAR CARD */}
             <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl flex flex-col gap-4 relative overflow-hidden">
@@ -780,10 +780,10 @@ const handlePauseToggle = async () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-0"
+                    className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-1 min-h-0 w-full min-w-0 overflow-hidden"
                   >
                     {/* Left Column: Pills/Cards List (4 cols) */}
-                    <div className="xl:col-span-4 flex flex-col gap-3 overflow-y-auto max-h-[500px] pr-1">
+                    <div className="xl:col-span-4 flex flex-col gap-3 overflow-y-auto flex-1 min-w-0 pr-1">
                       {questions.map((q, idx) => {
                         const ans = questionAnalysis.find(a => a.questionId === q.id) || { accuracy: 0 };
                         let pillClass = "border-red-500/20 text-red-400 bg-red-500/5";
@@ -810,7 +810,7 @@ const handlePauseToggle = async () => {
 
                     {/* Right Column: Analytics Card Detail (8 cols) */}
                     {activeQuestionDetail && (
-                      <div className="xl:col-span-8 bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl flex flex-col gap-6 overflow-y-auto max-h-[500px]">
+                      <div className="xl:col-span-8 bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl flex flex-col gap-6 overflow-y-auto flex-1 min-w-0">
                         <div>
                           <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/15">
                             Q{selectedQuestionIndex + 1} Breakdown
@@ -848,7 +848,7 @@ const handlePauseToggle = async () => {
                         </div>
 
                         {/* Recharts chart */}
-                        <div className="h-56 bg-black/20 rounded-2xl border border-white/5 p-4">
+                        <div className="h-56 bg-black/20 rounded-2xl border border-white/5 p-4 overflow-hidden">
                           <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-4">Option Distribution</p>
                           <ResponsiveContainer width="100%" height="90%">
                             <BarChart data={[
@@ -955,7 +955,7 @@ const handlePauseToggle = async () => {
                 initial={{ width: 0, opacity: 0 }}
                 animate={{ width: 300, opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
-                className="bg-black/35 border-l border-white/10 backdrop-blur-xl flex flex-col shrink-0"
+                className="bg-black/35 border-l border-white/10 backdrop-blur-xl flex flex-col shrink-0 overflow-y-auto min-w-0"
               >
                 {/* Sidebar Header */}
                 <div className="p-4 border-b border-white/10 flex justify-between items-center">
