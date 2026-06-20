@@ -3,6 +3,12 @@ using backend.Models;
 
 namespace backend.Services;
 
+public class SubmitAnswerResult
+{
+    public bool IsCorrect { get; set; }
+    public string CorrectAnswer { get; set; } = string.Empty;
+}
+
 public interface ILiveQuizService
 {
     Task<Session> GetSessionAsync(string sessionCode);
@@ -19,7 +25,7 @@ public interface ILiveQuizService
     Task RemoveParticipantAsync(string sessionCode, string studentName);
     Task<List<LiveParticipantDto>> GetParticipantsAsync(string sessionCode);
     
-    Task SubmitAnswerAsync(string sessionCode, string studentName, Guid questionId, string selectedOption, int timeTakenMs);
+    Task<SubmitAnswerResult> SubmitAnswerAsync(string sessionCode, string studentName, Guid questionId, string selectedOption, int timeTakenMs);
     Task<LiveQuestionAnalyticsDto> GetQuestionAnalyticsAsync(string sessionCode, Guid questionId);
     Task<bool> EndSessionAndPersistResultsAsync(string sessionCode);
     

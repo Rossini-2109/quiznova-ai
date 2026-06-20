@@ -96,12 +96,17 @@ export default function LobbyPage() {
 
         console.log("Lobby SignalR Connected");
 
-        await hubConnection.invoke(
+        const success = await hubConnection.invoke<boolean>(
           "JoinSession",
           sessionCode,
           studentName,
           localStorage.getItem("employeeId") || ""
         );
+
+        if (!success) {
+          alert("Failed to join lobby. You might have reached the maximum allowed attempts or the session does not exist.");
+          router.push("/student/dashboard");
+        }
       } catch (err) {
         console.error("SignalR Error:", err);
       }

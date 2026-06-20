@@ -64,7 +64,7 @@ public class LiveQuizController : ControllerBase
             var questionsList = session.Quiz.Questions.ToList();
             if (session.Quiz.ShuffleQuestions)
             {
-                int seed = string.IsNullOrEmpty(studentName) ? Guid.NewGuid().GetHashCode() : studentName.GetHashCode();
+                int seed = session.SessionCode.GetHashCode();
                 var rng = new Random(seed);
                 questionsList = questionsList.OrderBy(q => rng.Next()).ToList();
             }

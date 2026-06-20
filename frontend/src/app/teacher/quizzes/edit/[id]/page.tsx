@@ -38,6 +38,8 @@ export default function EditQuizPage() {
 
   const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [shuffleQuestions, setShuffleQuestions] = useState(false);
+  const [maxAttempts, setMaxAttempts] = useState(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,6 +53,8 @@ export default function EditQuizPage() {
       const quiz = res.data;
 
       setTitle(quiz.title || "");
+      setShuffleQuestions(quiz.shuffleQuestions || false);
+      setMaxAttempts(quiz.maxAttempts || 1);
       
       const formattedQuestions = (quiz.questions || []).map((q: any) => {
         let count = 4;
@@ -226,6 +230,8 @@ export default function EditQuizPage() {
       await api.put(`/quiz/${id}`, {
         title,
         questions,
+        shuffleQuestions,
+        maxAttempts,
       });
 
       alert("Quiz updated successfully");
@@ -354,6 +360,36 @@ export default function EditQuizPage() {
               setTitle(e.target.value)
             }
           />
+        </div>
+
+        {/* Quiz Settings */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-zinc-50 p-5 rounded-2xl border">
+          <div>
+            <label className="block font-semibold mb-2 text-sm text-zinc-700">
+              Maximum Attempts Per Student
+            </label>
+            <input
+              type="number"
+              min={1}
+              className="w-full border rounded-xl p-3 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              value={maxAttempts}
+              onChange={(e) => setMaxAttempts(Number(e.target.value))}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-6 md:mt-0">
+            <div>
+              <label className="block font-semibold text-sm text-zinc-700">
+                Shuffle Questions
+              </label>
+              <span className="text-xs text-zinc-400">Randomize question order for participants</span>
+            </div>
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-zinc-350 text-indigo-600 focus:ring-indigo-500"
+              checked={shuffleQuestions}
+              onChange={(e) => setShuffleQuestions(e.target.checked)}
+            />
+          </div>
         </div>
 
         {/* Questions Header */}

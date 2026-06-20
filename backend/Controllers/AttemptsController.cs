@@ -249,6 +249,14 @@ public async Task<IActionResult> StartAttempt(
             return NotFound("Quiz not found");
         }
 
+        var existingAttemptsCount = await _context.QuizAttempts
+            .CountAsync(a => a.QuizId == dto.QuizId && a.StudentId == studentId);
+
+        if (existingAttemptsCount >= quiz.MaxAttempts)
+        {
+            return BadRequest($"Maximum attempts limit of {quiz.MaxAttempts} reached.");
+        }
+
         var attempt = new QuizAttempt
         {
             Id = Guid.NewGuid(),

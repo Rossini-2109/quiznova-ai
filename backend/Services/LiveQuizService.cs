@@ -111,6 +111,17 @@ public class LiveQuizService : ILiveQuizService
         var session = await GetSessionAsync(sessionCode);
         if (session == null) return; // Session not found, abort to avoid 400 errors
 
+        // Enforce attempts limit for live sessions
+        var guestUser = await _context.Users.FirstOrDefaultAsync(u => u.Name == name);
+        if (guestUser != null)
+        {
+            var attemptsCount = await _context.QuizAttempts.CountAsync(a => a.QuizId == session.QuizId && a.StudentId == guestUser.Id);
+            if (attemptsCount >= session.Quiz.MaxAttempts)
+            {
+                throw new Exception($"Maximum attempts limit of {session.Quiz.MaxAttempts} reached.");
+            }
+        }
+
         var participant = await _context.SessionParticipants
             .FirstOrDefaultAsync(p => p.SessionId == session.Id && p.StudentName == name);
 
@@ -186,21 +197,28 @@ public class LiveQuizService : ILiveQuizService
         return dtos;
     }
 
-    public async Task SubmitAnswerAsync(string sessionCode, string studentName, Guid questionId, string selectedOption, int timeTakenMs)
+    public async Task<SubmitAnswerResult> SubmitAnswerAsync(string sessionCode, string studentName, Guid questionId, string selectedOption, int timeTakenMs)
     {
         var session = await GetSessionAsync(sessionCode);
         var participant = await _context.SessionParticipants
             .FirstOrDefaultAsync(p => p.SessionId == session.Id && p.StudentName == studentName);
 
-        if (participant == null) return;
+        if (participant == null) return new SubmitAnswerResult { IsCorrect = false, CorrectAnswer = string.Empty };
 
         var question = session.Quiz!.Questions.FirstOrDefault(q => q.Id == questionId);
-        if (question == null) return;
+        if (question == null) return new SubmitAnswerResult { IsCorrect = false, CorrectAnswer = string.Empty };
 
         var existingAnswer = await _context.SessionParticipantAnswers
             .FirstOrDefaultAsync(a => a.SessionId == session.Id && a.SessionParticipantId == participant.Id && a.QuestionId == questionId);
 
-        if (existingAnswer != null) return; // Prevent multiple answers
+        if (existingAnswer != null) 
+        {
+            return new SubmitAnswerResult 
+            { 
+                IsCorrect = existingAnswer.IsCorrect, 
+                CorrectAnswer = question.CorrectAnswer 
+            };
+        }
 
         bool isCorrect = !string.IsNullOrEmpty(selectedOption) && string.Equals(question.CorrectAnswer, selectedOption, StringComparison.OrdinalIgnoreCase);
 
@@ -238,6 +256,12 @@ public class LiveQuizService : ILiveQuizService
         participant.AverageTimeTakenMs = ((participant.AverageTimeTakenMs * (totalAnswers - 1)) + timeTakenMs) / totalAnswers;
 
         await _context.SaveChangesAsync();
+
+        return new SubmitAnswerResult
+        {
+            IsCorrect = isCorrect,
+            CorrectAnswer = question.CorrectAnswer
+        };
     }
 
     public async Task<LiveQuestionAnalyticsDto> GetQuestionAnalyticsAsync(string sessionCode, Guid questionId)

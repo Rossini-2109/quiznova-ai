@@ -224,6 +224,8 @@ public async Task<IActionResult> UpdateQuiz(
     if (dto.Tags != null) quiz.Tags = dto.Tags;
     if (dto.Instructions != null) quiz.Instructions = dto.Instructions;
     if (dto.DefaultQuestionTimeSeconds.HasValue) quiz.DefaultQuestionTimeSeconds = dto.DefaultQuestionTimeSeconds.Value;
+    if (dto.MaxAttempts.HasValue) quiz.MaxAttempts = dto.MaxAttempts.Value;
+    if (dto.ShuffleQuestions.HasValue) quiz.ShuffleQuestions = dto.ShuffleQuestions.Value;
 
     if (dto.Questions != null)
     {
