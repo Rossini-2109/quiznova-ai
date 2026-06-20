@@ -18,7 +18,7 @@ public class LiveQuizService : ILiveQuizService
         _context = context;
     }
 
-    public async Task<Session> GetSessionAsync(string sessionCode)
+    public async Task<Session?> GetSessionAsync(string sessionCode)
     {
         return await _context.Sessions
             .Include(s => s.Quiz)
@@ -101,13 +101,13 @@ public class LiveQuizService : ILiveQuizService
     }
     public async Task ExpireSessionAsync(string sessionCode)
 {
-    var session = await _context.LiveSessions
-        .FirstOrDefaultAsync(s => s.Code == sessionCode);
+    var session = await GetSessionAsync(sessionCode);
 
     if (session == null)
         return;
 
-    session.Status = "Ended";
+    session.IsEnded = true;
+    session.EndedAt = DateTime.UtcNow;
 
     await _context.SaveChangesAsync();
 }
