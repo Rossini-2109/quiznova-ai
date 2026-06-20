@@ -271,29 +271,52 @@ export default function TeacherLiveSessionPage() {
     }
   };
 
-  const handlePauseToggle = async () => {
-    if (!connectionRef.current) return;
-    try {
-        const handleRemoveParticipant = async (participantId: string) => {
-          if (!connectionRef.current) return;
-          try {
-            await connectionRef.current.invoke("TeacherRemoveStudent", session?.sessionCode, participantId);
-          } catch (e) {
-            console.error("Failed to remove participant", e);
-          }
-        };
-      if (session.isPaused) {
-        await connectionRef.current.invoke("TeacherResumedQuiz", session.sessionCode);
-        setSession(prev => prev ? { ...prev, isPaused: false } : prev);
-      } else {
-        await connectionRef.current.invoke("TeacherPausedQuiz", session.sessionCode);
-        setSession(prev => prev ? { ...prev, isPaused: true } : prev);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  
+const handleRemoveParticipant = async (participantId: string) => {
+  if (!connectionRef.current || !session) return;
 
+  try {
+    await connectionRef.current.invoke(
+      "TeacherRemoveStudent",
+      session.sessionCode,
+      participantId
+    );
+
+    setParticipants(prev =>
+      prev.filter(p => p.id !== participantId)
+    );
+  } catch (e) {
+    console.error("Failed to remove participant", e);
+  }
+};
+
+const handlePauseToggle = async () => {
+  if (!connectionRef.current) return;
+
+  try {
+    if (session.isPaused) {
+      await connectionRef.current.invoke(
+        "TeacherResumedQuiz",
+        session.sessionCode
+      );
+
+      setSession(prev =>
+        prev ? { ...prev, isPaused: false } : prev
+      );
+    } else {
+      await connectionRef.current.invoke(
+        "TeacherPausedQuiz",
+        session.sessionCode
+      );
+
+      setSession(prev =>
+        prev ? { ...prev, isPaused: true } : prev
+      );
+    }
+  } catch (e) {
+    console.error(e);
+  }
+};
   const handleEndQuiz = async () => {
     if (!connectionRef.current) return;
     if (confirm("Are you sure you want to end the session? This will force submit all incomplete answers and calculate final rankings.")) {
