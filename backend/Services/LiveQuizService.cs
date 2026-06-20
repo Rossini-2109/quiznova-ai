@@ -99,6 +99,18 @@ public class LiveQuizService : ILiveQuizService
             await _context.SaveChangesAsync();
         }
     }
+    public async Task ExpireSessionAsync(string sessionCode)
+{
+    var session = await _context.LiveSessions
+        .FirstOrDefaultAsync(s => s.Code == sessionCode);
+
+    if (session == null)
+        return;
+
+    session.Status = "Ended";
+
+    await _context.SaveChangesAsync();
+}
 
     public async Task PreviousQuestionAsync(string sessionCode)
     {

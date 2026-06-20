@@ -26,4 +26,6 @@ public interface ILiveQuizService
     
     Task ReportSuspiciousActivityAsync(string sessionCode, string studentName, string activityType);
     Task UpdateCurrentQuestionAsync(string sessionCode, string studentName, int questionIndex);
+    Task<LiveSession?> GetSessionAsync(string code);
+     Task ExpireSessionAsync(string sessionCode);
 }
