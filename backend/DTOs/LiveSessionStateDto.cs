@@ -39,4 +39,5 @@ public class LiveQuestionAnalyticsDto
     public int OptionBCount { get; set; }
     public int OptionCCount { get; set; }
     public int OptionDCount { get; set; }
+    public int OptionECount { get; set; }
 }

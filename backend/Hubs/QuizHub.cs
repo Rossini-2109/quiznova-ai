@@ -147,6 +147,14 @@ public class QuizHub : Hub
         await Clients.Group(sessionCode).SendAsync("ParticipantListUpdated", participants);
     }
 
+    public async Task KickStudent(string sessionCode, string studentName)
+    {
+        await _liveQuizService.KickParticipantAsync(sessionCode, studentName);
+        var participants = await _liveQuizService.GetParticipantsAsync(sessionCode);
+        await Clients.Group(sessionCode).SendAsync("ParticipantListUpdated", participants);
+        await Clients.Group(sessionCode).SendAsync("StudentKicked", studentName);
+    }
+
     // Connection tracking
     public override async Task OnDisconnectedAsync(Exception? exception)
     {

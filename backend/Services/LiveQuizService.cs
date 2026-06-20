@@ -106,6 +106,8 @@ public class LiveQuizService : ILiveQuizService
 
     public async Task AddParticipantAsync(string sessionCode, string connectionId, string name, string employeeId)
     {
+        if (string.Equals(name, "Teacher", StringComparison.OrdinalIgnoreCase)) return;
+
         var session = await GetSessionAsync(sessionCode);
         if (session == null) return; // Session not found, abort to avoid 400 errors
 
@@ -256,6 +258,7 @@ public class LiveQuizService : ILiveQuizService
             OptionBCount = answers.Count(a => string.Equals(a.SelectedOption, "B", StringComparison.OrdinalIgnoreCase)),
             OptionCCount = answers.Count(a => string.Equals(a.SelectedOption, "C", StringComparison.OrdinalIgnoreCase)),
             OptionDCount = answers.Count(a => string.Equals(a.SelectedOption, "D", StringComparison.OrdinalIgnoreCase)),
+            OptionECount = answers.Count(a => string.Equals(a.SelectedOption, "E", StringComparison.OrdinalIgnoreCase)),
         };
     }
 
@@ -469,6 +472,19 @@ public class LiveQuizService : ILiveQuizService
             (participant.CopyAttempts * 25));
 
         await _context.SaveChangesAsync();
+    }
+
+    public async Task KickParticipantAsync(string sessionCode, string studentName)
+    {
+        var session = await GetSessionAsync(sessionCode);
+        if (session == null) return;
+        var participant = await _context.SessionParticipants
+            .FirstOrDefaultAsync(p => p.SessionId == session.Id && p.StudentName == studentName);
+        if (participant != null)
+        {
+            _context.SessionParticipants.Remove(participant);
+            await _context.SaveChangesAsync();
+        }
     }
 
     public async Task UpdateCurrentQuestionAsync(string sessionCode, string studentName, int questionIndex)

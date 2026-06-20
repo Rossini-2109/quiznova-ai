@@ -35,20 +35,28 @@ public class AttemptsController : ControllerBase
         if (quiz == null)
             return NotFound("Quiz not found");
 
+        var questionsList = quiz.Questions.ToList();
+        if (quiz.ShuffleQuestions)
+        {
+            var rng = new Random(attemptId.GetHashCode());
+            questionsList = questionsList.OrderBy(q => rng.Next()).ToList();
+        }
+
         return Ok(new
         {
             id = quiz.Id,
             title = quiz.Title,
             timeLimit = quiz.TimeLimit,
 
-            questions = quiz.Questions.Select(q => new
+            questions = questionsList.Select(q => new
             {
                 id = q.Id,
                 questionText = q.QuestionText,
                 optionA = q.OptionA,
                 optionB = q.OptionB,
                 optionC = q.OptionC,
-                optionD = q.OptionD
+                optionD = q.OptionD,
+                optionE = q.OptionE
             })
         });
     }

@@ -20,6 +20,7 @@ public class QuestionDto
     public string OptionB { get; set; } = string.Empty;
     public string OptionC { get; set; } = string.Empty;
     public string OptionD { get; set; } = string.Empty;
+    public string OptionE { get; set; } = string.Empty;
     public string QuestionType { get; set; } = string.Empty;
     public int QuestionTimeLimit { get; set; }
     public string? QuestionImageUrl { get; set; }
@@ -27,4 +28,5 @@ public class QuestionDto
     public string? OptionBImageUrl { get; set; }
     public string? OptionCImageUrl { get; set; }
     public string? OptionDImageUrl { get; set; }
+    public string? OptionEImageUrl { get; set; }
 }

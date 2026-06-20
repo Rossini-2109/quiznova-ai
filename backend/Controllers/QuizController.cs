@@ -291,7 +291,7 @@ public async Task<IActionResult> UpdateQuiz(
 
 
    [HttpPut("publish/{id}")]
-public async Task<IActionResult> PublishQuiz(Guid id)
+public async Task<IActionResult> PublishQuiz(Guid id, [FromBody] PublishQuizDto dto)
 {
     try
     {
@@ -302,6 +302,11 @@ public async Task<IActionResult> PublishQuiz(Guid id)
             return NotFound("Quiz not found");
 
         quiz.Status = "Published";
+        if (dto != null)
+        {
+            quiz.MaxAttempts = dto.MaxAttempts;
+            quiz.ShuffleQuestions = dto.ShuffleQuestions;
+        }
 
         await _context.SaveChangesAsync();
 

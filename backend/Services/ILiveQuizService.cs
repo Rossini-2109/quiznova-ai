@@ -23,6 +23,7 @@ public interface ILiveQuizService
     Task<LiveQuestionAnalyticsDto> GetQuestionAnalyticsAsync(string sessionCode, Guid questionId);
     Task<bool> EndSessionAndPersistResultsAsync(string sessionCode);
     
+    Task KickParticipantAsync(string sessionCode, string studentName);
     Task ReportSuspiciousActivityAsync(string sessionCode, string studentName, string activityType);
     Task UpdateCurrentQuestionAsync(string sessionCode, string studentName, int questionIndex);
 }
