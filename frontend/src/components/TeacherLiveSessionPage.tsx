@@ -548,12 +548,12 @@ export default function TeacherLiveSessionPage() {
               <div className="flex justify-between items-center border-b border-white/10 pb-4 mb-4">
                 <span className="font-bold text-sm">Lobby Status</span>
                 <span className="text-xs font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full">
-                  {participants.length} Joined
+                  {participants.filter(p => p.name !== "Teacher").length} Students Joined
                 </span>
               </div>
 
               <div className="flex-1 overflow-y-auto pr-1 space-y-2">
-                {participants.length === 0 ? (
+                {participants.filter(p => p.name !== "Teacher").length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-zinc-500 text-xs py-10 gap-3">
                     <Loader2 className="animate-spin text-purple-400" size={20} />
                     <span>No students joined yet...</span>
@@ -561,18 +561,33 @@ export default function TeacherLiveSessionPage() {
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     <AnimatePresence>
-                      {participants.map((p) => (
-                        <motion.div
-                          key={p.id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="bg-white/5 border border-white/5 rounded-xl p-3 flex flex-col justify-center"
-                        >
-                          <span className="font-bold text-xs text-zinc-200 truncate">{p.name}</span>
-                          <span className="text-[9px] text-zinc-500 font-semibold truncate font-mono mt-0.5">{p.employeeId || "No Emp ID"}</span>
-                        </motion.div>
-                      ))}
+                      {participants
+                        .filter(p => p.name !== "Teacher")
+                        .map((p) => (
+                          <motion.div
+                            key={p.id}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="bg-white/5 border border-white/5 rounded-xl p-3 flex flex-col justify-center relative"
+                          >
+                            <span className="font-bold text-xs text-zinc-200 truncate">{p.name}</span>
+                            <span className="text-[9px] text-zinc-500 font-semibold truncate font-mono mt-0.5">{p.employeeId || "No Emp ID"}</span>
+                            {/* Remove button */}
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (connectionRef.current && session) {
+                                  await connectionRef.current.invoke("KickStudent", session.sessionCode, p.id);
+                                }
+                              }}
+                              className="absolute top-1 right-1 text-red-500 hover:text-red-700"
+                              title="Remove Student"
+                            >
+                              <X size={12} />
+                            </button>
+                          </motion.div>
+                        ))}
                     </AnimatePresence>
                   </div>
                 )}
@@ -582,7 +597,7 @@ export default function TeacherLiveSessionPage() {
 
           <button
             onClick={handleStartQuiz}
-            disabled={participants.length === 0}
+            disabled={participants.filter(p => p.name !== "Teacher").length === 0}
             className="mt-4 px-10 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-40 disabled:pointer-events-none text-white font-black rounded-2xl transition-all shadow-xl shadow-purple-600/25 text-base flex items-center gap-2 cursor-pointer group"
           >
             <Play size={16} className="fill-current group-hover:scale-110 transition-transform" />
