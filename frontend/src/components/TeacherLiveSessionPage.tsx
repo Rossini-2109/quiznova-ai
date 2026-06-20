@@ -426,14 +426,14 @@ const handlePauseToggle = async () => {
 
   const currentTheme = THEME_CLASSES[theme] || THEME_CLASSES["dark-purple"];
 
-  return (
-    return (
-  <div className="fixed inset-0 bg-gradient-to-br ${currentTheme.bg} text-white flex flex-col overflow-hidden font-sans">
-    {/* header and content will follow */
+return (
+  <div
+    className={`fixed inset-0 bg-gradient-to-br ${currentTheme.bg} text-white flex flex-col overflow-hidden font-sans`}
+  >
+    {/* header and content will follow */}
       
       {/* 1. FIXED TOP NAVIGATION HEADER */}
-      <header className="sticky top-0 z-40 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">
-        {/* Left Branding */}
+        <header className="sticky top-0 z-40 bg-black/40 backdrop-blur-xl border-b border-white/10 px-6 py-4 flex items-center justify-between">        {/* Left Branding */}
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 bg-gradient-to-tr from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
             <Sparkles size={20} className="text-white animate-pulse" />
