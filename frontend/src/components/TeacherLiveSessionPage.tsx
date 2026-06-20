@@ -97,7 +97,7 @@ export default function TeacherLiveSessionPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
   const [questionAnalysis, setQuestionAnalysis] = useState<any[]>([]);
-  
+  const [session, setSession] = useState<SessionState | null>(null);
   // Collapsible sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
