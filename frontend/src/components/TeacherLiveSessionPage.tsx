@@ -957,7 +957,7 @@ return (
                 initial={{ width: 0, opacity: 0 }}
                 animate={{ width: 300, opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
-                className="bg-black/35 border-l border-white/10 backdrop-blur-xl flex flex-col shrink-0 overflow-y-auto min-w-0"
+                className="bg-black/35 border-l border-white/10 backdrop-blur-xl flex flex-col shrink-0 overflow-y-auto min-w-0 md:relative md:w-72 w-full h-full fixed inset-0 z-30 md:z-auto"
               >
                 {/* Sidebar Header */}
                 <div className="p-4 border-b border-white/10 flex justify-between items-center">
