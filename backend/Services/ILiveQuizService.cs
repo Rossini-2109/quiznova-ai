@@ -8,6 +8,7 @@ public interface ILiveQuizService
     Task<Session> GetSessionAsync(string sessionCode);
     Task<Session> CreateSessionAsync(Guid quizId, Guid teacherId);
     Task StartSessionAsync(string sessionCode);
+    Task InitializeShufflingAsync(string sessionId);
     Task PauseSessionAsync(string sessionCode);
     Task ResumeSessionAsync(string sessionCode);
     Task NextQuestionAsync(string sessionCode);

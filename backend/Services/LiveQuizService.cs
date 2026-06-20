@@ -184,8 +184,15 @@ public class LiveQuizService : ILiveQuizService
         var quiz = session.Quiz;
         if (quiz == null) return false;
         // Count attempts for this student on this quiz
-        var attempts = await _context.QuizAttempts
-            .CountAsync(a => a.QuizId == quiz.Id && a.StudentId == studentName);
+        var user = await _context.Users
+    .FirstOrDefaultAsync(u => u.Name == studentName);
+
+if (user == null)
+    return true;
+
+var attempts = await _context.QuizAttempts
+    .CountAsync(a => a.QuizId == quiz.Id &&
+                     a.StudentId == user.Id);
         return attempts < quiz.MaxAttempts;
     }
 
