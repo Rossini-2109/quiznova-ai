@@ -248,6 +248,22 @@ export default function TeacherLiveSessionPage() {
 
     return () => clearInterval(interval);
   }, [session, sessionId]);
+// Auto‑navigate to results when the quiz reaches its final question
+useEffect(() => {
+  if (session && session.isStarted && !session.isEnded && session.currentQuestionIndex === session.totalQuestions - 1) {
+    const timer = setTimeout(async () => {
+      try {
+        if (connectionRef.current) {
+          await connectionRef.current.invoke("TeacherEndedQuiz", session.sessionCode);
+        }
+        router.push(`/teacher/results/${session.quizId}`);
+      } catch (e) {
+        console.error("Failed to auto‑end quiz:", e);
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }
+}, [session, router]);
 
   if (!session) {
     return (
