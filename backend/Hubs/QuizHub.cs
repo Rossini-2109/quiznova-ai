@@ -83,6 +83,8 @@ public class QuizHub : Hub
     public async Task TeacherStartedQuiz(string sessionCode)
     {
         await _liveQuizService.StartSessionAsync(sessionCode);
+        // Initialize shuffling after session start if needed
+        await _liveQuizService.InitializeShufflingAsync(sessionCode);
         await Clients.Group(sessionCode).SendAsync("QuizStarted");
     }
 

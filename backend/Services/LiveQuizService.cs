@@ -10,6 +10,8 @@ public class LiveQuizService : ILiveQuizService
 {
     private readonly ApplicationDbContext _context;
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, int> _participantQuestions = new();
+    // Per-participant shuffled question order for quizzes with ShuffleQuestions enabled
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid SessionId, Guid ParticipantId), List<Guid>> _shuffledQuestionOrders = new();
 
     public LiveQuizService(ApplicationDbContext context)
     {
@@ -50,6 +52,28 @@ public class LiveQuizService : ILiveQuizService
         session.StartedAt = DateTime.UtcNow;
         session.CurrentQuestionIndex = 0;
         await _context.SaveChangesAsync();
+    }
+
+    public async Task InitializeShufflingAsync(string sessionCode)
+    {
+        var session = await GetSessionAsync(sessionCode);
+        if (session == null) return;
+        var quiz = session.Quiz;
+        if (quiz == null) return;
+
+        if (!quiz.ShuffleQuestions) return; // No shuffling needed
+
+        var questionIds = quiz.Questions.Select(q => q.Id).ToList();
+        var participants = await _context.SessionParticipants
+            .Where(p => p.SessionId == session.Id)
+            .ToListAsync();
+
+        var rng = new Random();
+        foreach (var participant in participants)
+        {
+            var shuffled = questionIds.OrderBy(_ => rng.Next()).ToList();
+            _shuffledQuestionOrders[(session.Id, participant.Id)] = shuffled;
+        }
     }
 
     public async Task PauseSessionAsync(string sessionCode)
@@ -109,6 +133,20 @@ public class LiveQuizService : ILiveQuizService
         var session = await GetSessionAsync(sessionCode);
         if (session == null) return; // Session not found, abort to avoid 400 errors
 
+        if (name == "Teacher")
+        {
+            // Do not create a participant entry for the teacher
+            return;
+        }
+
+        // Enforce max attempts per student
+        var canJoin = await CanStudentJoinAsync(sessionCode, name);
+        if (!canJoin)
+        {
+            Console.WriteLine($"[JOIN] Student {name} exceeded max attempts for session {sessionCode}.");
+            return;
+        }
+
         var participant = await _context.SessionParticipants
             .FirstOrDefaultAsync(p => p.SessionId == session.Id && p.StudentName == name);
 
@@ -136,6 +174,19 @@ public class LiveQuizService : ILiveQuizService
         }
 
         await _context.SaveChangesAsync();
+    }
+
+    // Checks if a student has remaining attempts based on quiz.MaxAttempts
+    public async Task<bool> CanStudentJoinAsync(string sessionCode, string studentName)
+    {
+        var session = await GetSessionAsync(sessionCode);
+        if (session == null) return false;
+        var quiz = session.Quiz;
+        if (quiz == null) return false;
+        // Count attempts for this student on this quiz
+        var attempts = await _context.QuizAttempts
+            .CountAsync(a => a.QuizId == quiz.Id && a.StudentId == studentName);
+        return attempts < quiz.MaxAttempts;
     }
 
     public async Task RemoveParticipantAsync(string sessionCode, string studentName)
