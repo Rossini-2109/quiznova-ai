@@ -25,6 +25,12 @@ export default function JoinQuizPage() {
       setError("Please enter both name and employee/PS number.");
       return;
     }
+    // Validate employee ID as exactly 8 digits
+    const empIdPattern = /^\d{8}$/;
+    if (!empIdPattern.test(empId.trim())) {
+      setError("Employee ID / PS Number must be exactly 8 digits.");
+      return;
+    }
 
     try {
       setLoading(true);
