@@ -62,10 +62,8 @@ public class QRCodeService : IQRCodeService
             return filePath;
         }
         catch (Exception ex)
-        {
-            Console.WriteLine($"QR Generation Error: {ex}");
-
-            return null;
-        }
+{
+    throw new Exception($"QR ERROR: {ex}");
+}
     }
 }

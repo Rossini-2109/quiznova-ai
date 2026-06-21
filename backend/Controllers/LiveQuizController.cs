@@ -38,8 +38,10 @@ public class LiveQuizController : ControllerBase
                 IsStarted = session.IsStarted,
                 IsPaused = session.IsPaused,
                 IsEnded = session.IsEnded,
+                IsExpired = session.IsExpired,
                 CurrentQuestionIndex = session.CurrentQuestionIndex,
-                TotalQuestions = session.Quiz?.Questions.Count ?? 0
+                TotalQuestions = session.Quiz?.Questions.Count ?? 0,
+                ShuffledQuestionIds = session.ShuffledQuestionIds
             };
             return Ok(dto);
         }
@@ -64,7 +66,15 @@ public class LiveQuizController : ControllerBase
             var questionsList = session.Quiz.Questions.ToList();
             if (session.Quiz.ShuffleQuestions)
             {
-                int seed = session.SessionCode.GetHashCode();
+                int seed;
+                if (!string.IsNullOrEmpty(studentName))
+                {
+                    seed = (sessionCode + studentName).GetHashCode();
+                }
+                else
+                {
+                    seed = sessionCode.GetHashCode();
+                }
                 var rng = new Random(seed);
                 questionsList = questionsList.OrderBy(q => rng.Next()).ToList();
             }

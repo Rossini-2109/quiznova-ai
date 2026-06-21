@@ -104,6 +104,18 @@ public class LiveQuizService : ILiveQuizService
         await _context.SaveChangesAsync();
     }
 
+    // New method to expire a session link
+    public async Task ExpireSessionAsync(string sessionCode)
+    {
+        var session = await GetSessionAsync(sessionCode);
+        if (session == null) return;
+        // Mark as expired; also mark ended to stop further actions
+        session.IsExpired = true;
+        session.IsEnded = true;
+        session.EndedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+    }
+
     public async Task AddParticipantAsync(string sessionCode, string connectionId, string name, string employeeId)
     {
         if (string.Equals(name, "Teacher", StringComparison.OrdinalIgnoreCase)) return;

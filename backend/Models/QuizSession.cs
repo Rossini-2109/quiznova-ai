@@ -14,6 +14,7 @@ namespace backend.Models
         public DateTime? StartedAt { get; set; }
         public DateTime? EndedAt { get; set; }
         public int MaxAttempts { get; set; } = 1;
-        public bool ShuffleQuestions { get; set; } = false;
+        public bool ShuffleQuestions { get; set; } = false; // Preserve original flag
+        public bool IsExpired { get; set; } = false; // Indicates if session link is expired
     }
 }

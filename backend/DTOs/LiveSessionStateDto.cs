@@ -8,8 +8,10 @@ public class LiveSessionStateDto
     public bool IsStarted { get; set; }
     public bool IsPaused { get; set; }
     public bool IsEnded { get; set; }
+    public bool IsExpired { get; set; }
     public int CurrentQuestionIndex { get; set; }
     public int TotalQuestions { get; set; }
+    public int[]? ShuffledQuestionIds { get; set; }
 }
 
 public class LiveParticipantDto
