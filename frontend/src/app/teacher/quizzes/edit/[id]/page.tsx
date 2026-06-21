@@ -9,6 +9,8 @@ import {
   Trash2,
   ImagePlus,
   Clock3,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 interface Question {
