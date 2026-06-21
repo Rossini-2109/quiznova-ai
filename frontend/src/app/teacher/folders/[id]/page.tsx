@@ -6,7 +6,6 @@ import {
   Folder as FolderIcon,
   FolderPlus,
   BookOpen,
-  BookMarked,
   Star,
   Archive,
   Globe,
@@ -18,7 +17,6 @@ import {
   Trash2,
   X,
   AlertCircle,
-  FileText,
   ArrowLeft,
   Plus
 } from "lucide-react";
