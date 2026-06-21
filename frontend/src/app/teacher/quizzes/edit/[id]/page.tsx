@@ -94,26 +94,44 @@ export default function EditQuizPage() {
     setQuestions(updated);
   };
 
-  const duplicateQuestion = (index: number) => {
+  const duplicateQuestion = async (index: number) => {
+    const original = questions[index];
     const copied: Question = {
-      ...questions[index],
+      ...original,
       id: crypto.randomUUID(),
     };
-
+    // Optimistically update UI
     const updated = [...questions];
     updated.splice(index + 1, 0, copied);
     setQuestions(updated);
+    // Call backend to persist duplicate (if endpoint exists)
+    try {
+      await api.post(`/quiz/${id}/questions/${original.id}/duplicate`);
+    } catch (err) {
+      console.error(err);
+      // Revert UI on failure
+      setQuestions(questions);
+      alert("Failed to duplicate question");
+    }
   };
 
-  const deleteQuestion = (index: number) => {
+  const deleteQuestion = async (index: number) => {
     if (!confirm("Delete this question?")) return;
-
-    setQuestions(
-      questions.filter((_, i) => i !== index)
-    );
+    const toDelete = questions[index];
+    // Optimistically remove from UI
+    const updated = questions.filter((_, i) => i !== index);
+    setQuestions(updated);
+    try {
+      await api.delete(`/quiz/${id}/questions/${toDelete.id}`);
+    } catch (err) {
+      console.error(err);
+      // Revert UI on failure
+      setQuestions(questions);
+      alert("Failed to delete question");
+    }
   };
 
-  const addNewQuestion = () => {
+  const addNewQuestion = async () => {
     const newQuestion: Question = {
       id: crypto.randomUUID(),
       questionText: "",
@@ -126,8 +144,16 @@ export default function EditQuizPage() {
       questionTimeLimit: 10,
       optionCount: 4,
     };
-
+    // Optimistically add to UI
     setQuestions([...questions, newQuestion]);
+    try {
+      await api.post(`/quiz/${id}/questions`, newQuestion);
+    } catch (err) {
+      console.error(err);
+      // Remove optimistic entry on failure
+      setQuestions(questions);
+      alert("Failed to add new question");
+    }
   };
 
   const addOptionToQuestion = (index: number) => {
@@ -172,21 +198,18 @@ export default function EditQuizPage() {
     file: File
   ) => {
     try {
-      const fileName = `${Date.now()}-${Math.random()}-${file.name}`;
-      const { error } = await supabase.storage
-        .from("quiz-images")
-        .upload(fileName, file);
-
-      if (error) throw new Error(error.message);
-
-      const { data } = supabase.storage
-        .from("quiz-images")
-        .getPublicUrl(fileName);
-
-      updateQuestionField(index, field, data.publicUrl);
+      // Convert file to Base64 string for DB storage
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = (e) => reject(e);
+      });
+      // Directly store Base64 string in the appropriate field
+      updateQuestionField(index, field, base64);
     } catch (error: any) {
       console.error(error);
-      alert("Failed to upload image: " + error.message);
+      alert("Failed to read image: " + error.message);
     }
   };
 

@@ -97,6 +97,7 @@ export default function TeacherLiveSessionPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
   const [questionAnalysis, setQuestionAnalysis] = useState<any[]>([]);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   
   // Collapsible sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -117,11 +118,11 @@ export default function TeacherLiveSessionPage() {
     submitSoundRef.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav");
 
     const loadSession = async () => {
-  if (!sessionId) {
-    // Session ID not yet available; skip loading.
-    return;
-  }
-  try {
+      if (!sessionId) {
+        // Session ID not yet available; skip loading.
+        return;
+      }
+      try {
         const res = await api.get(`/LiveQuiz/by-id/${sessionId}`);
         const stateData = res.data.state;
         const fullSession = res.data.session;
@@ -149,6 +150,9 @@ export default function TeacherLiveSessionPage() {
         // Load question analysis
         const analysisRes = await api.get(`/LiveQuiz/${fullSession.sessionCode}/question-analysis`);
         setQuestionAnalysis(analysisRes.data);
+
+        // Mark data as loaded
+        setIsDataLoaded(true);
 
         // Initialize SignalR
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://quiznova-ai-grdq.onrender.com";
@@ -198,7 +202,9 @@ export default function TeacherLiveSessionPage() {
         });
 
         connection.on("QuestionChanged", (direction: number) => {
-          setSession(prev => prev ? { ...prev, currentQuestionIndex: Math.max(0, Math.min(prev.currentQuestionIndex + direction, prev.totalQuestions - 1)) } : prev);
+          setSession(prev =>
+            prev ? { ...prev, currentQuestionIndex: Math.max(0, Math.min(prev.currentQuestionIndex + direction, prev.totalQuestions - 1)) } : prev
+          );
         });
 
         connection.on("QuestionJumped", (index: number) => {
@@ -206,16 +212,16 @@ export default function TeacherLiveSessionPage() {
         });
 
         connection.on("QuizEnded", () => {
-  setSession(prev => {
-    if (prev) {
-      router.push(`/teacher/results/${prev.quizId}`);
-      return { ...prev, isEnded: true };
-    }
+          setSession(prev => {
+            if (prev) {
+              router.push(`/teacher/results/${prev.quizId}`);
+              return { ...prev, isEnded: true };
+            }
 
-    router.push(`/teacher/results/${fullSession.quizId}`);
-    return prev;
-  });
-});
+            router.push(`/teacher/results/${fullSession.quizId}`);
+            return prev;
+          });
+        });
         await connection.start();
         // Join session group
         await connection.invoke("JoinSession", fullSession.sessionCode, "Teacher", "");
@@ -274,6 +280,16 @@ useEffect(() => {
     );
   }
 
+  // Show loading spinner until data is fully loaded
+  if (!isDataLoaded) {
+    return (
+      <div className="min-h-screen bg-[#09041a] flex flex-col items-center justify-center text-white gap-2">
+        <Loader2 className="h-8 w-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-zinc-400 font-medium">Loading session data...</p>
+      </div>
+    );
+  }
+
   // Live Control Functions
   const handleStartQuiz = async () => {
     if (!connectionRef.current) return;
@@ -286,7 +302,6 @@ useEffect(() => {
       console.error("Failed to start quiz:", e);
     }
   };
-
   const handlePauseToggle = async () => {
     if (!connectionRef.current) return;
     try {
@@ -522,25 +537,26 @@ useEffect(() => {
       {/* 2. LOBBY OR STARTED VIEWS */}
       {!session.isStarted ? (
         /* LOBBY SCREEN (Waiting to Start) */
-        <main className="flex-1 p-8 max-w-7xl mx-auto w-full flex flex-col items-center justify-center gap-8 overflow-y-auto">
+        <main className="flex-1 p-8 max-w-7xl mx-auto w-full flex flex-col items-center justify-center gap-8 overflow-y-auto bg-black/30 rounded-2xl backdrop-blur-lg">
           <div className="text-center space-y-3 max-w-lg">
-            <h2 className="text-4xl font-extrabold tracking-tight">Waiting Room</h2>
-            <p className="text-zinc-400 text-sm">
+            <h2 className="text-4xl font-extrabold tracking-tight text-white">Waiting Room</h2>
+            <p className="text-zinc-300 text-sm">
               Scan the QR code or share the join link below. The live dashboard will activate once you click Start.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mt-4">
             {/* QR Card */}
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-8 flex flex-col items-center justify-center text-center backdrop-blur-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-xl pointer-events-none" />
+            <div className="bg-white/10 border border-white/20 rounded-3xl p-8 flex flex-col items-center justify-center text-center backdrop-blur-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/15 rounded-full blur-xl pointer-events-none" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
                 src={`${process.env.NEXT_PUBLIC_API_URL || "https://quiznova-ai-grdq.onrender.com"}/api/LiveQuiz/${session.sessionCode}/qrcode`} 
                 alt="Lobby QR Code" 
                 className="rounded-2xl border-4 border-white object-contain bg-white shadow-2xl p-2 w-48 h-48 mb-6" 
+                onError={(e) => { e.currentTarget.src = "/placeholder_qr.png"; }}
               />
-              <h3 className="text-lg font-bold">Scan to Participate</h3>
+              <h3 className="text-lg font-bold text-white">Scan to Participate</h3>
               <p className="text-xs text-zinc-500 mt-1">Directly redirects students to the live quiz page.</p>
               
               <div className="mt-4 flex items-center space-x-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 w-full max-w-sm">

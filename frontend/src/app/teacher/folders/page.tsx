@@ -287,6 +287,7 @@ function FolderModal({
 
 export default function LibraryPage() {
   const router = useRouter();
+  const [breadcrumb, setBreadcrumb] = useState<string[]>(['Library']);
   const [stats, setStats] = useState<LibraryStats | null>(null);
   const [folders, setFolders] = useState<FolderData[]>([]);
   const [unassignedQuizzes, setUnassignedQuizzes] = useState<QuizInFolder[]>([]);
