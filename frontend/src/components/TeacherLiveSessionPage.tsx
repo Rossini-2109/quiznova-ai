@@ -7,7 +7,7 @@ import { HubConnection, HubConnectionBuilder, LogLevel } from "@microsoft/signal
 import api from "@/services/api";
 import { 
   Trophy, Play, Square, Pause, Maximize, Volume2, VolumeX, 
-  Palette, Users, Loader2, Check, X, ShieldAlert, ChevronLeft, ChevronRight, Sparkles, Copy 
+  Palette, Users, Loader2, Check, X, ShieldAlert, ChevronLeft, ChevronRight, Sparkles, Copy, LayoutDashboard 
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { useParams } from "next/navigation";
