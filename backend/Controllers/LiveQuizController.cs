@@ -137,6 +137,8 @@ public class LiveQuizController : ControllerBase
                 IsStarted = session.IsStarted,
                 IsPaused = session.IsPaused,
                 IsEnded = session.IsEnded,
+                IsExpired = session.IsExpired,
+                ShuffledQuestionIds = session.ShuffledQuestionIds,
                 CurrentQuestionIndex = session.CurrentQuestionIndex,
                 TotalQuestions = session.Quiz?.Questions.Count ?? 0
             };
@@ -164,6 +166,19 @@ public class LiveQuizController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+[HttpPost("{sessionCode}/expire")]
+public async Task<IActionResult> ExpireSession(string sessionCode)
+{
+    try
+    {
+        await _liveQuizService.ExpireSessionAsync(sessionCode);
+        return Ok(new { message = "Session expired" });
+    }
+    catch (Exception ex)
+    {
+        return BadRequest(new { message = ex.Message });
+    }
+}
 
     [HttpGet("{sessionCode}/question-analysis")]
     public async Task<IActionResult> GetSessionQuestionAnalysis(string sessionCode)
@@ -453,7 +468,20 @@ public async Task<IActionResult> FinishStudent(string sessionCode, [FromBody] Fi
     }
     catch (Exception ex)
     {
+        return BadRequest(new { message = ex.Message [HttpPost("{sessionCode}/expire")]
+public async Task<IActionResult> ExpireSession(string sessionCode)
+{
+    try
+    {
+        await _liveQuizService.ExpireSessionAsync(sessionCode);
+        return Ok(new { message = "Session expired" });
+    }
+    catch (Exception ex)
+    {
         return BadRequest(new { message = ex.Message });
+    }
+}
+});
     }
 }
 }
