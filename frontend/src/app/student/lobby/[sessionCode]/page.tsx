@@ -129,25 +129,17 @@ export default function LobbyPage() {
 
     hubConnection.on(
       "ParticipantJoined",
-      (participant: Participant) => {
-        if (
-          participant.name &&
-          participant.name.toLowerCase() === "teacher"
-        ) {
-          return;
-        }
-
-        setParticipants((prev) => {
-          const exists = prev.some(
-            (p) => p.id === participant.id
-          );
-
-          if (exists) return prev;
-
-          return [...prev, participant];
-        });
+      (name: string) => {
+        console.log(`${name} joined`);
       }
     );
+
+    hubConnection.on("StudentKicked", (kickedName: string) => {
+      if (kickedName === studentName) {
+        alert("Teacher removed you from the session.");
+        router.push("/student/dashboard");
+      }
+    });
 
     hubConnection.on("QuizStarted", () => {
       setCountdown(3);

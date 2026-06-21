@@ -170,13 +170,13 @@ public class LiveQuizController : ControllerBase
                 return NotFound(new { message = "Session or Quiz not found" });
             }
 
-            var studentAnswers = await _context.StudentAnswers
+            var participantAnswers = await _context.SessionParticipantAnswers
                 .Where(a => a.SessionId == session.Id)
                 .ToListAsync();
 
             var analysis = session.Quiz.Questions.Select(q =>
             {
-                var questionAnswers = studentAnswers.Where(a => a.QuestionId == q.Id).ToList();
+                var questionAnswers = participantAnswers.Where(a => a.QuestionId == q.Id).ToList();
                 int total = questionAnswers.Count;
                 int correct = questionAnswers.Count(a => a.IsCorrect);
                 double accuracy = total == 0 ? 0 : Math.Round(((double)correct / total) * 100);

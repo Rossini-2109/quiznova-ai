@@ -35,7 +35,7 @@ public class Quiz
 
     public int MaxAttempts { get; set; } = 1;
 
-    public bool ShuffleQuestions { get; set; } = false;
+    public bool ShuffleQuestions { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

@@ -63,13 +63,25 @@ export default function StudentLivePage() {
 
   // Auto-redirect to result page when quiz is finished for this student
   useEffect(() => {
-    if (isFinished && sessionId) {
-      const timer = setTimeout(() => {
+    if (isFinished && sessionId && sessionCode) {
+      const finalizeAndRedirect = async () => {
+        try {
+          const studentName = localStorage.getItem("studentName");
+          if (studentName) {
+            await api.post(`/LiveQuiz/${sessionCode}/finish-student`, { studentName });
+          }
+        } catch (err) {
+          console.error("Failed to finalize student quiz session", err);
+        }
         router.push(`/student/result/${sessionId}`);
+      };
+
+      const timer = setTimeout(() => {
+        finalizeAndRedirect();
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isFinished, sessionId, router]);
+  }, [isFinished, sessionId, sessionCode, router]);
 
   const startTimeRef = useRef<number>(0);
   const connectionRef = useRef<HubConnection | null>(null);
@@ -163,6 +175,14 @@ export default function StudentLivePage() {
         // Navigate to result page using persistent sessionId
         router.push(`/student/result/${sessionIdRef.current}`);
       });
+
+      hub.on("StudentKicked", (kickedName: string) => {
+        const currentName = localStorage.getItem("studentName");
+        if (kickedName === currentName) {
+          alert("Teacher removed you from the session.");
+          router.push("/student/dashboard");
+        }
+      });
     }).catch(err => console.error("SignalR start error:", err));
 
     // Anti-cheat Listeners
@@ -198,6 +218,7 @@ export default function StudentLivePage() {
         hub.off("QuestionChanged");
         hub.off("QuestionJumped");
         hub.off("QuizEnded");
+        hub.off("StudentKicked");
       }
       connectionRef.current = null;
       // Gracefully stop SignalR connection on component unmount

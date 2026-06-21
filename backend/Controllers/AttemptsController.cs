@@ -56,7 +56,14 @@ public class AttemptsController : ControllerBase
                 optionB = q.OptionB,
                 optionC = q.OptionC,
                 optionD = q.OptionD,
-                optionE = q.OptionE
+                optionE = q.OptionE,
+                questionImageUrl = q.QuestionImageUrl,
+                optionAImageUrl = q.OptionAImageUrl,
+                optionBImageUrl = q.OptionBImageUrl,
+                optionCImageUrl = q.OptionCImageUrl,
+                optionDImageUrl = q.OptionDImageUrl,
+                optionEImageUrl = q.OptionEImageUrl,
+                questionTimeLimit = q.QuestionTimeLimit
             })
         });
     }

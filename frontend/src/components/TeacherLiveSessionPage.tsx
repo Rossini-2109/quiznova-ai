@@ -594,7 +594,7 @@ useEffect(() => {
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 if (connectionRef.current && session) {
-                                  await connectionRef.current.invoke("KickStudent", session.sessionCode, p.id);
+                                  await connectionRef.current.invoke("KickStudent", session.sessionCode, p.name);
                                 }
                               }}
                               className="absolute top-1 right-1 text-red-500 hover:text-red-700"
