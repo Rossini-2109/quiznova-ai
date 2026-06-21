@@ -64,6 +64,7 @@ public class LiveQuizController : ControllerBase
             }
 
             var questionsList = session.Quiz.Questions.ToList();
+            int[]? shuffledIds = null;
             if (session.Quiz.ShuffleQuestions)
             {
                 int seed;
@@ -77,6 +78,11 @@ public class LiveQuizController : ControllerBase
                 }
                 var rng = new Random(seed);
                 questionsList = questionsList.OrderBy(q => rng.Next()).ToList();
+                // Capture shuffled order of question IDs
+                shuffledIds = questionsList.Select(q => q.Id).ToArray();
+                // Persist shuffled IDs to session for client reference
+                session.ShuffledQuestionIds = shuffledIds;
+                await _context.SaveChangesAsync();
             }
 
             return Ok(new QuizDto
