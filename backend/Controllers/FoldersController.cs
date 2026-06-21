@@ -61,7 +61,7 @@ public class FoldersController : ControllerBase
             color = f.Color ?? "#6366f1",
             icon = f.Icon ?? "folder",
             createdAt = f.CreatedAt,
-            lastModifiedAt = f.UpdatedAt,
+            lastModifiedAt = f.LastModifiedAt,
             quizCount = f.Quizzes.Count,
             quizzes = f.Quizzes.Select(q => new {
                 id = q.Id,
@@ -128,7 +128,7 @@ public class FoldersController : ControllerBase
             color = folder.Color ?? "#6366f1",
             icon = folder.Icon ?? "folder",
             createdAt = folder.CreatedAt,
-            lastModifiedAt = folder.UpdatedAt,
+            lastModifiedAt = folder.LastModifiedAt,
             quizCount = folder.Quizzes.Count,
             quizzes = folder.Quizzes.Select(q => new {
                 id = q.Id,
@@ -150,15 +150,16 @@ public class FoldersController : ControllerBase
     public async Task<IActionResult> CreateFolder([FromBody] CreateFolderDto dto)
     {
         var folder = new Folder
-        {
-            Id = Guid.NewGuid(),
-            Name = dto.Name,
-            Color = dto.Color,
-            Icon = dto.Icon,
-            ParentFolderId = dto.ParentFolderId,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+{
+    Id = Guid.NewGuid(),
+    Name = dto.Name,
+    TeacherId = Guid.Empty, // replace later with actual teacher id
+    Color = dto.Color ?? "#6366f1",
+    Icon = dto.Icon ?? "folder",
+    ParentFolderId = dto.ParentFolderId,
+    CreatedAt = DateTime.UtcNow,
+    LastModifiedAt = DateTime.UtcNow
+};
         _context.Folders.Add(folder);
         await _context.SaveChangesAsync();
         return Ok(folder);
@@ -174,7 +175,7 @@ public class FoldersController : ControllerBase
         folder.Name = dto.Name ?? folder.Name;
         folder.Color = dto.Color ?? folder.Color;
         folder.Icon = dto.Icon ?? folder.Icon;
-        folder.UpdatedAt = DateTime.UtcNow;
+    folder.LastModifiedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
         return Ok(folder);
     }
