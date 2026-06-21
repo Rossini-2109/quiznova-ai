@@ -6,6 +6,7 @@ import {
   Folder as FolderIcon,
   FolderPlus,
   BookOpen,
+  BookMarked,
   Star,
   Archive,
   Globe,
