@@ -5,8 +5,7 @@ using backend.Models;
 using backend.DTOs;
 using backend.Helpers;
 using QRCoder;
-using System.Drawing;
-using System.Drawing.Imaging;
+
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using backend.Services;

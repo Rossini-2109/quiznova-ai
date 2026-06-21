@@ -1,126 +1,72 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using backend.Data;
-
-using backend.Services.AI;
-
+using System;
 using System.IO;
-using backend.Services;
-using backend.Hubs;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+using QRCoder;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace backend.Services;
 
-// Controllers
-builder.Services.AddControllers();
-builder.Services.AddSignalR();
-builder.Services.AddSingleton<backend.Services.ILobbyService, backend.Services.LobbyService>();
-builder.Services.AddScoped<backend.Services.ILiveQuizService, backend.Services.LiveQuizService>();
-
-// AI Services
-builder.Services.AddHttpClient<OpenAIProvider>();
-builder.Services.AddHttpClient<OllamaProvider>();
-builder.Services.AddScoped<LocalQuestionGenerator>();
-builder.Services.AddScoped<QuizGenerationService>();
-builder.Services.AddScoped<
-    IQuizService,
-    QuizService
->();
-builder.Services.AddScoped<IQRCodeService, QRCodeService>();
-builder.Services.AddScoped<IQuizImportService, QuizImportService>();
-// Database
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// CORS
-// CORS
-builder.Services.AddCors(options =>
+public class QRCodeService : IQRCodeService
 {
-    options.AddPolicy("AllowFrontend",
-        policy =>
+    private readonly string _qrFolder;
+    private readonly string _frontendUrl;
+
+    public QRCodeService(IWebHostEnvironment env)
+    {
+        _qrFolder = Path.Combine(env.WebRootPath, "qrcodes");
+
+        if (!Directory.Exists(_qrFolder))
         {
-            policy
-                .SetIsOriginAllowed(_ => true)
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowCredentials();
-        });
-});
+            Directory.CreateDirectory(_qrFolder);
+        }
 
-// JWT
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters =
-            new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-
-                ValidIssuer = jwtSettings["Issuer"],
-                ValidAudience = jwtSettings["Audience"],
-
-                IssuerSigningKey =
-                    new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtSettings["Key"]!)
-                    )
-            };
-    });
-
-builder.Services.AddAuthorization();
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.SetMinimumLevel(LogLevel.Debug);
-
-var app = builder.Build();
-
-// Ensure database is migrated and uploads directory exists
-using (var scope = app.Services.CreateScope())
-{
-    // Ensure uploads directory exists
-    var env = app.Services.GetRequiredService<IWebHostEnvironment>();
-    var uploadPath = Path.Combine(env.ContentRootPath, "Uploads");
-    if (!Directory.Exists(uploadPath))
-    {
-        Directory.CreateDirectory(uploadPath);
+        _frontendUrl =
+            Environment.GetEnvironmentVariable("FRONTEND_URL")
+            ?? "https://quiznova-ai-eta.vercel.app";
     }
-    try
+
+    public async Task<string?> GenerateQrCodeAsync(string sessionCode)
     {
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogWarning(ex, "Database migration failed. Ensure connection string is correct.");
+        try
+        {
+            var joinUrl = $"{_frontendUrl}/student/lobby/{sessionCode}";
+
+            Console.WriteLine($"Generating QR for: {joinUrl}");
+
+            using var qrGenerator = new QRCodeGenerator();
+
+            using var qrData =
+                qrGenerator.CreateQrCode(
+                    joinUrl,
+                    QRCodeGenerator.ECCLevel.Q
+                );
+
+            var pngQrCode = new PngByteQRCode(qrData);
+
+            byte[] qrBytes = pngQrCode.GetGraphic(20);
+
+            var filePath =
+                Path.Combine(
+                    _qrFolder,
+                    $"{sessionCode}.png"
+                );
+
+            await File.WriteAllBytesAsync(
+                filePath,
+                qrBytes
+            );
+
+            Console.WriteLine($"QR saved to: {filePath}");
+            Console.WriteLine($"File exists: {File.Exists(filePath)}");
+
+            return filePath;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("QR ERROR:");
+            Console.WriteLine(ex.ToString());
+
+            return null;
+        }
     }
 }
-
-// Swagger
-app.UseSwagger();
-app.UseSwaggerUI();
-
-// CORS
-app.UseCors("AllowFrontend");
-
-// Auth
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseStaticFiles();
-// Controllers
-app.MapControllers();
-app.MapHub<QuizHub>("/quizHub");
-
-app.MapGet("/", () => "QuizNovaAI Backend Running");
-
-app.Run();
