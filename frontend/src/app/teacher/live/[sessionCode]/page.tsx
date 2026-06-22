@@ -12,6 +12,8 @@ import QuestionNavigator from "@/components/live/QuestionNavigator";
 import LeaderboardTable from "@/components/live/LeaderboardTable";
 import QuestionAnalytics from "@/components/live/QuestionAnalytics";
 import ClassAccuracyBar from "@/components/live/ClassAccuracyBar";
+import QuestionStatsList from "@/components/live/QuestionStatsList";
+import TeacherLobby from "@/components/live/TeacherLobby";
 
 interface LiveSessionState {
   sessionCode: string;
@@ -161,6 +163,16 @@ export default function TeacherLiveDashboard() {
     }
   };
 
+  const handleRemoveParticipant = async (studentName: string) => {
+    if (!connectionRef.current) return;
+    if (!confirm(`Remove ${studentName} from the session?`)) return;
+    try {
+      await connectionRef.current.invoke("KickStudent", sessionCode, studentName);
+    } catch (err) {
+      console.error("Failed to remove participant", err);
+    }
+  };
+
   const handleJumpToQuestion = async (index: number) => {
     if (!connectionRef.current) return;
     await connectionRef.current.invoke("TeacherJumpedToQuestion", sessionCode, index);
@@ -180,8 +192,21 @@ export default function TeacherLiveDashboard() {
   };
 
   if (!sessionState) return <div className="min-h-screen bg-[#0f0f13] flex items-center justify-center text-white">Loading Live Session...</div>;
-  // Ensure quizStarted reflects sessionState
-  const isQuizStarted = sessionState?.isStarted ?? false;
+
+  const liveStudents = participants.filter((p: any) => p.isConnected).length;
+
+  // Pre-start: show the lobby with QR / code / link / participants + remove
+  if (!sessionState.isStarted) {
+    return (
+      <TeacherLobby
+        sessionCode={sessionCode}
+        title={sessionState.title}
+        participants={participants}
+        onRemove={handleRemoveParticipant}
+        onStart={handleStartQuiz}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0f0f13] text-white overflow-hidden flex flex-col pt-20">
@@ -191,16 +216,6 @@ export default function TeacherLiveDashboard() {
         onPauseToggle={handlePauseToggle}
         onEndQuiz={handleEndQuiz}
       />
-      {!sessionState.isStarted && (
-        <div className="flex justify-center mt-4">
-          <button
-            onClick={handleStartQuiz}
-            className="px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold transition"
-          >
-            Start Live Session
-          </button>
-        </div>
-      )}
 
       <main className="flex-1 overflow-y-auto p-6 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
         
@@ -222,7 +237,7 @@ export default function TeacherLiveDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ClassAccuracyBar
-              totalParticipants={participants.filter((p: any) => p.isJoined).length}
+              totalParticipants={liveStudents}
               correctCount={analytics.correctCount}
               wrongCount={analytics.wrongCount}
             />
@@ -240,6 +255,11 @@ export default function TeacherLiveDashboard() {
           <div className="h-64">
             <QuestionAnalytics analytics={analytics} />
           </div>
+
+          <QuestionStatsList
+            sessionCode={sessionCode}
+            liveStudents={liveStudents}
+          />
 
         </div>
 

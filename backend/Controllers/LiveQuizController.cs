@@ -94,6 +94,7 @@
                     TimeLimit = session.Quiz.TimeLimit,
                     SessionCode = session.SessionCode,
                     SessionId = session.Id,
+                    ShuffleQuestions = session.Quiz.ShuffleQuestions,
                     Questions = questionsList.Select(q => new QuestionDto
                     {
                         Id = q.Id,

@@ -20,7 +20,7 @@ export default function LiveHostHeader({
   const baseUrl = typeof window !== "undefined"
     ? process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     : "";
-  const joinUrl = `${baseUrl}/student/quiz/join/${sessionCode}`;
+  const joinUrl = `${baseUrl}/student/lobby/${sessionCode}`;
   const [copied, setCopied] = useState(false);
 
   const copyToClipboard = async () => {

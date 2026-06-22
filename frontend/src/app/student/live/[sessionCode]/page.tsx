@@ -22,8 +22,56 @@ interface Question {
   optionB: string;
   optionC: string;
   optionD: string;
+  optionE?: string;
   questionType: string;
   questionTimeLimit: number;
+}
+
+// Deterministic string hash -> 32-bit seed
+function hashSeed(str: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+// Seeded PRNG (mulberry32)
+function mulberry32(seed: number): () => number {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Returns options in a per-student deterministic shuffled display order,
+// preserving each option's true letter id for answer submission.
+function getShuffledOptions(
+  question: Question | undefined,
+  studentName: string,
+  shuffle: boolean
+): { id: string; text: string }[] {
+  if (!question) return [];
+  const base = [
+    { id: "A", text: question.optionA },
+    { id: "B", text: question.optionB },
+    { id: "C", text: question.optionC },
+    { id: "D", text: question.optionD },
+    { id: "E", text: question.optionE },
+  ].filter((o) => o.text) as { id: string; text: string }[];
+
+  if (!shuffle) return base;
+
+  const rng = mulberry32(hashSeed(`${studentName}:${question.id}`));
+  for (let i = base.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [base[i], base[j]] = [base[j], base[i]];
+  }
+  return base;
 }
 
 export default function StudentLivePage() {
@@ -35,6 +83,7 @@ export default function StudentLivePage() {
 
 
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [shuffleOptions, setShuffleOptions] = useState(false);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -97,12 +146,13 @@ export default function StudentLivePage() {
 
     // Fetch questions and live quiz state
     Promise.all([
-      api.get(`/LiveQuiz/${sessionCode}/quiz`),
+      api.get(`/LiveQuiz/${sessionCode}/quiz`, { params: { studentName } }),
       api.get(`/LiveQuiz/${sessionCode}/state`)
     ]).then(([quizRes, stateRes]) => {
       const qs = quizRes.data.questions || [];
       setQuestions(qs);
       questionsRef.current = qs;
+      setShuffleOptions(!!quizRes.data.shuffleQuestions);
 
       const sId = quizRes.data.sessionId || "";
       setSessionId(sId);
@@ -386,6 +436,16 @@ const handleSubmit = async (option: string) => {
   };
 
   const currentQuestion = questions[currentIndex];
+  const studentNameForShuffle =
+    typeof window !== "undefined" ? localStorage.getItem("studentName") || "" : "";
+  const shuffledOptions = getShuffledOptions(currentQuestion, studentNameForShuffle, shuffleOptions);
+  const OPTION_COLORS = [
+    "from-purple-600/90 to-purple-800/90 shadow-purple-500/10 hover:shadow-purple-500/20",
+    "from-pink-600/90 to-pink-800/90 shadow-pink-500/10 hover:shadow-pink-500/20",
+    "from-blue-600/90 to-blue-800/90 shadow-blue-500/10 hover:shadow-blue-500/20",
+    "from-emerald-600/90 to-emerald-800/90 shadow-emerald-500/10 hover:shadow-emerald-500/20",
+    "from-amber-600/90 to-amber-800/90 shadow-amber-500/10 hover:shadow-amber-500/20",
+  ];
   const activeBg = THEME_BGS[theme] || THEME_BGS["dark-purple"];
   const activeAccent = THEME_ACCENTS[theme] || THEME_ACCENTS["dark-purple"];
   const activeProgress = THEME_PROGRESS[theme] || THEME_PROGRESS["dark-purple"];
@@ -545,13 +605,9 @@ const handleSubmit = async (option: string) => {
 
           {/* Options Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            {[
-              { id: "A", text: currentQuestion?.optionA, color: "from-purple-600/90 to-purple-800/90 shadow-purple-500/10 hover:shadow-purple-500/20" },
-              { id: "B", text: currentQuestion?.optionB, color: "from-pink-600/90 to-pink-800/90 shadow-pink-500/10 hover:shadow-pink-500/20" },
-              { id: "C", text: currentQuestion?.optionC, color: "from-blue-600/90 to-blue-800/90 shadow-blue-500/10 hover:shadow-blue-500/20" },
-              { id: "D", text: currentQuestion?.optionD, color: "from-emerald-600/90 to-emerald-800/90 shadow-emerald-500/10 hover:shadow-emerald-500/20" },
-            ].map((opt) => {
-              if (!opt.text) return null;
+            {shuffledOptions.map((opt, displayIdx) => {
+              const color = OPTION_COLORS[displayIdx % OPTION_COLORS.length];
+              const displayLabel = String.fromCharCode(65 + displayIdx);
               return (
                 <motion.button
                   key={opt.id}
@@ -561,13 +617,13 @@ const handleSubmit = async (option: string) => {
                   disabled={isSubmitted || isPaused}
                   className={`
                     relative p-6 rounded-2xl text-left font-extrabold text-lg transition-all min-h-[90px] flex items-center border border-white/10 bg-gradient-to-br
-                    ${isSubmitted && selectedOption === opt.id ? `${opt.color} ring-4 ring-white shadow-[0_0_40px_rgba(255,255,255,0.25)] scale-[1.02]` : ''}
+                    ${isSubmitted && selectedOption === opt.id ? `${color} ring-4 ring-white shadow-[0_0_40px_rgba(255,255,255,0.25)] scale-[1.02]` : ''}
                     ${isSubmitted && selectedOption !== opt.id ? 'bg-white/5 text-white/20 border-white/5 cursor-not-allowed opacity-30 scale-[0.98]' : ''}
-                    ${!isSubmitted ? `${opt.color} shadow-lg cursor-pointer hover:border-white/20` : ''}
+                    ${!isSubmitted ? `${color} shadow-lg cursor-pointer hover:border-white/20` : ''}
                   `}
                 >
                   <span className="absolute top-4 left-4 w-7 h-7 rounded-full bg-black/35 border border-white/10 flex items-center justify-center text-xs font-black">
-                    {opt.id}
+                    {displayLabel}
                   </span>
                   <span className="pl-10 block w-full truncate">{opt.text}</span>
                 </motion.button>

@@ -9,6 +9,7 @@ public class QuizDto
     public int TimeLimit { get; set; }
     public string SessionCode { get; set; } = string.Empty;
     public Guid SessionId { get; set; }
+    public bool ShuffleQuestions { get; set; }
     public List<QuestionDto> Questions { get; set; } = new();
 }
 
