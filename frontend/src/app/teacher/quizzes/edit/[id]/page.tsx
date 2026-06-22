@@ -439,7 +439,7 @@ export default function EditQuizPage() {
             return (
               <div
                 key={q.id}
-                className="border rounded-2xl p-6 bg-gray-50"
+                className="border rounded-2xl p-6 bg-white bg-opacity-70 backdrop-blur-lg shadow-lg"
               >
                 {/* Header */}
                 <div className="flex justify-between items-center mb-4">
