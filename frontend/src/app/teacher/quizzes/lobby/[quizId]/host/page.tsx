@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import QRCode from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import api from "@/services/api";
 
 type Participant = { id: string; name: string };
