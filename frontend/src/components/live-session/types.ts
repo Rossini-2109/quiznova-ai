@@ -29,7 +29,7 @@ export interface Participant {
 }
 
 /**
- * SINGLE SOURCE OF TRUTH for theme type
+ * ONLY define ThemeType here (single source of truth)
  */
 export type ThemeType =
   | "dark-purple"
