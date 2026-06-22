@@ -41,7 +41,7 @@ export default function HostLobbyPage() {
         <p className="text-2xl tracking-wider">{quizId}</p>
         <p className="mt-2 font-semibold">Join Link:</p>
         <a href={quizLink} className="text-indigo-600 underline">{quizLink}</a>
-        <div className="mt-4 flex justify-center"><QRCode value={quizLink} size={128} /></div>
+        <div className="mt-4 flex justify-center"><QRCodeCanvas value={quizLink} size={128} /></div>
       </div>
       <div className="bg-white/30 backdrop-blur-sm rounded-xl p-4 shadow">
         <h2 className="text-xl font-semibold mb-2">Participants ({participants.length})</h2>
