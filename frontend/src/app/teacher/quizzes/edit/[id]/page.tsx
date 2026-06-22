@@ -176,16 +176,43 @@ export default function EditQuizPage() {
     try {
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-      });
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+    });
 
-      updateQuestionField(index, field, base64);
-    } catch (err: any) {
-      console.error(err);
-      alert("Image upload failed: " + err.message);
-    }
+    updateQuestionField(index, field, base64);
+  } catch (err: any) {
+    console.error(err);
+    alert("Image upload failed: " + err.message);
+  }
+};
+
+  // Add a new option field to a question (up to 5)
+  const addOptionToQuestion = (qIndex: number) => {
+    const q = questions[qIndex];
+    const currentCount = q.optionCount || 4;
+    if (currentCount >= 5) return; // max 5 options
+    const newCount = currentCount + 1;
+    const field = (`option${String.fromCharCode(64 + newCount)}`) as keyof Question;
+    const imgField = (`option${String.fromCharCode(64 + newCount)}ImageUrl`) as keyof Question;
+    updateQuestionField(qIndex, "optionCount", newCount);
+    updateQuestionField(qIndex, field, "");
+    updateQuestionField(qIndex, imgField, "");
+  };
+
+  // Remove the last option field from a question (minimum 2)
+  const removeOptionFromQuestion = (qIndex: number) => {
+    const q = questions[qIndex];
+    const currentCount = q.optionCount || 4;
+    if (currentCount <= 2) return; // min 2 options
+    const newCount = currentCount - 1;
+    const field = (`option${String.fromCharCode(64 + newCount + 1)}`) as keyof Question;
+    const imgField = (`option${String.fromCharCode(64 + newCount + 1)}ImageUrl`) as keyof Question;
+    // Clear the removed option fields
+    updateQuestionField(qIndex, field, "");
+    updateQuestionField(qIndex, imgField, "");
+    updateQuestionField(qIndex, "optionCount", newCount);
   };
 
   const updateQuiz = async () => {
@@ -216,34 +243,6 @@ export default function EditQuizPage() {
     } catch (err) {
       console.error(err);
       alert("Failed to save quiz");
-    }
-  };
-
-  const addOptionToQuestion = (index: number) => {
-  const updated = [...questions];
-  const q = updated[index];
-  const count = q.optionCount || 4;
-
-  if (count < 5) {
-    const newCount = count + 1;
-    q.optionCount = newCount;
-    // Initialize new option fields based on newCount
-    if (newCount === 5) {
-      q.optionE = "";
-      q.optionEImageUrl = "";
-    }
-    setQuestions(updated);
-  }
-};
-
-  const removeOptionFromQuestion = (index: number) => {
-    const updated = [...questions];
-    const q = updated[index];
-    const count = q.optionCount || 4;
-
-    if (count > 2) {
-      q.optionCount = count - 1;
-      setQuestions(updated);
     }
   };
 
@@ -278,13 +277,6 @@ export default function EditQuizPage() {
         />
       </div>
 
-      <button
-        onClick={addNewQuestion}
-        className="bg-green-600 text-white px-4 py-2 mb-4"
-      >
-        Add Question
-      </button>
-
         <div className="space-y-6">
           {questions.map((q, index) => (
             <div
@@ -301,35 +293,48 @@ export default function EditQuizPage() {
                   updateQuestionField(index, "questionText", e.target.value)
                 }
               />
-
-              {/* Question Image */}
-              {q.questionImageUrl && (
-                <div className="flex items-center space-x-2 mb-2">
-                  <img
-                    src={q.questionImageUrl}
-                    alt="Question"
-                    className="max-w-full h-48 object-contain rounded"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => updateQuestionField(index, "questionImageUrl", "")}
-                    className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
-                    title="Remove image"
-                  >
-                    ✕
-                  </button>
-                </div>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  if (e.target.files?.[0]) {
-                    handleUploadImage(index, "questionImageUrl", e.target.files[0]);
-                  }
-                }}
-                className="mb-3"
-              />
+                            {/* Question Image Inline Upload */}
+                    <div className="flex items-center space-x-2 mb-2">
+                      {q.questionImageUrl && (
+                        <img
+                          src={q.questionImageUrl}
+                          alt="Question"
+                          className="w-16 h-16 object-contain rounded"
+                        />
+                      )}
+                      <button
+                        type="button"
+                        title="Upload image"
+                        className="text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded"
+                        onClick={() => {
+                          const el = document.getElementById(`file-question-${index}`) as HTMLInputElement;
+                          if (el) el.click();
+                        }}
+                      >
+                        📷
+                      </button>
+                      {q.questionImageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => updateQuestionField(index, "questionImageUrl", "")}
+                          className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
+                          title="Remove image"
+                        >
+                          ✕
+                        </button>
+                      )}
+                      <input
+                        id={`file-question-${index}`}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleUploadImage(index, "questionImageUrl", e.target.files[0]);
+                          }
+                        }}
+                      />
+                    </div>
 
               {/* Options */}
               {['A', 'B', 'C', 'D', 'E']
@@ -461,7 +466,7 @@ export default function EditQuizPage() {
                 </button>
                 <button
                   onClick={() => removeOptionFromQuestion(index)}
-                  className="text-white bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded"
+                  className="text-white bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded ml-2"
                 >
                   - Option
                 </button>
@@ -469,6 +474,15 @@ export default function EditQuizPage() {
             </div>
           ))}
         </div>
+
+          {/* Add New Question Button */}
+          <button
+            type="button"
+            onClick={addNewQuestion}
+            className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded"
+          >
+            + Add New Question
+          </button>
 
       <button
         onClick={updateQuiz}
