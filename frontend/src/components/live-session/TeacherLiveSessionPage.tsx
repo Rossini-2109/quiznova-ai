@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import LobbyView from "./LobbyView";
 import LiveDashboard from "./LiveDashboard";
@@ -20,6 +20,33 @@ export default function TeacherLiveSessionPage({
   questionAnalysis,
   handleRemoveParticipant,
 }: Props) {
+  // ✅ Local state for questions
+  const [localQuestions, setLocalQuestions] = useState<any[]>([]);
+
+  // sync props → state when session loads/changes
+  useEffect(() => {
+    setLocalQuestions(questions || []);
+  }, [questions]);
+
+  // ✅ Add question handler
+  const handleAddQuestion = () => {
+    setLocalQuestions((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        questionText: "",
+        optionA: "",
+        optionB: "",
+        optionC: "",
+        optionD: "",
+        optionE: "",
+        correctAnswer: "",
+        questionTimeLimit: 10,
+        optionCount: 4,
+      },
+    ]);
+  };
+
   return (
     <>
       <Header />
@@ -33,9 +60,10 @@ export default function TeacherLiveSessionPage({
       ) : (
         <LiveDashboard
           participants={filteredParticipants}
-          questions={questions}
+          questions={localQuestions}   {/* ✅ IMPORTANT FIX */}
           analysis={questionAnalysis}
           onRemove={handleRemoveParticipant}
+          onAddQuestion={handleAddQuestion} {/* optional but useful */}
         />
       )}
     </>
