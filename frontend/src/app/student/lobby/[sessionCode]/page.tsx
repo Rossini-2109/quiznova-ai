@@ -47,13 +47,21 @@ export default function LobbyPage() {
 
   const [countdown, setCountdown] = useState<number | null>(null);
 
+  const [empIdError, setEmpIdError] = useState("");
+
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!nameInput.trim() || !empIdInput.trim()) {
-      alert("Please enter both Name and Employee ID");
+    if (!nameInput.trim()) {
+      alert("Please enter your name");
       return;
     }
+
+    if (!/^\d{8}$/.test(empIdInput.trim())) {
+      setEmpIdError("Employee ID / PS number must be exactly 8 digits");
+      return;
+    }
+    setEmpIdError("");
 
     const combinedName = `${nameInput.trim()} (${empIdInput.trim()})`;
 
@@ -224,15 +232,23 @@ export default function LobbyPage() {
                 className="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10"
               />
 
-              <input
-                type="text"
-                placeholder="Employee ID"
-                value={empIdInput}
-                onChange={(e) =>
-                  setEmpIdInput(e.target.value)
-                }
-                className="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10"
-              />
+              <div>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={8}
+                  placeholder="Employee ID / PS Number (8 digits)"
+                  value={empIdInput}
+                  onChange={(e) => {
+                    setEmpIdInput(e.target.value.replace(/\D/g, "").slice(0, 8));
+                    if (empIdError) setEmpIdError("");
+                  }}
+                  className="w-full px-4 py-3 rounded-xl bg-black/20 border border-white/10"
+                />
+                {empIdError && (
+                  <p className="mt-2 text-sm text-red-400">{empIdError}</p>
+                )}
+              </div>
 
               <button
                 type="submit"
