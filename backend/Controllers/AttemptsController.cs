@@ -35,20 +35,35 @@ public class AttemptsController : ControllerBase
         if (quiz == null)
             return NotFound("Quiz not found");
 
+        var questionsList = quiz.Questions.ToList();
+        if (quiz.ShuffleQuestions)
+        {
+            var rng = new Random(attemptId.GetHashCode());
+            questionsList = questionsList.OrderBy(q => rng.Next()).ToList();
+        }
+
         return Ok(new
         {
             id = quiz.Id,
             title = quiz.Title,
             timeLimit = quiz.TimeLimit,
 
-            questions = quiz.Questions.Select(q => new
+            questions = questionsList.Select(q => new
             {
                 id = q.Id,
                 questionText = q.QuestionText,
                 optionA = q.OptionA,
                 optionB = q.OptionB,
                 optionC = q.OptionC,
-                optionD = q.OptionD
+                optionD = q.OptionD,
+                optionE = q.OptionE,
+                questionImageUrl = q.QuestionImageUrl,
+                optionAImageUrl = q.OptionAImageUrl,
+                optionBImageUrl = q.OptionBImageUrl,
+                optionCImageUrl = q.OptionCImageUrl,
+                optionDImageUrl = q.OptionDImageUrl,
+                optionEImageUrl = q.OptionEImageUrl,
+                questionTimeLimit = q.QuestionTimeLimit
             })
         });
     }
@@ -239,6 +254,14 @@ public async Task<IActionResult> StartAttempt(
         if (quiz == null)
         {
             return NotFound("Quiz not found");
+        }
+
+        var existingAttemptsCount = await _context.QuizAttempts
+            .CountAsync(a => a.QuizId == dto.QuizId && a.StudentId == studentId);
+
+        if (existingAttemptsCount >= quiz.MaxAttempts)
+        {
+            return BadRequest($"Maximum attempts limit of {quiz.MaxAttempts} reached.");
         }
 
         var attempt = new QuizAttempt

@@ -18,6 +18,9 @@ public class UpdateQuizDto
 
     public int? DefaultQuestionTimeSeconds { get; set; }
 
+    public int? MaxAttempts { get; set; }
+    public bool? ShuffleQuestions { get; set; }
+
     public System.Collections.Generic.List<QuestionUpdateDto>? Questions { get; set; }
 }
 

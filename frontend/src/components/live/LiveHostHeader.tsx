@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 interface LiveHostHeaderProps {
   sessionCode: string;
@@ -15,6 +16,23 @@ export default function LiveHostHeader({
   onPauseToggle,
   onEndQuiz,
 }: LiveHostHeaderProps) {
+  // Determine the base URL for students to join. Fallback to window.location.origin if env var missing.
+  const baseUrl = typeof window !== "undefined"
+    ? process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+    : "";
+  const joinUrl = `${baseUrl}/student/quiz/join/${sessionCode}`;
+  const [copied, setCopied] = useState(false);
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(joinUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error("Copy failed", e);
+    }
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 h-20 bg-black/40 backdrop-blur-md border-b border-white/10 flex items-center justify-between px-6 z-50">
       <div className="flex items-center gap-4">
@@ -29,11 +47,20 @@ export default function LiveHostHeader({
       <div className="flex items-center gap-6">
         <div className="flex flex-col items-center">
           <span className="text-xs text-white/50 uppercase tracking-wider">
-  Join at {process.env.NEXT_PUBLIC_APP_URL}
-</span>
-          <span className="text-2xl font-black tracking-widest text-white">
-            {sessionCode}
+            Join at
           </span>
+          <div className="flex items-center space-x-2">
+            <span className="text-2xl font-black tracking-widest text-white" title={joinUrl}>
+              {joinUrl}
+            </span>
+            <button
+              onClick={copyToClipboard}
+              className="px-2 py-1 text-sm bg-white/10 hover:bg-white/20 rounded transition-colors"
+              title="Copy join URL"
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
         </div>
       </div>
 

@@ -5,8 +5,7 @@ using backend.Models;
 using backend.DTOs;
 using backend.Helpers;
 using QRCoder;
-using System.Drawing;
-using System.Drawing.Imaging;
+
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using backend.Services;
@@ -224,6 +223,8 @@ public async Task<IActionResult> UpdateQuiz(
     if (dto.Tags != null) quiz.Tags = dto.Tags;
     if (dto.Instructions != null) quiz.Instructions = dto.Instructions;
     if (dto.DefaultQuestionTimeSeconds.HasValue) quiz.DefaultQuestionTimeSeconds = dto.DefaultQuestionTimeSeconds.Value;
+    if (dto.MaxAttempts.HasValue) quiz.MaxAttempts = dto.MaxAttempts.Value;
+    if (dto.ShuffleQuestions.HasValue) quiz.ShuffleQuestions = dto.ShuffleQuestions.Value;
 
     if (dto.Questions != null)
     {
@@ -291,7 +292,7 @@ public async Task<IActionResult> UpdateQuiz(
 
 
    [HttpPut("publish/{id}")]
-public async Task<IActionResult> PublishQuiz(Guid id)
+public async Task<IActionResult> PublishQuiz(Guid id, [FromBody] PublishQuizDto dto)
 {
     try
     {
@@ -302,6 +303,11 @@ public async Task<IActionResult> PublishQuiz(Guid id)
             return NotFound("Quiz not found");
 
         quiz.Status = "Published";
+        if (dto != null)
+        {
+            quiz.MaxAttempts = dto.MaxAttempts;
+            quiz.ShuffleQuestions = dto.ShuffleQuestions;
+        }
 
         await _context.SaveChangesAsync();
 

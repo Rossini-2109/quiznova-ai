@@ -33,7 +33,7 @@ export default function CreateQuizPage() {
       alert("Quiz created successfully!");
 
       router.push(
-        `/teacher/quizzes/${res.data.id}`
+        `/teacher/quizzes/edit/${res.data.id}`
       );
     } catch (error: any) {
       console.error(error);

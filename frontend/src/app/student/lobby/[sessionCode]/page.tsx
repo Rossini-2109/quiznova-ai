@@ -96,12 +96,17 @@ export default function LobbyPage() {
 
         console.log("Lobby SignalR Connected");
 
-        await hubConnection.invoke(
+        const success = await hubConnection.invoke<boolean>(
           "JoinSession",
           sessionCode,
           studentName,
           localStorage.getItem("employeeId") || ""
         );
+
+        if (!success) {
+          alert("Failed to join lobby. You might have reached the maximum allowed attempts or the session does not exist.");
+          router.push("/student/dashboard");
+        }
       } catch (err) {
         console.error("SignalR Error:", err);
       }
@@ -124,25 +129,17 @@ export default function LobbyPage() {
 
     hubConnection.on(
       "ParticipantJoined",
-      (participant: Participant) => {
-        if (
-          participant.name &&
-          participant.name.toLowerCase() === "teacher"
-        ) {
-          return;
-        }
-
-        setParticipants((prev) => {
-          const exists = prev.some(
-            (p) => p.id === participant.id
-          );
-
-          if (exists) return prev;
-
-          return [...prev, participant];
-        });
+      (name: string) => {
+        console.log(`${name} joined`);
       }
     );
+
+    hubConnection.on("StudentKicked", (kickedName: string) => {
+      if (kickedName === studentName) {
+        alert("Teacher removed you from the session.");
+        router.push("/student/dashboard");
+      }
+    });
 
     hubConnection.on("QuizStarted", () => {
       setCountdown(3);

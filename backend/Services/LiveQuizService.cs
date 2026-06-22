@@ -99,18 +99,7 @@ public class LiveQuizService : ILiveQuizService
             await _context.SaveChangesAsync();
         }
     }
-    public async Task ExpireSessionAsync(string sessionCode)
-{
-    var session = await GetSessionAsync(sessionCode);
 
-    if (session == null)
-        return;
-
-    session.IsEnded = true;
-    session.EndedAt = DateTime.UtcNow;
-
-    await _context.SaveChangesAsync();
-}
 
     public async Task PreviousQuestionAsync(string sessionCode)
     {
@@ -140,54 +129,39 @@ public class LiveQuizService : ILiveQuizService
         await _context.SaveChangesAsync();
     }
 
-    public async Task AddParticipantAsync(string sessionCode, string connectionId, string name, string employeeId)
+    // New method to expire a session link
+    public async Task ExpireSessionAsync(string sessionCode)
     {
         var session = await GetSessionAsync(sessionCode);
-        if (session == null) return; // Session not found, abort to avoid 400 errors
-
-        if (name == "Teacher")
-        {
-            // Do not create a participant entry for the teacher
-            return;
-        }
-
-        // Enforce max attempts per student
-        var canJoin = await CanStudentJoinAsync(sessionCode, name);
-        if (!canJoin)
-        {
-            Console.WriteLine($"[JOIN] Student {name} exceeded max attempts for session {sessionCode}.");
-            return;
-        }
-
-        var participant = await _context.SessionParticipants
-            .FirstOrDefaultAsync(p => p.SessionId == session.Id && p.StudentName == name);
-
-        if (participant == null)
-        {
-            participant = new SessionParticipant
-            {
-                Id = Guid.NewGuid(),
-                SessionId = session.Id,
-                StudentName = name,
-                EmployeeId = employeeId,
-                IsConnected = true,
-                JoinedAt = DateTime.UtcNow
-            };
-            _context.SessionParticipants.Add(participant);
-        }
-        else
-        {
-            if (participant.IsConnected)
-            {
-                // Flag multiple device login
-                participant.SuspicionScore = Math.Min(100, participant.SuspicionScore + 35);
-            }
-            participant.IsConnected = true;
-        }
-
+        if (session == null) return;
+        // Mark as expired; also mark ended to stop further actions
+        session.IsExpired = true;
+        session.IsEnded = true;
+        session.EndedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
     }
 
+    public async Task AddParticipantAsync(string sessionCode, string connectionId, string name, string employeeId)
+    {
+        if (string.Equals(name, "Teacher", StringComparison.OrdinalIgnoreCase)) return;
+
+        var session = await GetSessionAsync(sessionCode);
+        if (session == null) return; // Session not found, abort to avoid 400 errors
+
+// Ignore teacher joins
+if (string.Equals(name, "Teacher", StringComparison.OrdinalIgnoreCase))
+{
+    return;
+}
+
+// Enforce max attempts
+var canJoin = await CanStudentJoinAsync(sessionCode, name);
+
+if (!canJoin)
+{
+    Console.WriteLine($"[JOIN] Student {name} exceeded max attempts for session {sessionCode}.");
+    return;
+}
     // Checks if a student has remaining attempts based on quiz.MaxAttempts
     public async Task<bool> CanStudentJoinAsync(string sessionCode, string studentName)
     {
@@ -254,21 +228,28 @@ var attempts = await _context.QuizAttempts
         return dtos;
     }
 
-    public async Task SubmitAnswerAsync(string sessionCode, string studentName, Guid questionId, string selectedOption, int timeTakenMs)
+    public async Task<SubmitAnswerResult> SubmitAnswerAsync(string sessionCode, string studentName, Guid questionId, string selectedOption, int timeTakenMs)
     {
         var session = await GetSessionAsync(sessionCode);
         var participant = await _context.SessionParticipants
             .FirstOrDefaultAsync(p => p.SessionId == session.Id && p.StudentName == studentName);
 
-        if (participant == null) return;
+        if (participant == null) return new SubmitAnswerResult { IsCorrect = false, CorrectAnswer = string.Empty };
 
         var question = session.Quiz!.Questions.FirstOrDefault(q => q.Id == questionId);
-        if (question == null) return;
+        if (question == null) return new SubmitAnswerResult { IsCorrect = false, CorrectAnswer = string.Empty };
 
         var existingAnswer = await _context.SessionParticipantAnswers
             .FirstOrDefaultAsync(a => a.SessionId == session.Id && a.SessionParticipantId == participant.Id && a.QuestionId == questionId);
 
-        if (existingAnswer != null) return; // Prevent multiple answers
+        if (existingAnswer != null) 
+        {
+            return new SubmitAnswerResult 
+            { 
+                IsCorrect = existingAnswer.IsCorrect, 
+                CorrectAnswer = question.CorrectAnswer 
+            };
+        }
 
         bool isCorrect = !string.IsNullOrEmpty(selectedOption) && string.Equals(question.CorrectAnswer, selectedOption, StringComparison.OrdinalIgnoreCase);
 
@@ -306,6 +287,12 @@ var attempts = await _context.QuizAttempts
         participant.AverageTimeTakenMs = ((participant.AverageTimeTakenMs * (totalAnswers - 1)) + timeTakenMs) / totalAnswers;
 
         await _context.SaveChangesAsync();
+
+        return new SubmitAnswerResult
+        {
+            IsCorrect = isCorrect,
+            CorrectAnswer = question.CorrectAnswer
+        };
     }
 
     public async Task<LiveQuestionAnalyticsDto> GetQuestionAnalyticsAsync(string sessionCode, Guid questionId)
@@ -326,6 +313,7 @@ var attempts = await _context.QuizAttempts
             OptionBCount = answers.Count(a => string.Equals(a.SelectedOption, "B", StringComparison.OrdinalIgnoreCase)),
             OptionCCount = answers.Count(a => string.Equals(a.SelectedOption, "C", StringComparison.OrdinalIgnoreCase)),
             OptionDCount = answers.Count(a => string.Equals(a.SelectedOption, "D", StringComparison.OrdinalIgnoreCase)),
+            OptionECount = answers.Count(a => string.Equals(a.SelectedOption, "E", StringComparison.OrdinalIgnoreCase)),
         };
     }
 
@@ -539,6 +527,19 @@ var attempts = await _context.QuizAttempts
             (participant.CopyAttempts * 25));
 
         await _context.SaveChangesAsync();
+    }
+
+    public async Task KickParticipantAsync(string sessionCode, string studentName)
+    {
+        var session = await GetSessionAsync(sessionCode);
+        if (session == null) return;
+        var participant = await _context.SessionParticipants
+            .FirstOrDefaultAsync(p => p.SessionId == session.Id && p.StudentName == studentName);
+        if (participant != null)
+        {
+            _context.SessionParticipants.Remove(participant);
+            await _context.SaveChangesAsync();
+        }
     }
 
     public async Task UpdateCurrentQuestionAsync(string sessionCode, string studentName, int questionIndex)

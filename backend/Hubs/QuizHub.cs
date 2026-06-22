@@ -17,9 +17,9 @@ public class QuizHub : Hub
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (string SessionCode, string StudentName)> _connections = new();
 
     // Student Actions
-    public async Task SubmitAnswer(string sessionCode, string studentName, Guid questionId, string selectedOption, int timeTakenMs)
+    public async Task<SubmitAnswerResult> SubmitAnswer(string sessionCode, string studentName, Guid questionId, string selectedOption, int timeTakenMs)
     {
-        await _liveQuizService.SubmitAnswerAsync(sessionCode, studentName, questionId, selectedOption, timeTakenMs);
+        var result = await _liveQuizService.SubmitAnswerAsync(sessionCode, studentName, questionId, selectedOption, timeTakenMs);
         
         // Notify teacher of updated analytics and leaderboard
         var analytics = await _liveQuizService.GetQuestionAnalyticsAsync(sessionCode, questionId);
@@ -28,6 +28,8 @@ public class QuizHub : Hub
         await Clients.Group(sessionCode).SendAsync("AnalyticsUpdated", analytics);
         await Clients.Group(sessionCode).SendAsync("LeaderboardUpdated", leaderboard);
         await Clients.Group(sessionCode).SendAsync("AnswerSubmitted", studentName);
+
+        return result;
     }
 
     public async Task<bool> JoinSession(
@@ -159,6 +161,14 @@ public class QuizHub : Hub
         
         var participants = await _liveQuizService.GetParticipantsAsync(sessionCode);
         await Clients.Group(sessionCode).SendAsync("ParticipantListUpdated", participants);
+    }
+
+    public async Task KickStudent(string sessionCode, string studentName)
+    {
+        await _liveQuizService.KickParticipantAsync(sessionCode, studentName);
+        var participants = await _liveQuizService.GetParticipantsAsync(sessionCode);
+        await Clients.Group(sessionCode).SendAsync("ParticipantListUpdated", participants);
+        await Clients.Group(sessionCode).SendAsync("StudentKicked", studentName);
     }
 
     // Connection tracking

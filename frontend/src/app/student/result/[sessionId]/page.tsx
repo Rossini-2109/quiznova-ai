@@ -55,12 +55,13 @@ export default function StudentResultPage() {
 
   // Expose fetchResult for manual refresh
   const fetchResult = async (retry = false) => {
+    const currentName = typeof window !== 'undefined' ? localStorage.getItem("studentName") : null;
     let myResult: ParticipantResult | null = null;
     try {
       const res = await api.get(`/LiveQuiz/${sessionId}/results`);
       const results: ParticipantResult[] = res.data;
       if (results && results.length > 0) {
-        myResult = results[0];
+        myResult = results.find(r => r.studentName === currentName) || null;
       }
       setResult(myResult);
     } catch (err) {
@@ -68,7 +69,7 @@ export default function StudentResultPage() {
     } finally {
       setLoading(false);
       if (!myResult && !retry) {
-        // start polling if not found, up to 12 attempts (≈36s)
+        // start polling if not found, up to 30 attempts (≈90s)
         let attempts = 0;
         const pollInterval = setInterval(async () => {
           attempts++;
@@ -76,8 +77,11 @@ export default function StudentResultPage() {
             const res = await api.get(`/LiveQuiz/${sessionId}/results`);
             const results: ParticipantResult[] = res.data;
             if (results && results.length > 0) {
-              setResult(results[0]);
-              clearInterval(pollInterval);
+              const matched = results.find(r => r.studentName === currentName) || null;
+              if (matched) {
+                setResult(matched);
+                clearInterval(pollInterval);
+              }
             } else if (attempts >= 30) {
               // give up after attempts
               clearInterval(pollInterval);

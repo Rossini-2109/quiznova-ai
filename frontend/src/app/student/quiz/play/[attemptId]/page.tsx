@@ -130,6 +130,14 @@ export default function QuizPlayerPage({
 
   const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
 
+useEffect(() => {
+  if (!quiz) return;
+  // Auto-submit after 15th question (index 14)
+  if (currentQuestionIndex === 14) {
+    submitQuiz();
+  }
+}, [currentQuestionIndex, quiz]);
+
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 space-y-6">
       {/* Top sticky navbar for timer */}
