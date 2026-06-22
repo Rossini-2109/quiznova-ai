@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState } from "react";
 
 interface LiveHostHeaderProps {
@@ -44,24 +43,19 @@ export default function LiveHostHeader({
         </span>
       </div>
 
-      <div className="flex items-center gap-6">
-        <div className="flex flex-col items-center">
-          <span className="text-xs text-white/50 uppercase tracking-wider">
-            Join at
-          </span>
-          <div className="flex items-center space-x-2">
-            <span className="text-2xl font-black tracking-widest text-white" title={joinUrl}>
-              {joinUrl}
-            </span>
-            <button
-              onClick={copyToClipboard}
-              className="px-2 py-1 text-sm bg-white/10 hover:bg-white/20 rounded transition-colors"
-              title="Copy join URL"
-            >
-              {copied ? "Copied!" : "Copy"}
-            </button>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col items-end leading-tight">
+          <span className="text-[10px] text-white/40 uppercase tracking-wider">Join Code</span>
+          <span className="text-2xl font-black tracking-[0.25em] text-white">{sessionCode}</span>
         </div>
+        <button
+          onClick={copyToClipboard}
+          className="flex items-center gap-2 px-3 py-2 text-xs bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10 max-w-[240px]"
+          title={joinUrl}
+        >
+          <span className="truncate text-white/60">{joinUrl.replace(/^https?:\/\//, "")}</span>
+          <span className="text-white/90 font-semibold whitespace-nowrap">{copied ? "Copied!" : "Copy"}</span>
+        </button>
       </div>
 
       <div className="flex items-center gap-4">

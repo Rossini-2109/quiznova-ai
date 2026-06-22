@@ -3,6 +3,20 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "@/services/api";
+import {
+  ArrowLeft,
+  Plus,
+  Copy,
+  Trash2,
+  ImagePlus,
+  X,
+  Save,
+  Shuffle,
+  Minus,
+} from "lucide-react";
+
+const inputBase =
+  "w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-colors";
 
 interface Question {
   id: string;
@@ -252,44 +266,113 @@ export default function EditQuizPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6 md:p-8">
-      <h1 className="text-3xl font-bold mb-4">Edit Quiz</h1>
-
-      <input
-        className="border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 w-full mb-4 bg-transparent focus:ring-2 focus:ring-indigo-500 outline-none"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Quiz title"
-      />
-
-      <div className="flex gap-4 mb-4">
-        <label>
-          Shuffle:
-          <input
-            type="checkbox"
-            checked={shuffleQuestions}
-            onChange={(e) => setShuffleQuestions(e.target.checked)}
-          />
-        </label>
-
-        <input
-          type="number"
-          value={maxAttempts}
-          onChange={(e) => setMaxAttempts(Number(e.target.value))}
-          className="border p-2 w-24"
-        />
+    <div className="max-w-3xl mx-auto pb-28">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push("/teacher/quizzes")}
+            className="h-10 w-10 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <ArrowLeft size={16} className="text-zinc-500" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-900 to-indigo-800 dark:from-zinc-100 dark:to-indigo-300 bg-clip-text text-transparent">
+              Edit Quiz
+            </h1>
+            <p className="text-sm text-zinc-500 mt-0.5">
+              {questions.length} question{questions.length === 1 ? "" : "s"}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={updateQuiz}
+          className="hidden sm:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md shadow-indigo-500/20 transition-colors"
+        >
+          <Save size={16} /> Save Quiz
+        </button>
       </div>
 
-        <div className="space-y-6">
-          {questions.map((q, index) => (
+      {/* Settings */}
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6 mb-6 space-y-5">
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">
+            Quiz Title
+          </label>
+          <input
+            className={inputBase}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Quiz title"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 dark:border-zinc-700 px-4 py-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+            <span className="flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-200">
+              <Shuffle size={15} className="text-indigo-500" />
+              Shuffle questions &amp; options
+            </span>
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-indigo-600"
+              checked={shuffleQuestions}
+              onChange={(e) => setShuffleQuestions(e.target.checked)}
+            />
+          </label>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">
+              Max Attempts
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={maxAttempts}
+              onChange={(e) => setMaxAttempts(Number(e.target.value))}
+              className={inputBase}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Questions */}
+      <div className="space-y-5">
+        {questions.map((q, index) => {
+          const count = q.optionCount || 4;
+          return (
             <div
               key={q.id}
-              className="bg-white bg-opacity-70 backdrop-blur-lg rounded-xl shadow-lg p-6 space-y-4"
+              className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6"
             >
-              {/* Question Text */}
+              {/* Card header */}
+              <div className="flex items-center justify-between mb-4">
+                <span className="flex items-center gap-2.5 font-bold text-zinc-800 dark:text-zinc-100">
+                  <span className="h-7 w-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm">
+                    {index + 1}
+                  </span>
+                  Question {index + 1}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => duplicateQuestion(index)}
+                    title="Duplicate question"
+                    className="p-2 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-indigo-600 transition-colors"
+                  >
+                    <Copy size={15} />
+                  </button>
+                  <button
+                    onClick={() => deleteQuestion(index)}
+                    title="Delete question"
+                    className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Question text */}
               <textarea
-                className="w-full border rounded p-2 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={inputBase}
                 rows={2}
                 placeholder="Enter question..."
                 value={q.questionText}
@@ -297,109 +380,152 @@ export default function EditQuizPage() {
                   updateQuestionField(index, "questionText", e.target.value)
                 }
               />
-                            {/* Question Image Inline Upload */}
-                    <div className="flex items-center space-x-2 mb-2">
-                      {q.questionImageUrl && (
-                        <img
-                          src={q.questionImageUrl}
-                          alt="Question"
-                          className="w-16 h-16 object-contain rounded"
-                        />
-                      )}
-                      <button
-                        type="button"
-                        title="Upload image"
-                        className="text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded"
-                        onClick={() => {
-                          const el = document.getElementById(`file-question-${index}`) as HTMLInputElement;
-                          if (el) el.click();
-                        }}
-                      >
-                        📷
-                      </button>
-                      {q.questionImageUrl && (
-                        <button
-                          type="button"
-                          onClick={() => updateQuestionField(index, "questionImageUrl", "")}
-                          className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
-                          title="Remove image"
-                        >
-                          ✕
-                        </button>
-                      )}
-                      <input
-                        id={`file-question-${index}`}
-                        type="file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            handleUploadImage(index, "questionImageUrl", e.target.files[0]);
-                          }
-                        }}
-                      />
-                    </div>
+
+              {/* Question image */}
+              <div className="mt-3 flex items-center gap-3">
+                {q.questionImageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={q.questionImageUrl}
+                    alt="Question"
+                    className="w-16 h-16 object-contain rounded-lg border border-zinc-200 dark:border-zinc-700"
+                  />
+                )}
+                <button
+                  type="button"
+                  title="Upload image"
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                  onClick={() => {
+                    const el = document.getElementById(
+                      `file-question-${index}`
+                    ) as HTMLInputElement;
+                    if (el) el.click();
+                  }}
+                >
+                  <ImagePlus size={14} />
+                  {q.questionImageUrl ? "Change image" : "Add image"}
+                </button>
+                {q.questionImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateQuestionField(index, "questionImageUrl", "")
+                    }
+                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                    title="Remove image"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+                <input
+                  id={`file-question-${index}`}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      handleUploadImage(
+                        index,
+                        "questionImageUrl",
+                        e.target.files[0]
+                      );
+                    }
+                  }}
+                />
+              </div>
 
               {/* Options */}
-              {['A', 'B', 'C', 'D', 'E']
-                .slice(0, q.optionCount || 4)
-                .map((letter) => {
-                  const field = (`option${letter}`) as keyof Question;
-                  const imgField = (`option${letter}ImageUrl`) as keyof Question;
-                  return (
-                    <div key={letter} className="flex flex-col mb-4">
-                      <div className="flex items-center space-x-2 mb-2">
+              <div className="mt-5">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Options
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => removeOptionFromQuestion(index)}
+                      disabled={count <= 2}
+                      className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      title="Remove last option"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <button
+                      onClick={() => addOptionToQuestion(index)}
+                      disabled={count >= 5}
+                      className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      title="Add option"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {["A", "B", "C", "D", "E"].slice(0, count).map((letter) => {
+                    const field = `option${letter}` as keyof Question;
+                    const imgField = `option${letter}ImageUrl` as keyof Question;
+                    const isCorrect = q.correctAnswer === letter;
+                    return (
+                      <div key={letter} className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateQuestionField(index, "correctAnswer", letter)
+                          }
+                          title={isCorrect ? "Correct answer" : "Mark as correct"}
+                          className={`h-9 w-9 flex-shrink-0 rounded-lg font-bold text-sm flex items-center justify-center transition-colors ${
+                            isCorrect
+                              ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/30"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          {letter}
+                        </button>
                         <input
-                          className="w-8 text-center border rounded p-1"
-                          maxLength={1}
-                          value={letter}
-                          readOnly
-                        />
-                        <input
-                          className="flex-1 border p-2 rounded"
+                          className={`${inputBase} flex-1`}
                           placeholder={`Option ${letter}`}
-                          value={q[field] ?? ''}
+                          value={(q[field] as string) ?? ""}
                           onChange={(e) =>
                             updateQuestionField(index, field, e.target.value)
                           }
                         />
-                      </div>
-                      {/* Option Image */}
-                      <div className="flex items-center space-x-2 mb-2">
-                        {q[imgField] && (
+                        {q[imgField] ? (
                           <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={q[imgField] as string}
                               alt={`Option ${letter}`}
-                              className="w-12 h-12 object-contain rounded"
+                              className="w-9 h-9 object-contain rounded-lg border border-zinc-200 dark:border-zinc-700"
                             />
                             <button
                               type="button"
                               onClick={() => updateQuestionField(index, imgField, "")}
-                              className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
+                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                               title="Remove image"
                             >
-                              ✕
+                              <X size={14} />
                             </button>
                           </>
+                        ) : (
+                          <button
+                            type="button"
+                            title="Upload image"
+                            className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            onClick={() => {
+                              const el = document.getElementById(
+                                `file-${index}-${letter}`
+                              );
+                              if (el) (el as HTMLInputElement).click();
+                            }}
+                          >
+                            <ImagePlus size={14} />
+                          </button>
                         )}
-                        {/* Option Image Upload Icon */}
-                        <button
-                          type="button"
-                          title="Upload image"
-                          className="text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded"
-                          onClick={() => {
-                            const el = document.getElementById(`file-${index}-${letter}`);
-                            if (el) (el as HTMLInputElement).click();
-                          }}
-                        >
-                          📷
-                        </button>
                         <input
                           id={`file-${index}-${letter}`}
                           type="file"
                           accept="image/*"
-                          style={{ display: 'none' }}
+                          className="hidden"
                           onChange={(e) => {
                             if (e.target.files?.[0]) {
                               handleUploadImage(index, imgField, e.target.files[0]);
@@ -407,93 +533,80 @@ export default function EditQuizPage() {
                           }}
                         />
                       </div>
-                    </div>
-                  );
-                })}
-
-              {/* Correct Answer */}
-              <select
-                className="border p-2 rounded w-full"
-                value={q.correctAnswer}
-                onChange={(e) =>
-                  updateQuestionField(index, "correctAnswer", e.target.value)
-                }
-              >
-                {['A', 'B', 'C', 'D', 'E']
-                  .slice(0, q.optionCount || 4)
-                  .map((letter) => (
-                    <option key={letter} value={letter}>
-                      {letter}
-                    </option>
-                  ))}
-              </select>
-
-              {/* Time Limit */}
-              <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium">Time Limit:</label>
-                <input
-                  type="number"
-                  className="border p-2 w-24 rounded"
-                  min={5}
-                  value={q.questionTimeLimit}
-                  onChange={(e) =>
-                    updateQuestionField(
-                      index,
-                      "questionTimeLimit",
-                      Number(e.target.value)
-                    )
-                  }
-                />
-                <span className="text-sm">seconds</span>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-xs text-zinc-400">
+                  Tap a letter to mark the correct answer.
+                </p>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex space-x-3 mt-2">
-                <button
-                  onClick={() => deleteQuestion(index)}
-                  className="text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => duplicateQuestion(index)}
-                  className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded"
-                  title="Duplicate question"
-                >
-                  📋
-                </button>
-                <button
-                  onClick={() => addOptionToQuestion(index)}
-                  className="text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded"
-                >
-                  + Option
-                </button>
-                <button
-                  onClick={() => removeOptionFromQuestion(index)}
-                  className="text-white bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded ml-2"
-                >
-                  - Option
-                </button>
+              {/* Correct answer + time limit */}
+              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">
+                    Correct Answer
+                  </label>
+                  <select
+                    className={inputBase}
+                    value={q.correctAnswer}
+                    onChange={(e) =>
+                      updateQuestionField(index, "correctAnswer", e.target.value)
+                    }
+                  >
+                    {["A", "B", "C", "D", "E"].slice(0, count).map((letter) => (
+                      <option key={letter} value={letter}>
+                        {letter}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">
+                    Time Limit (seconds)
+                  </label>
+                  <input
+                    type="number"
+                    className={inputBase}
+                    min={5}
+                    value={q.questionTimeLimit}
+                    onChange={(e) =>
+                      updateQuestionField(
+                        index,
+                        "questionTimeLimit",
+                        Number(e.target.value)
+                      )
+                    }
+                  />
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+      </div>
 
-          {/* Add New Question Button */}
-          <button
-            type="button"
-            onClick={addNewQuestion}
-            className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded"
-          >
-            + Add New Question
-          </button>
-
+      {/* Add question */}
       <button
-        onClick={updateQuiz}
-        className="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl transition-colors"
+        type="button"
+        onClick={addNewQuestion}
+        className="mt-5 w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 py-4 text-sm font-semibold text-zinc-500 hover:text-indigo-600 hover:border-indigo-400 transition-colors"
       >
-        Save Quiz
+        <Plus size={16} /> Add New Question
       </button>
+
+      {/* Sticky save bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-6 py-3">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+          <span className="text-sm text-zinc-500">
+            {questions.length} question{questions.length === 1 ? "" : "s"}
+          </span>
+          <button
+            onClick={updateQuiz}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-md shadow-indigo-500/20 transition-colors"
+          >
+            <Save size={16} /> Save Quiz
+          </button>
+        </div>
       </div>
     </div>
   );
