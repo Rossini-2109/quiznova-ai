@@ -184,26 +184,237 @@ export default function CreateQuizPage() {
                   className="w-full px-4 py-2 border rounded-xl"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Option A</label>
-                  <input type="text" value={optionA} onChange={e => setOptionA(e.target.value)} className="w-full px-3 py-2 border rounded" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Option B</label>
-                  <input type="text" value={optionB} onChange={e => setOptionB(e.target.value)} className="w-full px-3 py-2 border rounded" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Option C (optional)</label>
-                  <input type="text" value={optionC} onChange={e => setOptionC(e.target.value)} className="w-full px-3 py-2 border rounded" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Option D (optional)</label>
-                  <input type="text" value={optionD} onChange={e => setOptionD(e.target.value)} className="w-full px-3 py-2 border rounded" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Option E (optional)</label>
-                  <input type="text" value={optionE} onChange={e => setOptionE(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Option A */}
+                  <div className="flex flex-col space-y-2">
+                    <label className="block text-sm font-semibold mb-2">Option A</label>
+                    <input
+                      type="text"
+                      value={optionA}
+                      onChange={e => setOptionA(e.target.value)}
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                    {/* Image preview */}
+                    {optionAImageUrl && (
+                      <div className="flex items-center space-x-2">
+                        <img src={optionAImageUrl} alt="Option A" className="w-12 h-12 object-contain rounded" />
+                        <button
+                          type="button"
+                          onClick={() => setOptionAImageUrl("")}
+                          className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
+                          title="Remove image"
+                        >✕</button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      id="file-optionA"
+                      onChange={async e => {
+                        if (e.target.files?.[0]) {
+                          const file = e.target.files[0];
+                          const base64 = await new Promise<string>((res, rej) => {
+                            const reader = new FileReader();
+                            reader.onload = () => res(reader.result as string);
+                            reader.onerror = () => rej(reader.error);
+                            reader.readAsDataURL(file);
+                          });
+                          setOptionAImageUrl(base64);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded"
+                      onClick={() => document.getElementById('file-optionA')?.click()}
+                      title="Upload image"
+                    >📷</button>
+                  </div>
+
+                  {/* Option B */}
+                  <div className="flex flex-col space-y-2">
+                    <label className="block text-sm font-semibold mb-2">Option B</label>
+                    <input
+                      type="text"
+                      value={optionB}
+                      onChange={e => setOptionB(e.target.value)}
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                    {optionBImageUrl && (
+                      <div className="flex items-center space-x-2">
+                        <img src={optionBImageUrl} alt="Option B" className="w-12 h-12 object-contain rounded" />
+                        <button
+                          type="button"
+                          onClick={() => setOptionBImageUrl("")}
+                          className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
+                          title="Remove image"
+                        >✕</button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      id="file-optionB"
+                      onChange={async e => {
+                        if (e.target.files?.[0]) {
+                          const file = e.target.files[0];
+                          const base64 = await new Promise<string>((res, rej) => {
+                            const reader = new FileReader();
+                            reader.onload = () => res(reader.result as string);
+                            reader.onerror = () => rej(reader.error);
+                            reader.readAsDataURL(file);
+                          });
+                          setOptionBImageUrl(base64);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded"
+                      onClick={() => document.getElementById('file-optionB')?.click()}
+                      title="Upload image"
+                    >📷</button>
+                  </div>
+
+                  {/* Option C */}
+                  <div className="flex flex-col space-y-2">
+                    <label className="block text-sm font-semibold mb-2">Option C (optional)</label>
+                    <input
+                      type="text"
+                      value={optionC}
+                      onChange={e => setOptionC(e.target.value)}
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                    {optionCImageUrl && (
+                      <div className="flex items-center space-x-2">
+                        <img src={optionCImageUrl} alt="Option C" className="w-12 h-12 object-contain rounded" />
+                        <button
+                          type="button"
+                          onClick={() => setOptionCImageUrl("")}
+                          className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
+                          title="Remove image"
+                        >✕</button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      id="file-optionC"
+                      onChange={async e => {
+                        if (e.target.files?.[0]) {
+                          const file = e.target.files[0];
+                          const base64 = await new Promise<string>((res, rej) => {
+                            const reader = new FileReader();
+                            reader.onload = () => res(reader.result as string);
+                            reader.onerror = () => rej(reader.error);
+                            reader.readAsDataURL(file);
+                          });
+                          setOptionCImageUrl(base64);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded"
+                      onClick={() => document.getElementById('file-optionC')?.click()}
+                      title="Upload image"
+                    >📷</button>
+                  </div>
+
+                  {/* Option D */}
+                  <div className="flex flex-col space-y-2">
+                    <label className="block text-sm font-semibold mb-2">Option D (optional)</label>
+                    <input
+                      type="text"
+                      value={optionD}
+                      onChange={e => setOptionD(e.target.value)}
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                    {optionDImageUrl && (
+                      <div className="flex items-center space-x-2">
+                        <img src={optionDImageUrl} alt="Option D" className="w-12 h-12 object-contain rounded" />
+                        <button
+                          type="button"
+                          onClick={() => setOptionDImageUrl("")}
+                          className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
+                          title="Remove image"
+                        >✕</button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      id="file-optionD"
+                      onChange={async e => {
+                        if (e.target.files?.[0]) {
+                          const file = e.target.files[0];
+                          const base64 = await new Promise<string>((res, rej) => {
+                            const reader = new FileReader();
+                            reader.onload = () => res(reader.result as string);
+                            reader.onerror = () => rej(reader.error);
+                            reader.readAsDataURL(file);
+                          });
+                          setOptionDImageUrl(base64);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded"
+                      onClick={() => document.getElementById('file-optionD')?.click()}
+                      title="Upload image"
+                    >📷</button>
+                  </div>
+
+                  {/* Option E */}
+                  <div className="flex flex-col space-y-2">
+                    <label className="block text-sm font-semibold mb-2">Option E (optional)</label>
+                    <input
+                      type="text"
+                      value={optionE}
+                      onChange={e => setOptionE(e.target.value)}
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                    {optionEImageUrl && (
+                      <div className="flex items-center space-x-2">
+                        <img src={optionEImageUrl} alt="Option E" className="w-12 h-12 object-contain rounded" />
+                        <button
+                          type="button"
+                          onClick={() => setOptionEImageUrl("")}
+                          className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
+                          title="Remove image"
+                        >✕</button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      id="file-optionE"
+                      onChange={async e => {
+                        if (e.target.files?.[0]) {
+                          const file = e.target.files[0];
+                          const base64 = await new Promise<string>((res, rej) => {
+                            const reader = new FileReader();
+                            reader.onload = () => res(reader.result as string);
+                            reader.onerror = () => rej(reader.error);
+                            reader.readAsDataURL(file);
+                          });
+                          setOptionEImageUrl(base64);
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded"
+                      onClick={() => document.getElementById('file-optionE')?.click()}
+                      title="Upload image"
+                    >📷</button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Correct Answer</label>
@@ -214,13 +425,14 @@ export default function CreateQuizPage() {
                     <option value="D">D</option>
                     <option value="E">E</option>
                   </select>
-                </div>
+</div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Time Limit (seconds)</label>
                   <input type="number" min={5} value={timeLimit} onChange={e => setTimeLimit(parseInt(e.target.value) || 0)} className="w-full px-3 py-2 border rounded" />
-                </div>
-              </div>
+</div>
+              
               {/* Image uploads */}
+              {/* Question Image */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-2">Question Image</label>
@@ -234,36 +446,6 @@ export default function CreateQuizPage() {
                         reader.readAsDataURL(file);
                       });
                       setQuestionImageUrl(base64);
-                    }
-                  }} className="w-full" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Option A Image</label>
-                  <input type="file" accept="image/*" onChange={async e => {
-                    if (e.target.files?.[0]) {
-                      const file = e.target.files[0];
-                      const base64 = await new Promise<string>((res, rej) => {
-                        const reader = new FileReader();
-                        reader.onload = () => res(reader.result as string);
-                        reader.onerror = () => rej(reader.error);
-                        reader.readAsDataURL(file);
-                      });
-                      setOptionAImageUrl(base64);
-                    }
-                  }} className="w-full" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-2">Option B Image</label>
-                  <input type="file" accept="image/*" onChange={async e => {
-                    if (e.target.files?.[0]) {
-                      const file = e.target.files[0];
-                      const base64 = await new Promise<string>((res, rej) => {
-                        const reader = new FileReader();
-                        reader.onload = () => res(reader.result as string);
-                        reader.onerror = () => rej(reader.error);
-                        reader.readAsDataURL(file);
-                      });
-                      setOptionBImageUrl(base64);
                     }
                   }} className="w-full" />
                 </div>

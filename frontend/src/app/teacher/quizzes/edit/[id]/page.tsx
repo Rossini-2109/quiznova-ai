@@ -120,6 +120,7 @@ export default function EditQuizPage() {
   };
 
   const addNewQuestion = async () => {
+    // Create a blank question with all fields initialized
     const newQuestion: Question = {
       id: crypto.randomUUID(),
       questionText: "",
@@ -130,17 +131,40 @@ export default function EditQuizPage() {
       optionE: "",
       correctAnswer: "",
       questionTimeLimit: 10,
-      optionCount: 4,
+      questionImageUrl: "",
+      optionAImageUrl: "",
+      optionBImageUrl: "",
+      optionCImageUrl: "",
+      optionDImageUrl: "",
+      optionEImageUrl: "",
+    } as any;
+
+    // Optimistically add to UI
+    setQuestions(prev => [...prev, { ...newQuestion }]);
+
+    // Build payload matching backend schema
+    const payload = {
+      questionText: newQuestion.questionText,
+      options: [newQuestion.optionA, newQuestion.optionB, newQuestion.optionC, newQuestion.optionD, newQuestion.optionE].filter(Boolean),
+      correctAnswer: newQuestion.correctAnswer,
+      timeLimit: newQuestion.questionTimeLimit,
+      imageUrl: newQuestion.questionImageUrl,
+      optionImages: {
+        A: newQuestion.optionAImageUrl,
+        B: newQuestion.optionBImageUrl,
+        C: newQuestion.optionCImageUrl,
+        D: newQuestion.optionDImageUrl,
+        E: newQuestion.optionEImageUrl,
+      },
     };
 
-    setQuestions([...questions, newQuestion]);
-
     try {
-      await api.post(`/quiz/${id}/questions`, newQuestion);
-    } catch (err) {
+      await api.post(`/quiz/${id}/questions`, payload);
+    } catch (err: any) {
       console.error(err);
-      setQuestions(questions);
-      alert("Failed to add question");
+      // Revert UI on failure
+      setQuestions(prev => prev.filter(q => q.id !== newQuestion.id));
+      alert(err?.response?.data?.message || "Failed to add question");
     }
   };
 
