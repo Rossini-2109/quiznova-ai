@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import api from "@/services/api";
 import type { HubConnection } from "@microsoft/signalr";
 import { startConnection, getConnection, startQuiz } from "@/lib/signalr";
@@ -14,6 +13,31 @@ import QuestionAnalytics from "@/components/live/QuestionAnalytics";
 import ClassAccuracyBar from "@/components/live/ClassAccuracyBar";
 import QuestionStatsList from "@/components/live/QuestionStatsList";
 import TeacherLobby from "@/components/live/TeacherLobby";
+import { Target, Users, CheckCircle2, ShieldAlert } from "lucide-react";
+
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  accent: string;
+}) {
+  return (
+    <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center gap-3">
+      <span className={`flex h-11 w-11 items-center justify-center rounded-xl ${accent}`}>
+        <Icon size={20} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs text-white/45 uppercase tracking-wider truncate">{label}</p>
+        <p className="text-2xl font-black text-white leading-tight">{value}</p>
+      </div>
+    </div>
+  );
+}
 
 interface LiveSessionState {
   sessionCode: string;
@@ -194,6 +218,9 @@ export default function TeacherLiveDashboard() {
   if (!sessionState) return <div className="min-h-screen bg-[#0f0f13] flex items-center justify-center text-white">Loading Live Session...</div>;
 
   const liveStudents = participants.filter((p: any) => p.isConnected).length;
+  const flaggedCount = participants.filter((p: any) => p.suspicionScore > 0).length;
+  const answeredTotal = analytics.correctCount + analytics.wrongCount;
+  const classAccuracy = answeredTotal === 0 ? 0 : Math.round((analytics.correctCount / answeredTotal) * 100);
 
   // Pre-start: show the lobby with QR / code / link / participants + remove
   if (!sessionState.isStarted) {
@@ -217,57 +244,90 @@ export default function TeacherLiveDashboard() {
         onEndQuiz={handleEndQuiz}
       />
 
-      <main className="flex-1 overflow-y-auto p-6 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column - Controls & Analytics */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-            <h2 className="text-xl font-bold mb-2">{sessionState.title}</h2>
-            <p className="text-white/60 mb-6">You are currently broadcasting this quiz live.</p>
-            
-            <QuestionNavigator
-              totalQuestions={sessionState.totalQuestions}
-              currentIndex={sessionState.currentQuestionIndex}
-              onJumpToQuestion={handleJumpToQuestion}
-              onNext={handleNext}
-              onPrevious={handlePrevious}
+      <main className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto w-full space-y-6">
+
+          {/* Title row */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-bold">{sessionState.title}</h2>
+              <p className="text-white/50 text-sm">
+                Broadcasting live · Question {sessionState.currentQuestionIndex + 1} of {sessionState.totalQuestions}
+              </p>
+            </div>
+            {sessionState.isPaused && (
+              <span className="px-3 py-1.5 rounded-full text-xs font-semibold bg-orange-500/15 text-orange-300 border border-orange-500/30">
+                Paused
+              </span>
+            )}
+          </div>
+
+          {/* KPI cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              label="Class Accuracy"
+              value={`${classAccuracy}%`}
+              icon={Target}
+              accent="bg-emerald-500/15 text-emerald-300"
+            />
+            <StatCard
+              label="Live Students"
+              value={liveStudents}
+              icon={Users}
+              accent="bg-blue-500/15 text-blue-300"
+            />
+            <StatCard
+              label="Correct Answers"
+              value={analytics.correctCount}
+              icon={CheckCircle2}
+              accent="bg-purple-500/15 text-purple-300"
+            />
+            <StatCard
+              label="Flagged"
+              value={flaggedCount}
+              icon={ShieldAlert}
+              accent="bg-red-500/15 text-red-300"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ClassAccuracyBar
-              totalParticipants={liveStudents}
-              correctCount={analytics.correctCount}
-              wrongCount={analytics.wrongCount}
-            />
-            
-            {/* Anti-Cheat summary card could go here */}
-            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex flex-col justify-center items-center">
-              <span className="text-red-400 font-medium mb-1">Suspicious Activities</span>
-              <span className="text-3xl font-bold text-red-500">
-                {participants.filter(p => p.suspicionScore > 0).length}
-              </span>
-              <span className="text-xs text-red-400/60 mt-1">Students flagged</span>
+          {/* Two-column body */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="lg:col-span-7 flex flex-col gap-6">
+              <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-2xl p-5">
+                <QuestionNavigator
+                  totalQuestions={sessionState.totalQuestions}
+                  currentIndex={sessionState.currentQuestionIndex}
+                  onJumpToQuestion={handleJumpToQuestion}
+                  onNext={handleNext}
+                  onPrevious={handlePrevious}
+                />
+              </div>
+
+              <ClassAccuracyBar
+                totalParticipants={liveStudents}
+                correctCount={analytics.correctCount}
+                wrongCount={analytics.wrongCount}
+              />
+
+              <div className="h-64">
+                <QuestionAnalytics analytics={analytics} />
+              </div>
+
+              <QuestionStatsList
+                sessionCode={sessionCode}
+                liveStudents={liveStudents}
+              />
+            </div>
+
+            <div className="lg:col-span-5 lg:sticky lg:top-24 h-[calc(100vh-140px)]">
+              <LeaderboardTable
+                participants={participants}
+                totalQuestions={sessionState.totalQuestions}
+                onKick={handleRemoveParticipant}
+              />
             </div>
           </div>
-
-          <div className="h-64">
-            <QuestionAnalytics analytics={analytics} />
-          </div>
-
-          <QuestionStatsList
-            sessionCode={sessionCode}
-            liveStudents={liveStudents}
-          />
-
         </div>
-
-        {/* Right Column - Leaderboard */}
-        <div className="lg:col-span-4 flex flex-col h-[calc(100vh-140px)]">
-          <LeaderboardTable participants={participants} />
-        </div>
-
       </main>
     </div>
   );

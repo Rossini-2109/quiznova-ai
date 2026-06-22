@@ -277,7 +277,7 @@ export default function FolderDetailsPage() {
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-500/20"
           >
             <Plus size={16} />
-            New Quiz
+            Add Quiz
           </button>
         </div>
       </div>

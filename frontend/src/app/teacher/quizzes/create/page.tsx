@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
+import { ArrowLeft, ImagePlus, X } from "lucide-react";
 import OptionInput from "./components/OptionInput";
 
 interface Option {
@@ -206,8 +207,18 @@ export default function CreateQuizPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => router.push("/teacher/quizzes")}
+          className="h-10 w-10 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <ArrowLeft size={16} className="text-zinc-500" />
+        </button>
+        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-900 to-indigo-800 dark:from-zinc-100 dark:to-indigo-300 bg-clip-text text-transparent">
+          Create New Quiz
+        </h1>
+      </div>
       <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6 md:p-8">
-        <h1 className="text-3xl font-bold mb-2">Create New Quiz</h1>
         <p className="text-zinc-500 mb-8">
           Enter a quiz title and start adding questions.
         </p>
@@ -267,31 +278,49 @@ export default function CreateQuizPage() {
                 />
               </div>
 
-              {questionImageUrl && (
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                {questionImageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={questionImageUrl}
                     alt="Question"
-                    className="w-16 h-16 object-contain rounded"
+                    className="w-16 h-16 object-contain rounded-lg border border-zinc-200 dark:border-zinc-700"
                   />
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById(
+                      "create-question-image"
+                    ) as HTMLInputElement;
+                    if (el) el.click();
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <ImagePlus size={14} />
+                  {questionImageUrl ? "Change image" : "Add image"}
+                </button>
+                {questionImageUrl && (
                   <button
                     type="button"
                     onClick={() => setQuestionImageUrl("")}
-                    className="text-sm text-red-600 hover:underline"
+                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                    title="Remove image"
                   >
-                    Remove image
+                    <X size={14} />
                   </button>
-                </div>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                className="text-sm"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleQuestionImage(file);
-                }}
-              />
+                )}
+                <input
+                  id="create-question-image"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleQuestionImage(file);
+                  }}
+                />
+              </div>
 
               <div className="space-y-3">
                 {LETTERS.slice(0, optionCount).map((letter, index) => (
