@@ -415,4 +415,67 @@ public async Task<IActionResult> PublishQuiz(Guid id, [FromBody] PublishQuizDto 
             });
         }
     }
+    // Duplicate a question within a quiz
+    [HttpPost("{quizId}/questions/{questionId}/duplicate")]
+    public async Task<IActionResult> DuplicateQuestion(Guid quizId, Guid questionId)
+    {
+        try
+        {
+            var question = await _context.Questions.FirstOrDefaultAsync(q => q.Id == questionId && q.QuizId == quizId);
+            if (question == null)
+                return NotFound("Question not found");
+
+            var cloned = new Question
+            {
+                Id = Guid.NewGuid(),
+                QuizId = quizId,
+                QuestionText = question.QuestionText,
+                OptionA = question.OptionA,
+                OptionB = question.OptionB,
+                OptionC = question.OptionC,
+                OptionD = question.OptionD,
+                OptionE = question.OptionE,
+                CorrectAnswer = question.CorrectAnswer,
+                Explanation = question.Explanation,
+                QuestionType = question.QuestionType,
+                QuestionTimeLimit = question.QuestionTimeLimit,
+                QuestionImageUrl = question.QuestionImageUrl,
+                OptionAImageUrl = question.OptionAImageUrl,
+                OptionBImageUrl = question.OptionBImageUrl,
+                OptionCImageUrl = question.OptionCImageUrl,
+                OptionDImageUrl = question.OptionDImageUrl,
+                OptionEImageUrl = question.OptionEImageUrl,
+                OrderIndex = question.OrderIndex // preserve order; you may adjust as needed
+            };
+
+            _context.Questions.Add(cloned);
+            await _context.SaveChangesAsync();
+            return Ok(cloned);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Message = "Error duplicating question", Error = ex.Message });
+        }
+    }
+
+    // Delete a specific question from a quiz
+    [HttpDelete("{quizId}/questions/{questionId}")]
+    public async Task<IActionResult> DeleteQuestion(Guid quizId, Guid questionId)
+    {
+        try
+        {
+            var question = await _context.Questions.FirstOrDefaultAsync(q => q.Id == questionId && q.QuizId == quizId);
+            if (question == null)
+                return NotFound("Question not found");
+
+            _context.Questions.Remove(question);
+            await _context.SaveChangesAsync();
+            return Ok(new { Message = "Question deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Message = "Error deleting question", Error = ex.Message });
+        }
+    }
+
 }

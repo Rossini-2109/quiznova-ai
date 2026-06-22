@@ -269,11 +269,21 @@ export default function EditQuizPage() {
 
               {/* Question Image */}
               {q.questionImageUrl && (
-                <img
-                  src={q.questionImageUrl}
-                  alt="Question"
-                  className="max-w-full h-48 object-contain mb-2 rounded"
-                />
+                <div className="flex items-center space-x-2 mb-2">
+                  <img
+                    src={q.questionImageUrl}
+                    alt="Question"
+                    className="max-w-full h-48 object-contain rounded"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => updateQuestionField(index, "questionImageUrl", "")}
+                    className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
+                    title="Remove image"
+                  >
+                    ✕
+                  </button>
+                </div>
               )}
               <input
                 type="file"
