@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
-import { Sparkles, FileText, Upload, Save, Trash2, Edit2, AlertCircle, RefreshCw, Eye } from "lucide-react";
+import { Sparkles, Upload, Save, Trash2, AlertCircle, RefreshCw } from "lucide-react";
 
 type GeneratedQuestion = {
   question: string;
@@ -17,6 +17,9 @@ export default function AIGeneratorPage() {
 
   // Generation parameters
   const [file, setFile] = useState<File | null>(null);
+  const [requirements, setRequirements] = useState("");
+  const [questionCount, setQuestionCount] = useState(5);
+  const [difficulty, setDifficulty] = useState("Medium");
   const [loading, setLoading] = useState(false);
 
   // Generated questions & state
@@ -41,9 +44,28 @@ export default function AIGeneratorPage() {
     }
   }, []);
 
+  const extractError = (error: unknown): string => {
+    const e = error as { response?: { data?: { message?: string; Error?: string } } };
+    return (
+      e?.response?.data?.message ||
+      e?.response?.data?.Error ||
+      "Generation failed. Please try again."
+    );
+  };
+
+  const applyQuestions = (data: unknown, title: string, description: string) => {
+    if (Array.isArray(data) && data.length > 0) {
+      setQuestions(data as GeneratedQuestion[]);
+      setQuizTitle(title);
+      setQuizDescription(description);
+    } else {
+      alert("No questions could be generated. Try refining your requirements or source.");
+    }
+  };
+
   const handleGenerate = async () => {
-    if (!file) {
-      alert("Please select a file to parse (JSON, TXT, PDF, DOCX, PPTX)");
+    if (!file && !requirements.trim()) {
+      alert("Add teacher requirements or upload a file (document, image, audio, or video).");
       return;
     }
 
@@ -51,30 +73,36 @@ export default function AIGeneratorPage() {
       setLoading(true);
       setQuestions([]);
 
-      const formData = new FormData();
-      formData.append("file", file);
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("requirements", requirements);
+        formData.append("questionCount", String(questionCount));
+        formData.append("difficulty", difficulty);
 
-      const response = await api.post("/ai/generate", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      // The response.data should now be list of GeneratedQuestion from parsed JSON
-      if (Array.isArray(response.data)) {
-        setQuestions(response.data);
-        setQuizTitle(`${file.name.split(".")[0]} Quiz`);
-        setQuizDescription(`Parsed assessment based on ${file.name}`);
+        const response = await api.post("/ai/generate", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        applyQuestions(
+          response.data,
+          `${file.name.split(".")[0]} Quiz`,
+          `Generated from ${file.name}`
+        );
       } else {
-        alert("Received invalid data structure from file parser.");
+        const response = await api.post("/ai/generate-from-requirements", {
+          requirements,
+          questionCount,
+          difficulty,
+        });
+        applyQuestions(
+          response.data,
+          "AI Generated Quiz",
+          requirements.slice(0, 120)
+        );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      alert(
-        error.response?.data?.message ||
-        error.response?.data?.Error ||
-        "File parsing failed. Please try again."
-      );
+      alert(extractError(error));
     } finally {
       setLoading(false);
     }
@@ -137,13 +165,9 @@ export default function AIGeneratorPage() {
       const res = await api.post("/ai/save-quiz", payload);
       alert("Quiz saved successfully!");
       router.push("/teacher/quizzes");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      alert(
-        error.response?.data?.message ||
-        error.response?.data ||
-        "Failed to save generated quiz"
-      );
+      alert(extractError(error) || "Failed to save generated quiz");
     } finally {
       setSaving(false);
     }
@@ -154,11 +178,11 @@ export default function AIGeneratorPage() {
       {/* Top Header */}
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-900 via-indigo-950 to-zinc-900 dark:from-zinc-100 dark:to-zinc-300 bg-clip-text text-transparent flex items-center gap-2">
-          <FileText className="text-indigo-500 fill-indigo-500/25" size={28} />
-          Quiz File Importer
+          <Sparkles className="text-indigo-500 fill-indigo-500/25" size={28} />
+          AI Quiz Generator
         </h1>
         <p className="text-zinc-500 dark:text-zinc-400 mt-1.5">
-          Import quizzes instantly from JSON and TXT files
+          Describe what you need, or generate from a document, image, audio, or video
         </p>
       </div>
 
@@ -168,15 +192,60 @@ export default function AIGeneratorPage() {
           <h2 className="text-xl font-bold mb-6">Quiz parameters</h2>
 
           <div className="space-y-6">
+            {/* Teacher requirements */}
+            <div>
+              <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2.5">
+                Teacher Requirements
+              </label>
+              <textarea
+                value={requirements}
+                onChange={(e) => setRequirements(e.target.value)}
+                placeholder="e.g. Generate questions on photosynthesis for grade 9, focus on the light-dependent reactions, include one application question."
+                rows={4}
+                className="w-full px-4 py-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-transparent focus:outline-none focus:border-indigo-500 text-sm resize-none"
+              />
+            </div>
+
+            {/* Count + difficulty */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2.5">
+                  Number of Questions
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={questionCount}
+                  onChange={(e) => setQuestionCount(Math.max(1, Number(e.target.value) || 1))}
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-transparent focus:outline-none focus:border-indigo-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2.5">
+                  Difficulty
+                </label>
+                <select
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-transparent focus:outline-none focus:border-indigo-500 text-sm"
+                >
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                </select>
+              </div>
+            </div>
+
             {/* File Upload Zone */}
             <div>
               <label className="block text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-2.5">
-                Upload Quiz File (.json, .txt, .pdf, .docx, .pptx)
+                Source File (optional) — document, image, audio, or video
               </label>
               <div className="border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 transition-all text-center relative flex flex-col items-center justify-center">
                 <input
                   type="file"
-                  accept=".json,.txt,.pdf,.docx,.pptx"
+                  accept=".json,.txt,.pdf,.docx,.pptx,image/*,audio/*,video/*"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                 />
@@ -191,12 +260,27 @@ export default function AIGeneratorPage() {
                 ) : (
                   <div>
                     <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Choose file or drag here</p>
-                    <p className="text-xs text-zinc-400 mt-0.5">JSON, TXT, PDF, Word, or PPT files</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">Documents, images, audio, or video</p>
                   </div>
                 )}
               </div>
+              {file && (
+                <button
+                  type="button"
+                  onClick={() => setFile(null)}
+                  className="mt-2 text-xs text-zinc-500 hover:text-red-500 font-semibold"
+                >
+                  Remove file
+                </button>
+              )}
             </div>
 
+            <div className="flex items-start gap-2 text-xs text-zinc-500 dark:text-zinc-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 rounded-xl p-3">
+              <AlertCircle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <span>
+                Images use vision and require the OpenAI provider. Audio/video need a transcription service (e.g. Whisper) which isn&apos;t configured yet — use a document, image, or text requirements instead.
+              </span>
+            </div>
 
 
             <button
@@ -207,12 +291,12 @@ export default function AIGeneratorPage() {
               {loading ? (
                 <>
                   <RefreshCw className="animate-spin" size={18} />
-                  Parsing Questions...
+                  Generating...
                 </>
               ) : (
                 <>
-                  <Upload size={18} />
-                  Parse Quiz File
+                  <Sparkles size={18} />
+                  Generate Quiz
                 </>
               )}
             </button>

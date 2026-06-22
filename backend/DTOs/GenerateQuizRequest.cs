@@ -9,4 +9,7 @@ public class GenerateQuizRequest
     public int QuestionCount { get; set; }
 
     public string QuestionType { get; set; } = "";
+
+    // Free-text teacher instructions describing what the quiz should cover.
+    public string? Requirements { get; set; }
 }

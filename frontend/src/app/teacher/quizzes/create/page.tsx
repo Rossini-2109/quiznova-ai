@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
-import { ArrowLeft, ImagePlus, X } from "lucide-react";
+import { ArrowLeft, ImagePlus, X, Plus, Minus } from "lucide-react";
 import OptionInput from "./components/OptionInput";
 
 interface Option {
@@ -337,15 +337,25 @@ export default function CreateQuizPage() {
                 ))}
               </div>
 
-              {optionCount < 5 && (
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setOptionCount((c) => Math.min(5, c + 1))}
-                  className="text-sm text-indigo-600 hover:underline"
+                  disabled={optionCount >= 5}
+                  className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                  + Add option
+                  <Plus size={14} /> Add Option
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={() => setOptionCount((c) => Math.max(2, c - 1))}
+                  disabled={optionCount <= 2}
+                  className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Minus size={14} /> Remove Option
+                </button>
+                <span className="text-xs text-zinc-400 ml-auto">{optionCount}/5 options</span>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

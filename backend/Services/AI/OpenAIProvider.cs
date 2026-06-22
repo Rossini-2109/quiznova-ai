@@ -14,13 +14,38 @@ public class OpenAIProvider : IAIProvider
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
 
+    private const string SystemPrompt =
+        "You are a quiz generator. Generate a JSON array of multiple choice questions based on the user's request. " +
+        "The JSON format must exactly be: [{\"question\":\"...\",\"options\":[\"...\",\"...\",\"...\",\"...\"],\"correctAnswer\":\"A\",\"explanation\":\"...\"}]. " +
+        "Always return at least 4 options per question. Return only the JSON array, no prose.";
+
     public OpenAIProvider(HttpClient httpClient, IConfiguration config)
     {
         _httpClient = httpClient;
         _apiKey = config["OpenAI:ApiKey"] ?? "";
     }
 
-    public async Task<List<GeneratedQuestionDto>> GenerateQuestionsAsync(string text)
+    public Task<List<GeneratedQuestionDto>> GenerateQuestionsAsync(string text)
+    {
+        var userContent = new object[]
+        {
+            new { type = "text", text = text }
+        };
+        return CompleteAsync(userContent);
+    }
+
+    // Generate from a source image using GPT-4o vision.
+    public Task<List<GeneratedQuestionDto>> GenerateFromImageAsync(string base64DataUri, string instructions)
+    {
+        var userContent = new object[]
+        {
+            new { type = "text", text = instructions },
+            new { type = "image_url", image_url = new { url = base64DataUri } }
+        };
+        return CompleteAsync(userContent);
+    }
+
+    private async Task<List<GeneratedQuestionDto>> CompleteAsync(object[] userContent)
     {
         if (string.IsNullOrEmpty(_apiKey))
             throw new Exception("OpenAI API Key is missing. Please configure 'OpenAI:ApiKey' in appsettings.json.");
@@ -28,10 +53,10 @@ public class OpenAIProvider : IAIProvider
         var requestBody = new
         {
             model = "gpt-4o",
-            messages = new[]
+            messages = new object[]
             {
-                new { role = "system", content = "You are a quiz generator. Extract facts from the provided text and generate a JSON array of multiple choice questions. The JSON format must exactly be: [{\"question\":\"...\",\"options\":[\"...\",\"...\",\"...\",\"...\"],\"correctAnswer\":\"A\",\"explanation\":\"...\"}]" },
-                new { role = "user", content = text }
+                new { role = "system", content = SystemPrompt },
+                new { role = "user", content = userContent }
             }
         };
 
@@ -46,7 +71,7 @@ public class OpenAIProvider : IAIProvider
         }
 
         var jsonResponse = await response.Content.ReadAsStringAsync();
-        
+
         using var document = JsonDocument.Parse(jsonResponse);
         var messageContent = document.RootElement
             .GetProperty("choices")[0]
@@ -56,6 +81,12 @@ public class OpenAIProvider : IAIProvider
         if (messageContent.StartsWith("```json"))
         {
             messageContent = messageContent.Substring(7);
+            if (messageContent.EndsWith("```"))
+                messageContent = messageContent.Substring(0, messageContent.Length - 3);
+        }
+        else if (messageContent.StartsWith("```"))
+        {
+            messageContent = messageContent.Substring(3);
             if (messageContent.EndsWith("```"))
                 messageContent = messageContent.Substring(0, messageContent.Length - 3);
         }

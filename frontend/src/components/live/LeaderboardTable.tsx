@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown, Medal, Trophy, UserMinus, Users, CheckCircle2 } from "lucide-react";
+import { Crown, Medal, Trophy, UserMinus, Users, Flame } from "lucide-react";
 
 interface Participant {
   id: string;
@@ -27,6 +27,14 @@ const AVATAR_GRADIENTS = [
   "from-amber-500 to-orange-500",
   "from-fuchsia-500 to-purple-500",
 ];
+
+// Bar colour per leaderboard position (matches the neon Wayground look).
+function barColor(rank: number): string {
+  if (rank === 1) return "from-cyan-400 to-sky-500";
+  if (rank === 2) return "from-amber-300 to-yellow-500";
+  if (rank === 3) return "from-pink-400 to-rose-500";
+  return "from-indigo-400 to-violet-500";
+}
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -72,6 +80,7 @@ export default function LeaderboardTable({
   onKick,
 }: LeaderboardTableProps) {
   const connected = participants.filter((p) => p.isConnected).length;
+  const maxScore = Math.max(1, ...participants.map((p) => p.score));
 
   return (
     <div className="relative bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden flex flex-col h-full shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
@@ -79,13 +88,13 @@ export default function LeaderboardTable({
       <div className="p-4 border-b border-white/10 bg-gradient-to-r from-white/[0.06] to-transparent flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/20 text-purple-300">
-            <Trophy size={18} />
+            <Users size={18} />
           </span>
           <div>
-            <h3 className="text-white font-semibold leading-tight">Live Leaderboard</h3>
-            <span className="flex items-center gap-1 text-xs text-white/45">
-              <Users size={12} /> {connected} participant{connected === 1 ? "" : "s"}
-            </span>
+            <h3 className="text-white font-semibold leading-tight">
+              {connected} participant{connected === 1 ? "" : "s"}
+            </h3>
+            <span className="text-xs text-white/45">Ranked by score, live</span>
           </div>
         </div>
         <span className="relative flex h-2.5 w-2.5">
@@ -95,10 +104,10 @@ export default function LeaderboardTable({
       </div>
 
       {/* Column labels */}
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-wider text-white/35 border-b border-white/5">
+      <div className="grid grid-cols-[2.5rem_1fr_4rem] items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-wider text-white/35 border-b border-white/5">
         <span>Rank</span>
         <span>Player</span>
-        <span>Score</span>
+        <span className="text-right">Score</span>
       </div>
 
       {/* Rows */}
@@ -116,10 +125,7 @@ export default function LeaderboardTable({
             <AnimatePresence>
               {participants.map((p) => {
                 const correct = p.correctAnswers ?? 0;
-                const pct =
-                  totalQuestions > 0
-                    ? Math.min(100, Math.round((correct / totalQuestions) * 100))
-                    : 0;
+                const barPct = Math.max(8, Math.round((p.score / maxScore) * 100));
                 return (
                   <motion.div
                     layout
@@ -128,7 +134,7 @@ export default function LeaderboardTable({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 500, damping: 40 }}
-                    className={`group grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl border p-3 transition-colors ${
+                    className={`group grid grid-cols-[2.5rem_1fr_4rem_auto] items-center gap-3 rounded-xl border p-3 transition-colors ${
                       p.rank <= 3
                         ? "border-white/15 bg-white/[0.06]"
                         : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
@@ -136,53 +142,56 @@ export default function LeaderboardTable({
                   >
                     <RankBadge rank={p.rank} />
 
-                    <div className="min-w-0 flex items-center gap-3">
-                      <div
-                        className={`relative h-9 w-9 flex-shrink-0 rounded-full bg-gradient-to-br ${avatarGradient(
-                          p.name
-                        )} flex items-center justify-center text-xs font-bold text-white`}
-                      >
-                        {initials(p.name)}
-                        <span
-                          className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#15151c] ${
-                            p.isConnected ? "bg-emerald-500" : "bg-red-500"
-                          }`}
-                          title={p.isConnected ? "Connected" : "Disconnected"}
-                        />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`relative h-9 w-9 flex-shrink-0 rounded-full bg-gradient-to-br ${avatarGradient(
+                            p.name
+                          )} flex items-center justify-center text-xs font-bold text-white`}
+                        >
+                          {initials(p.name)}
+                          <span
+                            className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#15151c] ${
+                              p.isConnected ? "bg-emerald-500" : "bg-red-500"
+                            }`}
+                            title={p.isConnected ? "Connected" : "Disconnected"}
+                          />
+                        </div>
+                        <p className="truncate font-semibold text-white text-sm">
+                          {p.name}
+                        </p>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-white text-sm">{p.name}</p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <div className="h-1.5 flex-1 rounded-full bg-white/10 overflow-hidden">
-                            <motion.div
-                              className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-400"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${pct}%` }}
-                              transition={{ duration: 0.6, ease: "easeOut" }}
-                            />
-                          </div>
-                          <span className="flex items-center gap-0.5 text-[10px] text-emerald-300/80 whitespace-nowrap">
-                            <CheckCircle2 size={11} /> {correct}
+                      {/* Score-proportional bar with correct-answer count */}
+                      <div className="mt-2 h-5 w-full rounded-full bg-white/5 overflow-hidden">
+                        <motion.div
+                          className={`h-full rounded-full bg-gradient-to-r ${barColor(
+                            p.rank
+                          )} flex items-center justify-end pr-2`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${barPct}%` }}
+                          transition={{ duration: 0.6, ease: "easeOut" }}
+                        >
+                          <span className="flex items-center gap-0.5 text-[10px] font-bold text-black/70 whitespace-nowrap">
+                            <Flame size={10} /> {correct}
                             {totalQuestions > 0 ? `/${totalQuestions}` : ""}
                           </span>
-                        </div>
+                        </motion.div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-base font-bold text-purple-200 tabular-nums">
-                        {p.score}
-                      </span>
-                      {onKick && (
-                        <button
-                          onClick={() => onKick(p.name)}
-                          title="Remove participant"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/25 border border-red-500/20"
-                        >
-                          <UserMinus size={13} />
-                        </button>
-                      )}
-                    </div>
+                    <span className="text-right font-mono text-base font-bold text-white tabular-nums">
+                      {p.score}
+                    </span>
+
+                    {onKick && (
+                      <button
+                        onClick={() => onKick(p.name)}
+                        title="Remove participant"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/25 border border-red-500/20"
+                      >
+                        <UserMinus size={13} />
+                      </button>
+                    )}
                   </motion.div>
                 );
               })}
