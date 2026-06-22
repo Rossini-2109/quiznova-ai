@@ -1,11 +1,15 @@
-export type ThemeType =
-  | "dark-purple"
-  | "dark-blue"
-  | "neon-green"
-  | "cyber-red"
-  | "ocean";
+import type { ThemeType } from "./types";
 
-export const THEME_CLASSES = {
+export const THEME_CLASSES: Record<
+  ThemeType,
+  {
+    bg: string;
+    border: string;
+    accent: string;
+    text: string;
+    glow: string;
+  }
+> = {
   "dark-purple": {
     bg: "from-[#140b2e] via-[#09041a] to-[#04020a]",
     border: "border-purple-500/20",
@@ -45,4 +49,4 @@ export const THEME_CLASSES = {
     text: "text-cyan-400",
     glow: "shadow-[0_0_20px_rgba(6,182,212,0.15)]",
   },
-} as const;
+};

@@ -1,5 +1,3 @@
-// src/components/live-session/types.ts
-
 export interface SessionState {
   id: string;
   sessionCode: string;
@@ -30,6 +28,9 @@ export interface Participant {
   currentQuestionIndex: number;
 }
 
+/**
+ * SINGLE SOURCE OF TRUTH for theme type
+ */
 export type ThemeType =
   | "dark-purple"
   | "dark-blue"
