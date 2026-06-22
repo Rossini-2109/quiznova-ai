@@ -62,6 +62,11 @@ export default function EditQuizPage() {
         };
       });
 
+      // After loading quiz, if no questions, create a default one
+      if (formatted.length === 0) {
+        // Add a blank question automatically
+        addNewQuestion();
+      }
       setQuestions(formatted);
     } catch (err) {
       console.error(err);
@@ -303,39 +308,66 @@ export default function EditQuizPage() {
                   const field = (`option${letter}`) as keyof Question;
                   const imgField = (`option${letter}ImageUrl`) as keyof Question;
                   return (
-                    <div key={letter} className="flex items-center space-x-2 mb-2">
-                      <input
-                        className="w-8 text-center border rounded p-1"
-                        maxLength={1}
-                        value={letter}
-                        readOnly
-                      />
-                      <input
-                        className="flex-1 border p-2 rounded"
-                        placeholder={`Option ${letter}`}
-                        value={q[field] ?? ''}
-                        onChange={(e) =>
-                          updateQuestionField(index, field, e.target.value)
-                        }
-                      />
-                      {/* Option Image */}
-                      {q[imgField] && (
-                        <img
-                          src={q[imgField] as string}
-                          alt={`Option ${letter}`}
-                          className="w-12 h-12 object-contain rounded"
+                    <div key={letter} className="flex flex-col mb-4">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <input
+                          className="w-8 text-center border rounded p-1"
+                          maxLength={1}
+                          value={letter}
+                          readOnly
                         />
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            handleUploadImage(index, imgField, e.target.files[0]);
+                        <input
+                          className="flex-1 border p-2 rounded"
+                          placeholder={`Option ${letter}`}
+                          value={q[field] ?? ''}
+                          onChange={(e) =>
+                            updateQuestionField(index, field, e.target.value)
                           }
-                        }}
-                        className="text-sm"
-                      />
+                        />
+                      </div>
+                      {/* Option Image */}
+                      <div className="flex items-center space-x-2 mb-2">
+                        {q[imgField] && (
+                          <>
+                            <img
+                              src={q[imgField] as string}
+                              alt={`Option ${letter}`}
+                              className="w-12 h-12 object-contain rounded"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => updateQuestionField(index, imgField, "")}
+                              className="text-white bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
+                              title="Remove image"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        )}
+                        {/* Option Image Upload Icon */}
+                        <button
+                          type="button"
+                          title="Upload image"
+                          className="text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded"
+                          onClick={() => {
+                            const el = document.getElementById(`file-${index}-${letter}`);
+                            if (el) (el as HTMLInputElement).click();
+                          }}
+                        >
+                          📷
+                        </button>
+                        <input
+                          id={`file-${index}-${letter}`}
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              handleUploadImage(index, imgField, e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
                   );
                 })}
@@ -387,8 +419,9 @@ export default function EditQuizPage() {
                 <button
                   onClick={() => duplicateQuestion(index)}
                   className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded"
+                  title="Duplicate question"
                 >
-                  Duplicate
+                  📋
                 </button>
                 <button
                   onClick={() => addOptionToQuestion(index)}
