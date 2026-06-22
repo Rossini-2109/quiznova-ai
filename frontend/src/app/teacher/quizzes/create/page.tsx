@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
-import { v4 as uuidv4 } from "uuid";
+id: crypto.randomUUID()
 import OptionInput from "./components/OptionInput";
 
 interface Option {
