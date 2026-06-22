@@ -3,14 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
-import { v4 as uuidv4 } from "uuid";
-
 import OptionInput from "./components/OptionInput";
 
 interface Option {
   id: string;
   text: string;
   imageUrl: string;
+}
+
+const LETTERS = ["A", "B", "C", "D", "E"] as const;
+
+function makeOption(id: string): Option {
+  return { id, text: "", imageUrl: "" };
 }
 
 export default function CreateQuizPage() {
@@ -23,41 +27,43 @@ export default function CreateQuizPage() {
   const [questionText, setQuestionText] = useState("");
   const [correctAnswer, setCorrectAnswer] = useState("A");
   const [timeLimit, setTimeLimit] = useState(10);
+  const [optionCount, setOptionCount] = useState(4);
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
+  const [questionImageUrl, setQuestionImageUrl] = useState("");
+
+  const [options, setOptions] = useState<Option[]>([
+    makeOption("A"),
+    makeOption("B"),
+    makeOption("C"),
+    makeOption("D"),
+    makeOption("E"),
+  ]);
 
   const [questions, setQuestions] = useState<
     Array<{ id: string; questionText: string }>
   >([]);
 
-  // ✅ FIX: missing option states
-  const [optionA, setOptionA] = useState("");
-  const [optionB, setOptionB] = useState("");
-  const [optionC, setOptionC] = useState("");
-  const [optionD, setOptionD] = useState("");
-  const [optionE, setOptionE] = useState("");
-
-  const [questionImageUrl, setQuestionImageUrl] = useState("");
-  const [optionAImageUrl, setOptionAImageUrl] = useState("");
-  const [optionBImageUrl, setOptionBImageUrl] = useState("");
-  const [optionCImageUrl, setOptionCImageUrl] = useState("");
-  const [optionDImageUrl, setOptionDImageUrl] = useState("");
-  const [optionEImageUrl, setOptionEImageUrl] = useState("");
+  const updateOption = (index: number, fields: Partial<Option>) => {
+    setOptions((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], ...fields };
+      return next;
+    });
+  };
 
   const resetQuestionForm = () => {
     setQuestionText("");
-    setOptionA("");
-    setOptionB("");
-    setOptionC("");
-    setOptionD("");
-    setOptionE("");
     setCorrectAnswer("A");
     setTimeLimit(10);
+    setOptionCount(4);
     setQuestionImageUrl("");
-    setOptionAImageUrl("");
-    setOptionBImageUrl("");
-    setOptionCImageUrl("");
-    setOptionDImageUrl("");
-    setOptionEImageUrl("");
+    setOptions([
+      makeOption("A"),
+      makeOption("B"),
+      makeOption("C"),
+      makeOption("D"),
+      makeOption("E"),
+    ]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,13 +78,11 @@ export default function CreateQuizPage() {
       setSubmitting(true);
       const res = await api.post("/quiz/create", { title });
       setQuizId(res.data.id);
-      alert("Quiz created successfully!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
+      const err = error as { response?: { data?: { message?: string } } };
       alert(
-        error?.response?.data?.message ||
-          error?.response?.data ||
-          "Failed to create quiz"
+        err?.response?.data?.message || "Failed to create quiz"
       );
     } finally {
       setSubmitting(false);
@@ -101,6 +105,31 @@ export default function CreateQuizPage() {
       return;
     }
 
+    if (!options[0].text.trim() || !options[1].text.trim()) {
+      alert("Options A and B are required");
+      return;
+    }
+
+    if (optionCount >= 3 && !options[2].text.trim()) {
+      alert("Option C is required");
+      return;
+    }
+
+    if (optionCount >= 4 && !options[3].text.trim()) {
+      alert("Option D is required");
+      return;
+    }
+
+    if (optionCount >= 5 && !options[4].text.trim()) {
+      alert("Option E is required");
+      return;
+    }
+
+    if (!correctAnswer) {
+      alert("Please select the correct answer");
+      return;
+    }
+
     if (!quizId) {
       alert("Quiz ID missing");
       return;
@@ -109,72 +138,79 @@ export default function CreateQuizPage() {
     try {
       setQuestionSubmitting(true);
 
-      const res = await api.post(`/quiz/${quizId}/questions`, {
+      const res = await api.post("/quiz/add-question", {
+        quizId,
         questionText,
-        options: [optionA, optionB, optionC, optionD, optionE].filter(Boolean),
+        optionA: options[0].text,
+        optionB: options[1].text,
+        optionC: optionCount >= 3 ? options[2].text : "",
+        optionD: optionCount >= 4 ? options[3].text : "",
+        optionE: optionCount >= 5 ? options[4].text : "",
         correctAnswer,
-        timeLimit,
-        imageUrl: questionImageUrl,
-        optionImages: {
-          A: optionAImageUrl,
-          B: optionBImageUrl,
-          C: optionCImageUrl,
-          D: optionDImageUrl,
-          E: optionEImageUrl,
-        },
+        questionType: "MCQ",
+        questionTimeLimit: timeLimit,
+        questionImageUrl: questionImageUrl || undefined,
+        optionAImageUrl: options[0].imageUrl || undefined,
+        optionBImageUrl: options[1].imageUrl || undefined,
+        optionCImageUrl: optionCount >= 3 ? options[2].imageUrl || undefined : undefined,
+        optionDImageUrl: optionCount >= 4 ? options[3].imageUrl || undefined : undefined,
+        optionEImageUrl: optionCount >= 5 ? options[4].imageUrl || undefined : undefined,
       });
 
-      const newQuestion = {
-        id: res.data.id,
-        questionText,
-      };
-
-      setQuestions((prev) => [...prev, newQuestion]);
+      setQuestions((prev) => [
+        ...prev,
+        { id: res.data.id, questionText },
+      ]);
       resetQuestionForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      alert(err?.response?.data?.message || "Failed to add question");
+      const error = err as { response?: { data?: { message?: string } } };
+      alert(error?.response?.data?.message || "Failed to add question");
     } finally {
       setQuestionSubmitting(false);
     }
   };
 
   const handleDuplicate = async (questionId: string, idx: number) => {
-    if (!quizId) {
-      alert("Quiz ID missing");
-      return;
-    }
+    if (!quizId) return;
 
     try {
       const res = await api.post(
         `/quiz/${quizId}/questions/${questionId}/duplicate`
       );
 
-      const newDup = {
-        id: res.data.id,
-        questionText: res.data.questionText,
-      };
-
       setQuestions((prev) => {
         const copy = [...prev];
-        copy.splice(idx + 1, 0, newDup);
+        copy.splice(idx + 1, 0, {
+          id: res.data.id,
+          questionText: res.data.questionText,
+        });
         return copy;
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      alert(err?.response?.data?.message || "Failed to duplicate question");
+      alert("Failed to duplicate question");
     }
   };
 
+  const handleQuestionImage = async (file: File) => {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    setQuestionImageUrl(base64);
+  };
+
   return (
-    <div className="max-w-3xl mx-auto p-8">
-      <div className="bg-white rounded-3xl border shadow-sm p-8">
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6 md:p-8">
         <h1 className="text-3xl font-bold mb-2">Create New Quiz</h1>
-        <p className="text-gray-500 mb-8">
+        <p className="text-zinc-500 mb-8">
           Enter a quiz title and start adding questions.
         </p>
 
-        {/* QUIZ TITLE */}
         {!quizId && (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -185,7 +221,7 @@ export default function CreateQuizPage() {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-3 border rounded-xl"
+                className="w-full px-4 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl bg-transparent focus:ring-2 focus:ring-indigo-500 outline-none"
                 placeholder="e.g. DBMS Quiz"
               />
             </div>
@@ -194,15 +230,14 @@ export default function CreateQuizPage() {
               <button
                 type="button"
                 onClick={() => router.push("/teacher/quizzes")}
-                className="flex-1 border rounded-xl px-4 py-3"
+                className="flex-1 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
               >
                 Cancel
               </button>
-
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 bg-indigo-600 text-white rounded-xl px-4 py-3"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-3 disabled:opacity-50 transition-colors"
               >
                 {submitting ? "Creating..." : "Create Quiz"}
               </button>
@@ -210,110 +245,150 @@ export default function CreateQuizPage() {
           </form>
         )}
 
-        {/* QUESTIONS */}
         {quizId && (
-          <div className="mt-8 space-y-6">
+          <div className="space-y-6">
             <h2 className="text-2xl font-semibold">Add Questions</h2>
 
-            <form onSubmit={handleAddQuestion} className="space-y-4 border p-6 rounded-xl">
-              <textarea
-                value={questionText}
-                onChange={(e) => setQuestionText(e.target.value)}
-                className="w-full border p-2 rounded"
-                placeholder="Enter question"
-              />
+            <form
+              onSubmit={handleAddQuestion}
+              className="space-y-4 border border-zinc-200 dark:border-zinc-800 p-6 rounded-xl bg-zinc-50/50 dark:bg-zinc-800/30"
+            >
+              <div>
+                <label className="block text-sm font-semibold mb-2">
+                  Question
+                </label>
+                <textarea
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  className="w-full border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="Enter question text"
+                  rows={3}
+                />
+              </div>
 
+              {questionImageUrl && (
+                <div className="flex items-center gap-2">
+                  <img
+                    src={questionImageUrl}
+                    alt="Question"
+                    className="w-16 h-16 object-contain rounded"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setQuestionImageUrl("")}
+                    className="text-sm text-red-600 hover:underline"
+                  >
+                    Remove image
+                  </button>
+                </div>
+              )}
               <input
-                value={optionA}
-                onChange={(e) => setOptionA(e.target.value)}
-                placeholder="Option A"
-                className="w-full border p-2 rounded"
+                type="file"
+                accept="image/*"
+                className="text-sm"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleQuestionImage(file);
+                }}
               />
 
-              <input
-                value={optionB}
-                onChange={(e) => setOptionB(e.target.value)}
-                placeholder="Option B"
-                className="w-full border p-2 rounded"
-              />
+              <div className="space-y-3">
+                {LETTERS.slice(0, optionCount).map((letter, index) => (
+                  <OptionInput
+                    key={letter}
+                    label={letter}
+                    option={options[index]}
+                    onChange={(fields) => updateOption(index, fields)}
+                    onRemove={() =>
+                      setOptionCount((c) => Math.max(2, c - 1))
+                    }
+                    canRemove={optionCount > 2 && index === optionCount - 1}
+                  />
+                ))}
+              </div>
 
-              <input
-                value={optionC}
-                onChange={(e) => setOptionC(e.target.value)}
-                placeholder="Option C"
-                className="w-full border p-2 rounded"
-              />
+              {optionCount < 5 && (
+                <button
+                  type="button"
+                  onClick={() => setOptionCount((c) => Math.min(5, c + 1))}
+                  className="text-sm text-indigo-600 hover:underline"
+                >
+                  + Add option
+                </button>
+              )}
 
-              <input
-                value={optionD}
-                onChange={(e) => setOptionD(e.target.value)}
-                placeholder="Option D"
-                className="w-full border p-2 rounded"
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-2">
+                    Correct Answer
+                  </label>
+                  <select
+                    value={correctAnswer}
+                    onChange={(e) => setCorrectAnswer(e.target.value)}
+                    className="w-full border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 bg-white dark:bg-zinc-900"
+                  >
+                    {LETTERS.slice(0, optionCount).map((letter) => (
+                      <option key={letter} value={letter}>
+                        {letter}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">
+                    Time Limit (seconds)
+                  </label>
+                  <input
+                    type="number"
+                    min={5}
+                    value={timeLimit}
+                    onChange={(e) =>
+                      setTimeLimit(parseInt(e.target.value) || 10)
+                    }
+                    className="w-full border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 bg-white dark:bg-zinc-900"
+                  />
+                </div>
+              </div>
 
-              <input
-                value={optionE}
-                onChange={(e) => setOptionE(e.target.value)}
-                placeholder="Option E"
-                className="w-full border p-2 rounded"
-              />
-
-              <select
-                value={correctAnswer}
-                onChange={(e) => setCorrectAnswer(e.target.value)}
-                className="w-full border p-2 rounded"
-              >
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
-                <option value="E">E</option>
-              </select>
-
-              <input
-                type="number"
-                value={timeLimit}
-                onChange={(e) =>
-                  setTimeLimit(parseInt(e.target.value) || 0)
-                }
-                className="w-full border p-2 rounded"
-                placeholder="Time limit"
-              />
-
-              <button
-                type="submit"
-                disabled={questionSubmitting}
-                className="w-full bg-indigo-600 text-white p-2 rounded"
-              >
-                Save & Add Question
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSaveQuiz}
-                className="w-full border p-2 rounded"
-              >
-                Save Quiz
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={questionSubmitting}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-3 disabled:opacity-50 transition-colors"
+                >
+                  {questionSubmitting ? "Saving..." : "Save & Add Question"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveQuiz}
+                  className="flex-1 border border-zinc-200 dark:border-zinc-700 rounded-xl py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  Done — Back to Quizzes
+                </button>
+              </div>
             </form>
 
-            {/* LIST */}
-            <ul className="space-y-2">
-              {questions.map((q, idx) => (
-                <li
-                  key={q.id}
-                  className="border p-2 rounded flex justify-between"
-                >
-                  {q.questionText || "(no text)"}
-                  <button
-                    onClick={() => handleDuplicate(q.id, idx)}
-                    className="text-blue-600"
+            {questions.length > 0 && (
+              <ul className="space-y-2">
+                {questions.map((q, idx) => (
+                  <li
+                    key={q.id}
+                    className="border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl flex items-center justify-between gap-4 bg-white dark:bg-zinc-900"
                   >
-                    Duplicate
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    <span className="flex-1 truncate">
+                      {idx + 1}. {q.questionText}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDuplicate(q.id, idx)}
+                      className="text-sm text-indigo-600 hover:underline shrink-0"
+                    >
+                      Duplicate
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
       </div>

@@ -1,18 +1,29 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import api from "@/services/api";
 
 export default function TeacherLiveConsolePage({
   params,
 }: {
-  params: { sessionId: string };
+  params: Promise<{ sessionCode: string }>;
 }) {
   const router = useRouter();
+  const [sessionCode, setSessionCode] = useState<string | null>(null);
 
   useEffect(() => {
-    router.replace(`/teacher/folders/live-session/${params.sessionId}`);
-  }, [router, params.sessionId]);
+    params.then((p) => setSessionCode(p.sessionCode));
+  }, [params]);
 
-  return null;
+  useEffect(() => {
+    if (!sessionCode) return;
+    router.replace(`/teacher/live/${sessionCode.split("?")[0]}`);
+  }, [router, sessionCode]);
+
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <p className="text-zinc-500">Redirecting to live session...</p>
+    </div>
+  );
 }

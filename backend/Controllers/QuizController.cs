@@ -98,6 +98,7 @@ public async Task<IActionResult> AddQuestion(
             OptionB = dto.OptionB,
             OptionC = dto.OptionC,
             OptionD = dto.OptionD,
+            OptionE = dto.OptionE,
             CorrectAnswer = dto.CorrectAnswer,
             Explanation = dto.Explanation,
             QuestionType = dto.QuestionType,
@@ -107,6 +108,7 @@ public async Task<IActionResult> AddQuestion(
             OptionBImageUrl = dto.OptionBImageUrl,
             OptionCImageUrl = dto.OptionCImageUrl,
             OptionDImageUrl = dto.OptionDImageUrl,
+            OptionEImageUrl = dto.OptionEImageUrl,
         };
 
         Console.WriteLine("STEP 4");

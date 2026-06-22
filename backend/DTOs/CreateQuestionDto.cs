@@ -30,4 +30,8 @@ public string? OptionBImageUrl { get; set; }
 public string? OptionCImageUrl { get; set; }
 
 public string? OptionDImageUrl { get; set; }
+
+    public string OptionE { get; set; } = string.Empty;
+
+    public string? OptionEImageUrl { get; set; }
 }

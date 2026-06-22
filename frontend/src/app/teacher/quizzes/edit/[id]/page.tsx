@@ -23,6 +23,27 @@ interface Question {
   optionCount?: number;
 }
 
+function makeBlankQuestion(): Question {
+  return {
+    id: crypto.randomUUID(),
+    questionText: "",
+    optionA: "",
+    optionB: "",
+    optionC: "",
+    optionD: "",
+    optionE: "",
+    correctAnswer: "A",
+    questionTimeLimit: 10,
+    questionImageUrl: "",
+    optionAImageUrl: "",
+    optionBImageUrl: "",
+    optionCImageUrl: "",
+    optionDImageUrl: "",
+    optionEImageUrl: "",
+    optionCount: 4,
+  };
+}
+
 export default function EditQuizPage() {
   const params = useParams();
   const router = useRouter();
@@ -62,12 +83,12 @@ export default function EditQuizPage() {
         };
       });
 
-      // After loading quiz, if no questions, create a default one
+      // If no questions exist yet, show one blank question in the editor
       if (formatted.length === 0) {
-        // Add a blank question automatically
-        addNewQuestion();
+        setQuestions([makeBlankQuestion()]);
+      } else {
+        setQuestions(formatted);
       }
-      setQuestions(formatted);
     } catch (err) {
       console.error(err);
       alert("Failed to load quiz");
@@ -85,20 +106,25 @@ export default function EditQuizPage() {
   const duplicateQuestion = async (index: number) => {
     const original = questions[index];
 
-    const copied = {
-      ...original,
-      id: crypto.randomUUID(),
-    };
-
-    const updated = [...questions];
-    updated.splice(index + 1, 0, copied);
-    setQuestions(updated);
-
     try {
-      await api.post(`/quiz/${id}/questions/${original.id}/duplicate`);
+      const res = await api.post(`/quiz/${id}/questions/${original.id}/duplicate`);
+      const cloned = res.data;
+
+      let count = 4;
+      if (cloned.optionE) count = 5;
+      else if (cloned.optionD) count = 4;
+      else if (cloned.optionC) count = 3;
+      else count = 2;
+
+      const updated = [...questions];
+      updated.splice(index + 1, 0, {
+        ...cloned,
+        optionE: cloned.optionE || "",
+        optionCount: count,
+      });
+      setQuestions(updated);
     } catch (err) {
       console.error(err);
-      setQuestions(questions);
       alert("Failed to duplicate question");
     }
   };
@@ -119,53 +145,8 @@ export default function EditQuizPage() {
     }
   };
 
-  const addNewQuestion = async () => {
-    // Create a blank question with all fields initialized
-    const newQuestion: Question = {
-      id: crypto.randomUUID(),
-      questionText: "",
-      optionA: "",
-      optionB: "",
-      optionC: "",
-      optionD: "",
-      optionE: "",
-      correctAnswer: "",
-      questionTimeLimit: 10,
-      questionImageUrl: "",
-      optionAImageUrl: "",
-      optionBImageUrl: "",
-      optionCImageUrl: "",
-      optionDImageUrl: "",
-      optionEImageUrl: "",
-    } as any;
-
-    // Optimistically add to UI
-    setQuestions(prev => [...prev, { ...newQuestion }]);
-
-    // Build payload matching backend schema
-    const payload = {
-      questionText: newQuestion.questionText,
-      options: [newQuestion.optionA, newQuestion.optionB, newQuestion.optionC, newQuestion.optionD, newQuestion.optionE].filter(Boolean),
-      correctAnswer: newQuestion.correctAnswer,
-      timeLimit: newQuestion.questionTimeLimit,
-      imageUrl: newQuestion.questionImageUrl,
-      optionImages: {
-        A: newQuestion.optionAImageUrl,
-        B: newQuestion.optionBImageUrl,
-        C: newQuestion.optionCImageUrl,
-        D: newQuestion.optionDImageUrl,
-        E: newQuestion.optionEImageUrl,
-      },
-    };
-
-    try {
-      await api.post(`/quiz/${id}/questions`, payload);
-    } catch (err: any) {
-      console.error(err);
-      // Revert UI on failure
-      setQuestions(prev => prev.filter(q => q.id !== newQuestion.id));
-      alert(err?.response?.data?.message || "Failed to add question");
-    }
+  const addNewQuestion = () => {
+    setQuestions((prev) => [...prev, makeBlankQuestion()]);
   };
 
   const handleUploadImage = async (
@@ -232,7 +213,23 @@ export default function EditQuizPage() {
     try {
       await api.put(`/quiz/${id}`, {
         title,
-        questions,
+        questions: questions.map((q) => ({
+          id: q.id,
+          questionText: q.questionText,
+          optionA: q.optionA,
+          optionB: q.optionB,
+          optionC: q.optionC,
+          optionD: q.optionD,
+          optionE: q.optionE ?? "",
+          correctAnswer: q.correctAnswer,
+          questionTimeLimit: q.questionTimeLimit,
+          questionImageUrl: q.questionImageUrl,
+          optionAImageUrl: q.optionAImageUrl,
+          optionBImageUrl: q.optionBImageUrl,
+          optionCImageUrl: q.optionCImageUrl,
+          optionDImageUrl: q.optionDImageUrl,
+          optionEImageUrl: q.optionEImageUrl,
+        })),
         shuffleQuestions,
         maxAttempts,
       });
@@ -246,14 +243,21 @@ export default function EditQuizPage() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center text-zinc-500">
+        Loading...
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-3xl mx-auto p-8">
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6 md:p-8">
       <h1 className="text-3xl font-bold mb-4">Edit Quiz</h1>
 
       <input
-        className="border p-2 w-full mb-4"
+        className="border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 w-full mb-4 bg-transparent focus:ring-2 focus:ring-indigo-500 outline-none"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Quiz title"
@@ -486,10 +490,11 @@ export default function EditQuizPage() {
 
       <button
         onClick={updateQuiz}
-        className="mt-6 bg-blue-600 text-white px-6 py-2"
+        className="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl transition-colors"
       >
         Save Quiz
       </button>
+      </div>
     </div>
   );
 }
