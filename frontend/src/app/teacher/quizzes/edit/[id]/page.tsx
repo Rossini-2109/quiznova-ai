@@ -215,7 +215,7 @@ export default function EditQuizPage() {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="max-w-3xl mx-auto p-8">
       <h1 className="text-3xl font-bold mb-4">Edit Quiz</h1>
 
       <input
