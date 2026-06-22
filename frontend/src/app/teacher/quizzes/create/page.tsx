@@ -78,6 +78,7 @@ export default function CreateQuizPage() {
       setSubmitting(true);
       const res = await api.post("/quiz/create", { title });
       setQuizId(res.data.id);
+      router.push(`/teacher/quizzes/lobby/${res.data.id}/host`);
     } catch (error: unknown) {
       console.error(error);
       const err = error as { response?: { data?: { message?: string } } };

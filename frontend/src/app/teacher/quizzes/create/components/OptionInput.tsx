@@ -1,13 +1,17 @@
 import React from "react";
 
-type Option = { id: string; text: string; imageUrl: string };
+type Option = {
+  id: string;
+  text: string;
+  imageUrl: string;
+};
 
 type OptionInputProps = {
-  label: string;
+  label: string; // A, B, C…
   option: Option;
   onChange: (fields: Partial<Option>) => void;
-  onRemove: () => void;
-  canRemove: boolean;
+  onRemove?: () => void;
+  canRemove?: boolean;
 };
 
 export default function OptionInput({
@@ -15,9 +19,9 @@ export default function OptionInput({
   option,
   onChange,
   onRemove,
-  canRemove,
+  canRemove = false,
 }: OptionInputProps) {
-  const fileInputId = `file-option-${option.id}`;
+  const fileInputId = `file-${label}`;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -33,12 +37,12 @@ export default function OptionInput({
   };
 
   return (
-    <div className="flex flex-col space-y-2 p-4 bg-white/30 backdrop-blur-sm rounded-lg shadow">
-      <label className="block text-sm font-semibold mb-2">{label}. Option</label>
+    <div className="flex flex-col space-y-2 card-glass p-4">
+      <label className="block text-sm font-semibold">{`Option ${label}`}</label>
       <input
         type="text"
         value={option.text}
-        onChange={e => onChange({ text: e.target.value })}
+        onChange={(e) => onChange({ text: e.target.value })}
         className="w-full px-3 py-2 border rounded"
         placeholder={`Option ${label}`}
       />
@@ -66,23 +70,26 @@ export default function OptionInput({
         id={fileInputId}
         onChange={handleFileChange}
       />
-      <button
-        type="button"
-        className="text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded"
-        onClick={() => document.getElementById(fileInputId)?.click()}
-        title="Upload image"
-      >
-        📷
-      </button>
-      {canRemove && (
+      <div className="flex gap-2">
         <button
           type="button"
-          onClick={onRemove}
-          className="mt-1 text-sm text-red-600 underline"
+          className="text-white bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded"
+          onClick={() => document.getElementById(fileInputId)?.click()}
+          title="Upload image"
         >
-          Remove Option
+          📷
         </button>
-      )}
+        {onRemove && canRemove && (
+          <button
+            type="button"
+            className="text-white bg-gray-600 hover:bg-gray-700 px-2 py-1 rounded"
+            onClick={onRemove}
+            title="Remove option"
+          >
+            Remove
+          </button>
+        )}
+      </div>
     </div>
   );
 }
