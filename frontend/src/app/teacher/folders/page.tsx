@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import QuizDetailsModal, { type QuizDetail } from "@/components/library/QuizDetailsModal";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface QuizInFolder {
@@ -297,6 +298,8 @@ export default function LibraryPage() {
   const [folderModal, setFolderModal] = useState<{ open: boolean; edit?: FolderData; parentFolderId?: string }>({ open: false });
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: "folder" | "quiz"; id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedQuiz, setSelectedQuiz] = useState<QuizDetail | null>(null);
+  const [showAllQuizzes, setShowAllQuizzes] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -339,6 +342,17 @@ export default function LibraryPage() {
 
   // Filter root folders
   const rootFolders = folders.filter((f) => !f.parentFolderId);
+
+  // Flatten every quiz across folders (recursively) + unassigned for the "all quizzes" view.
+  const collectFolderQuizzes = (list: FolderData[]): QuizInFolder[] =>
+    list.flatMap((f) => [
+      ...(f.quizzes ?? []),
+      ...collectFolderQuizzes(f.subFolders ?? []),
+    ]);
+  const allQuizzes: QuizInFolder[] = [
+    ...unassignedQuizzes,
+    ...collectFolderQuizzes(folders),
+  ];
 
   // Search quizzes
   const searchResults = search.length > 1
@@ -385,8 +399,8 @@ export default function LibraryPage() {
             value={stats.totalQuizzes}
             icon={FileText}
             color="#6366f1"
-            active={statusFilter === "all"}
-            onClick={() => setStatusFilter("all")}
+            sub="View all quizzes"
+            onClick={() => setShowAllQuizzes(true)}
           />
           <StatCard
             label="Draft Quizzes"
@@ -535,7 +549,7 @@ export default function LibraryPage() {
                 {unassignedQuizzes.filter(q => statusFilter === "all" || q.status === statusFilter).map((quiz) => (
                   <div
                     key={quiz.id}
-                    onClick={() => router.push(`/teacher/quizzes/edit/${quiz.id}`)}
+                    onClick={() => setSelectedQuiz(quiz)}
                     className="cursor-pointer group bg-white/60 backdrop-blur-xl border rounded-2xl p-5 hover:translate-y-[-4px] hover:shadow-lg transition-all duration-300 flex flex-col justify-between min-h-[140px]"
                   >
                     <div className="flex items-start justify-between w-full">
@@ -569,6 +583,73 @@ export default function LibraryPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* All Quizzes Modal */}
+      {showAllQuizzes && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 backdrop-blur-sm p-4"
+          onClick={() => setShowAllQuizzes(false)}
+        >
+          <div
+            className="bg-white rounded-3xl border w-full max-w-2xl shadow-2xl flex flex-col max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h2 className="font-bold text-lg text-zinc-900">All Quizzes</h2>
+                <p className="text-xs text-zinc-400 mt-0.5">{allQuizzes.length} total</p>
+              </div>
+              <button
+                onClick={() => setShowAllQuizzes(false)}
+                className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center hover:bg-zinc-200 transition-colors"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              {allQuizzes.length === 0 ? (
+                <div className="text-center py-12 text-zinc-400 text-sm">No quizzes yet.</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {allQuizzes.map((q) => (
+                    <button
+                      key={q.id}
+                      onClick={() => {
+                        setShowAllQuizzes(false);
+                        setSelectedQuiz(q);
+                      }}
+                      className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border border-zinc-200 hover:bg-zinc-50 text-left transition-colors"
+                    >
+                      <FileText size={15} className="text-zinc-400 flex-shrink-0" />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-semibold truncate text-zinc-800">{q.title}</span>
+                        <span className="block text-[11px] text-zinc-400">{q.questionCount} questions</span>
+                      </span>
+                      <span
+                        className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded flex-shrink-0 ${
+                          q.status === "Published" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {q.status}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quiz Details Modal */}
+      {selectedQuiz && (
+        <QuizDetailsModal
+          quiz={selectedQuiz}
+          onClose={() => setSelectedQuiz(null)}
+          onEdit={(qid) => router.push(`/teacher/quizzes/edit/${qid}`)}
+          onHost={(qid) => router.push(`/teacher/quizzes/lobby/${qid}/host`)}
+        />
       )}
 
       {/* Folder Modal */}

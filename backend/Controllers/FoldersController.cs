@@ -180,6 +180,44 @@ public class FoldersController : ControllerBase
         return Ok(folder);
     }
 
+    // POST api/folders/{id}/assign
+    // Move the given quizzes into this folder.
+    [Authorize(Roles = "Teacher")]
+    [HttpPost("{id}/assign")]
+    public async Task<IActionResult> AssignQuizzes(Guid id, [FromBody] AssignQuizzesDto dto)
+    {
+        var folder = await _context.Folders.FindAsync(id);
+        if (folder == null) return NotFound("Folder not found");
+
+        if (dto.QuizIds == null || dto.QuizIds.Count == 0)
+            return BadRequest("No quizzes provided.");
+
+        var quizzes = await _context.Quizzes
+            .Where(q => dto.QuizIds.Contains(q.Id))
+            .ToListAsync();
+
+        foreach (var quiz in quizzes)
+        {
+            quiz.FolderId = id;
+        }
+        folder.LastModifiedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return Ok(new { Assigned = quizzes.Count });
+    }
+
+    // POST api/folders/{id}/remove-quiz/{quizId}
+    // Detach a quiz from this folder (back to unassigned).
+    [Authorize(Roles = "Teacher")]
+    [HttpPost("{id}/remove-quiz/{quizId}")]
+    public async Task<IActionResult> RemoveQuizFromFolder(Guid id, Guid quizId)
+    {
+        var quiz = await _context.Quizzes.FirstOrDefaultAsync(q => q.Id == quizId && q.FolderId == id);
+        if (quiz == null) return NotFound("Quiz not found in this folder");
+        quiz.FolderId = null;
+        await _context.SaveChangesAsync();
+        return Ok(new { Message = "Quiz removed from folder" });
+    }
+
     // DELETE api/folders/{id}
     [Authorize(Roles = "Teacher")]
     [HttpDelete("{id}")]

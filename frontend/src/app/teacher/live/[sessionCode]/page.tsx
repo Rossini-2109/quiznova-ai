@@ -13,7 +13,8 @@ import QuestionAnalytics from "@/components/live/QuestionAnalytics";
 import ClassAccuracyBar from "@/components/live/ClassAccuracyBar";
 import QuestionStatsList from "@/components/live/QuestionStatsList";
 import TeacherLobby from "@/components/live/TeacherLobby";
-import { Target, Users, CheckCircle2, ShieldAlert } from "lucide-react";
+import Podium from "@/components/live/Podium";
+import { Target, Users, CheckCircle2, ShieldAlert, Trophy, ListChecks, ShieldCheck } from "lucide-react";
 
 function StatCard({
   label,
@@ -70,6 +71,8 @@ export default function TeacherLiveDashboard() {
   const [sessionState, setSessionState] = useState<LiveSessionState | null>(null);
   const [quizStarted, setQuizStarted] = useState(false);
   const [participants, setParticipants] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<"leaderboard" | "questions" | "anticheat">("leaderboard");
+  const [showPodium, setShowPodium] = useState(false);
   const [analytics, setAnalytics] = useState({
     correctCount: 0,
     wrongCount: 0,
@@ -177,13 +180,17 @@ export default function TeacherLiveDashboard() {
 }
   };
 
+  const goToResults = () => {
+    const targetId = sessionState?.quizId ?? sessionCode;
+    router.push(`/teacher/results/${targetId}`);
+  };
+
   const handleEndQuiz = async () => {
     if (!connectionRef.current) return;
     if (confirm("Are you sure you want to end the session early?")) {
       await connectionRef.current.invoke("TeacherEndedQuiz", sessionCode);
-      // Redirect to results page using quizId; fallback to sessionCode if unavailable
-      const targetId = sessionState?.quizId ?? sessionCode;
-      router.push(`/teacher/results/${targetId}`);
+      setSessionState((prev) => (prev ? { ...prev, isEnded: true } : prev));
+      setShowPodium(true);
     }
   };
 
@@ -290,45 +297,122 @@ export default function TeacherLiveDashboard() {
             />
           </div>
 
-          {/* Two-column body */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <div className="lg:col-span-7 flex flex-col gap-6">
-              <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-2xl p-5">
-                <QuestionNavigator
-                  totalQuestions={sessionState.totalQuestions}
-                  currentIndex={sessionState.currentQuestionIndex}
-                  onJumpToQuestion={handleJumpToQuestion}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
-                />
-              </div>
+          {/* Class accuracy hero */}
+          <ClassAccuracyBar
+            totalParticipants={liveStudents}
+            correctCount={analytics.correctCount}
+            wrongCount={analytics.wrongCount}
+          />
 
-              <ClassAccuracyBar
-                totalParticipants={liveStudents}
-                correctCount={analytics.correctCount}
-                wrongCount={analytics.wrongCount}
-              />
-
-              <div className="h-64">
-                <QuestionAnalytics analytics={analytics} />
-              </div>
-
-              <QuestionStatsList
-                sessionCode={sessionCode}
-                liveStudents={liveStudents}
-              />
+          {/* Tabbed panel */}
+          <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+            <div className="flex items-center gap-1 p-2 border-b border-white/10">
+              {([
+                { key: "leaderboard", label: "Leaderboard", icon: Trophy },
+                { key: "questions", label: "Questions", icon: ListChecks },
+                { key: "anticheat", label: "Anti-cheating", icon: ShieldCheck },
+              ] as const).map((t) => {
+                const Icon = t.icon;
+                const active = activeTab === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setActiveTab(t.key)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                      active
+                        ? "bg-white/10 text-white"
+                        : "text-white/45 hover:text-white/80 hover:bg-white/5"
+                    }`}
+                  >
+                    <Icon size={16} />
+                    {t.label}
+                    {t.key === "anticheat" && flaggedCount > 0 && (
+                      <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300">
+                        {flaggedCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="lg:col-span-5 lg:sticky lg:top-24 h-[calc(100vh-140px)]">
-              <LeaderboardTable
-                participants={participants}
-                totalQuestions={sessionState.totalQuestions}
-                onKick={handleRemoveParticipant}
-              />
+            <div className="p-4">
+              {activeTab === "leaderboard" && (
+                <div className="h-[calc(100vh-360px)] min-h-[420px]">
+                  <LeaderboardTable
+                    participants={participants}
+                    totalQuestions={sessionState.totalQuestions}
+                    onKick={handleRemoveParticipant}
+                  />
+                </div>
+              )}
+
+              {activeTab === "questions" && (
+                <div className="flex flex-col gap-6">
+                  <QuestionNavigator
+                    totalQuestions={sessionState.totalQuestions}
+                    currentIndex={sessionState.currentQuestionIndex}
+                    onJumpToQuestion={handleJumpToQuestion}
+                    onNext={handleNext}
+                    onPrevious={handlePrevious}
+                  />
+                  <div className="h-64">
+                    <QuestionAnalytics analytics={analytics} />
+                  </div>
+                  <QuestionStatsList
+                    sessionCode={sessionCode}
+                    liveStudents={liveStudents}
+                  />
+                </div>
+              )}
+
+              {activeTab === "anticheat" && (
+                <div className="space-y-2">
+                  {participants.filter((p: any) => p.suspicionScore > 0).length === 0 ? (
+                    <div className="flex flex-col items-center justify-center gap-3 text-center py-16">
+                      <div className="h-14 w-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-300">
+                        <ShieldCheck size={26} />
+                      </div>
+                      <p className="text-white/60 font-medium">No suspicious activity detected</p>
+                      <p className="text-white/30 text-xs">Tab switches and focus losses appear here.</p>
+                    </div>
+                  ) : (
+                    participants
+                      .filter((p: any) => p.suspicionScore > 0)
+                      .sort((a: any, b: any) => b.suspicionScore - a.suspicionScore)
+                      .map((p: any) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-white text-sm">{p.name}</p>
+                            <p className="text-white/40 text-xs">{p.employeeId}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-32 h-2 rounded-full bg-white/10 overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-orange-400 to-red-500"
+                                style={{ width: `${Math.min(100, p.suspicionScore)}%` }}
+                              />
+                            </div>
+                            <span className="text-red-300 font-bold text-sm w-10 text-right">
+                              {p.suspicionScore}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
       </main>
+
+      {showPodium && (
+        <Podium participants={participants} onClose={goToResults} />
+      )}
     </div>
   );
 }

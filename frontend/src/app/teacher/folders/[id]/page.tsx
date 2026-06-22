@@ -21,6 +21,8 @@ import {
   ArrowLeft,
   Plus
 } from "lucide-react";
+import QuizDetailsModal, { type QuizDetail } from "@/components/library/QuizDetailsModal";
+import AddQuizToFolderModal from "@/components/library/AddQuizToFolderModal";
 
 interface QuizInFolder {
   id: string;
@@ -203,6 +205,8 @@ export default function FolderDetailsPage() {
 
   const [folderModal, setFolderModal] = useState<{ open: boolean; edit?: FolderData; parentFolderId?: string }>({ open: false });
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: "folder" | "quiz"; id: string; name: string } | null>(null);
+  const [addQuizOpen, setAddQuizOpen] = useState(false);
+  const [selectedQuiz, setSelectedQuiz] = useState<QuizDetail | null>(null);
 
   const loadFolder = useCallback(async () => {
     setLoading(true);
@@ -231,6 +235,12 @@ export default function FolderDetailsPage() {
   const deleteQuiz = async (quizId: string) => {
     await api.delete(`/quiz/${quizId}`);
     setDeleteConfirm(null);
+    loadFolder();
+  };
+
+  const removeQuizFromFolder = async (quizId: string) => {
+    await api.post(`/folders/${id}/remove-quiz/${quizId}`);
+    setSelectedQuiz(null);
     loadFolder();
   };
 
@@ -273,7 +283,7 @@ export default function FolderDetailsPage() {
             New Subfolder
           </button>
           <button
-            onClick={() => router.push(`/teacher/quizzes/create?folderId=${folder.id}`)}
+            onClick={() => setAddQuizOpen(true)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-500/20"
           >
             <Plus size={16} />
@@ -346,7 +356,7 @@ export default function FolderDetailsPage() {
             {quizzes.map((quiz) => (
               <div
                 key={quiz.id}
-                onClick={() => router.push(`/teacher/quizzes/edit/${quiz.id}`)}
+                onClick={() => setSelectedQuiz({ ...quiz, folderId: folder.id })}
                 className="cursor-pointer group bg-white/60 backdrop-blur-xl border rounded-2xl p-5 hover:translate-y-[-4px] hover:shadow-lg transition-all duration-300 flex flex-col justify-between min-h-[140px]"
               >
                 <div className="flex items-start justify-between w-full">
@@ -379,6 +389,28 @@ export default function FolderDetailsPage() {
           </div>
         )}
       </div>
+
+      {/* Add Quiz Modal */}
+      {addQuizOpen && (
+        <AddQuizToFolderModal
+          folderId={folder.id}
+          folderName={folder.name}
+          onClose={() => setAddQuizOpen(false)}
+          onSuccess={loadFolder}
+        />
+      )}
+
+      {/* Quiz Details Modal */}
+      {selectedQuiz && (
+        <QuizDetailsModal
+          quiz={selectedQuiz}
+          folderName={folder.name}
+          onClose={() => setSelectedQuiz(null)}
+          onEdit={(qid) => router.push(`/teacher/quizzes/edit/${qid}`)}
+          onHost={(qid) => router.push(`/teacher/quizzes/lobby/${qid}/host`)}
+          onRemoveFromFolder={removeQuizFromFolder}
+        />
+      )}
 
       {/* Folder Modal */}
       {folderModal.open && (

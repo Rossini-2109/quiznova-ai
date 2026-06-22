@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import * as signalR from "@microsoft/signalr";
 import api from "@/services/api";
 import type { AxiosResponse } from "axios";
-import { Users, User, Loader2 } from "lucide-react";
+import { Users, User, Loader2, Clock } from "lucide-react";
 
 interface Participant {
   id: string;
@@ -25,6 +25,7 @@ interface Participant {
 interface SessionState {
   isStarted: boolean;
   isEnded: boolean;
+  isExpired?: boolean;
 }
 
 export default function LobbyPage() {
@@ -48,6 +49,26 @@ export default function LobbyPage() {
   const [countdown, setCountdown] = useState<number | null>(null);
 
   const [empIdError, setEmpIdError] = useState("");
+
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  // Check session validity as soon as the link is opened (before registering).
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get(`/LiveQuiz/${sessionCode}/state`)
+      .then((res: AxiosResponse<SessionState>) => {
+        if (!cancelled && (res.data.isEnded || res.data.isExpired))
+          setSessionExpired(true);
+      })
+      .catch((err: { response?: { status?: number } }) => {
+        // Server responded that the session does not exist -> expired/invalid.
+        if (!cancelled && err?.response?.status === 404) setSessionExpired(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionCode]);
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,12 +174,17 @@ export default function LobbyPage() {
       setCountdown(3);
     });
 
+    hubConnection.on("QuizEnded", () => {
+      setSessionExpired(true);
+    });
+
     setConnection(hubConnection);
 
     return () => {
       hubConnection.off("ParticipantListUpdated");
       hubConnection.off("ParticipantJoined");
       hubConnection.off("QuizStarted");
+      hubConnection.off("QuizEnded");
 
       hubConnection.stop().catch(() => {});
     };
@@ -185,6 +211,29 @@ export default function LobbyPage() {
 
     return () => clearTimeout(timer);
   }, [countdown, router, sessionCode]);
+
+  if (sessionExpired) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#09041a] to-[#04020a] text-white flex items-center justify-center p-6">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-3xl shadow-2xl max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-red-500/15 text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <Clock size={32} />
+          </div>
+          <h1 className="text-2xl font-black mb-2">Session Expired</h1>
+          <p className="text-zinc-400 mb-6">
+            This live quiz has ended or is no longer available. Please contact
+            your teacher for a new join link.
+          </p>
+          <button
+            onClick={() => router.push("/student/dashboard")}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl font-bold"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#09041a] to-[#04020a] text-white flex items-center justify-center p-6">

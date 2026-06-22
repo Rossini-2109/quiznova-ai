@@ -121,9 +121,17 @@ public class AIController : ControllerBase
 
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
-            if (extension != ".json" && extension != ".txt" && extension != ".pdf" && extension != ".docx" && extension != ".pptx")
+            var supported = new[]
             {
-                return BadRequest("Unsupported file type. Please upload a .json, .txt, .pdf, .docx, or .pptx file.");
+                ".json", ".txt", ".pdf", ".docx", ".pptx",
+                ".png", ".jpg", ".jpeg", ".webp", ".gif",
+                ".mp3", ".wav", ".m4a", ".ogg", ".aac",
+                ".mp4", ".mov", ".avi", ".webm", ".mkv"
+            };
+
+            if (Array.IndexOf(supported, extension) < 0)
+            {
+                return BadRequest("Unsupported file type. Upload a document (.json, .txt, .pdf, .docx, .pptx), image, audio, or video file.");
             }
 
             var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
@@ -137,7 +145,12 @@ public class AIController : ControllerBase
                 await file.CopyToAsync(stream);
             }
 
-            var result = await _quizGenerationService.ProcessFileAsync(filePath, extension);
+            var result = await _quizGenerationService.ProcessFileAsync(
+                filePath,
+                extension,
+                request.Requirements,
+                request.QuestionCount,
+                request.Difficulty);
 
             Console.WriteLine($"Parsed {result.Count} questions successfully");
 
@@ -152,6 +165,28 @@ public class AIController : ControllerBase
                 Error = ex.Message,
                 StackTrace = ex.StackTrace
             });
+        }
+    }
+
+    [HttpPost("generate-from-requirements")]
+    public async Task<IActionResult> GenerateFromRequirements([FromBody] GenerateFromRequirementsDto dto)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(dto.Requirements))
+                return BadRequest("Please describe what the quiz should cover.");
+
+            var result = await _quizGenerationService.GenerateFromRequirementsAsync(
+                dto.Requirements,
+                dto.QuestionCount,
+                dto.Difficulty);
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+            return StatusCode(500, new { Error = ex.Message });
         }
     }
 
