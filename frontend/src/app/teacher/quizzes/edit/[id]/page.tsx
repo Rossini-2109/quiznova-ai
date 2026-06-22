@@ -250,27 +250,152 @@ export default function EditQuizPage() {
         Add Question
       </button>
 
-      <div className="space-y-4">
-        {questions.map((q, index) => (
-          <div key={q.id} className="border p-4 rounded">
-            <input
-              className="border p-2 w-full mb-2"
-              value={q.questionText}
-              onChange={(e) =>
-                updateQuestionField(index, "questionText", e.target.value)
-              }
-            />
+        <div className="space-y-6">
+          {questions.map((q, index) => (
+            <div
+              key={q.id}
+              className="bg-white bg-opacity-70 backdrop-blur-lg rounded-xl shadow-lg p-6 space-y-4"
+            >
+              {/* Question Text */}
+              <textarea
+                className="w-full border rounded p-2 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                rows={2}
+                placeholder="Enter question..."
+                value={q.questionText}
+                onChange={(e) =>
+                  updateQuestionField(index, "questionText", e.target.value)
+                }
+              />
 
-            <button onClick={() => deleteQuestion(index)} className="text-red-500">
-              Delete
-            </button>
+              {/* Question Image */}
+              {q.questionImageUrl && (
+                <img
+                  src={q.questionImageUrl}
+                  alt="Question"
+                  className="max-w-full h-48 object-contain mb-2 rounded"
+                />
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handleUploadImage(index, "questionImageUrl", e.target.files[0]);
+                  }
+                }}
+                className="mb-3"
+              />
 
-            <button onClick={() => duplicateQuestion(index)} className="ml-2 text-blue-500">
-              Duplicate
-            </button>
-          </div>
-        ))}
-      </div>
+              {/* Options */}
+              {['A', 'B', 'C', 'D', 'E']
+                .slice(0, q.optionCount || 4)
+                .map((letter) => {
+                  const field = (`option${letter}`) as keyof Question;
+                  const imgField = (`option${letter}ImageUrl`) as keyof Question;
+                  return (
+                    <div key={letter} className="flex items-center space-x-2 mb-2">
+                      <input
+                        className="w-8 text-center border rounded p-1"
+                        maxLength={1}
+                        value={letter}
+                        readOnly
+                      />
+                      <input
+                        className="flex-1 border p-2 rounded"
+                        placeholder={`Option ${letter}`}
+                        value={q[field] ?? ''}
+                        onChange={(e) =>
+                          updateQuestionField(index, field, e.target.value)
+                        }
+                      />
+                      {/* Option Image */}
+                      {q[imgField] && (
+                        <img
+                          src={q[imgField] as string}
+                          alt={`Option ${letter}`}
+                          className="w-12 h-12 object-contain rounded"
+                        />
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleUploadImage(index, imgField, e.target.files[0]);
+                          }
+                        }}
+                        className="text-sm"
+                      />
+                    </div>
+                  );
+                })}
+
+              {/* Correct Answer */}
+              <select
+                className="border p-2 rounded w-full"
+                value={q.correctAnswer}
+                onChange={(e) =>
+                  updateQuestionField(index, "correctAnswer", e.target.value)
+                }
+              >
+                {['A', 'B', 'C', 'D', 'E']
+                  .slice(0, q.optionCount || 4)
+                  .map((letter) => (
+                    <option key={letter} value={letter}>
+                      {letter}
+                    </option>
+                  ))}
+              </select>
+
+              {/* Time Limit */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium">Time Limit:</label>
+                <input
+                  type="number"
+                  className="border p-2 w-24 rounded"
+                  min={5}
+                  value={q.questionTimeLimit}
+                  onChange={(e) =>
+                    updateQuestionField(
+                      index,
+                      "questionTimeLimit",
+                      Number(e.target.value)
+                    )
+                  }
+                />
+                <span className="text-sm">seconds</span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3 mt-2">
+                <button
+                  onClick={() => deleteQuestion(index)}
+                  className="text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => duplicateQuestion(index)}
+                  className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded"
+                >
+                  Duplicate
+                </button>
+                <button
+                  onClick={() => addOptionToQuestion(index)}
+                  className="text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded"
+                >
+                  + Option
+                </button>
+                <button
+                  onClick={() => removeOptionFromQuestion(index)}
+                  className="text-white bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded"
+                >
+                  - Option
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
 
       <button
         onClick={updateQuiz}
