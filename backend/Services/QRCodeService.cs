@@ -20,9 +20,9 @@ public class QRCodeService : IQRCodeService
         {
             Directory.CreateDirectory(_qrFolder);
         }
-
         _frontendUrl =
             Environment.GetEnvironmentVariable("FRONTEND_URL")
+            ?? Environment.GetEnvironmentVariable("NEXT_PUBLIC_FRONTEND_URL")
             ?? "https://quiznova-ai-grdq.onrender.com";
     }
 
