@@ -21,7 +21,7 @@ public class Session
 
     public bool IsEnded { get; set; }
     public bool IsExpired { get; set; }
-    public int[]? ShuffledQuestionIds { get; set; }
+    public Guid[]? ShuffledQuestionIds { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? StartedAt { get; set; }

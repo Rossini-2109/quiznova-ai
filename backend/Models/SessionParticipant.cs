@@ -32,5 +32,5 @@ public class SessionParticipant
     public int CopyAttempts { get; set; } = 0;
     public int SuspicionScore { get; set; } = 0; // 0-100
 
-    
+    public string? ConnectionId { get; set; }
 }

@@ -141,27 +141,59 @@ public class LiveQuizService : ILiveQuizService
         await _context.SaveChangesAsync();
     }
 
-    public async Task AddParticipantAsync(string sessionCode, string connectionId, string name, string employeeId)
+    public async Task AddParticipantAsync(
+    string sessionCode,
+    string connectionId,
+    string name,
+    string employeeId)
+{
+    // Ignore teacher joins
+    if (string.Equals(name, "Teacher", StringComparison.OrdinalIgnoreCase))
+        return;
+
+    var session = await GetSessionAsync(sessionCode);
+
+    if (session == null)
+        return;
+
+    // Check attempt limit
+    var canJoin = await CanStudentJoinAsync(sessionCode, name);
+
+    if (!canJoin)
     {
-        if (string.Equals(name, "Teacher", StringComparison.OrdinalIgnoreCase)) return;
+        Console.WriteLine(
+            $"[JOIN] Student {name} exceeded max attempts for session {sessionCode}");
+        return;
+    }
 
-        var session = await GetSessionAsync(sessionCode);
-        if (session == null) return; // Session not found, abort to avoid 400 errors
+    var existing = await _context.SessionParticipants
+        .FirstOrDefaultAsync(p =>
+            p.SessionId == session.Id &&
+            p.StudentName == name);
 
-// Ignore teacher joins
-if (string.Equals(name, "Teacher", StringComparison.OrdinalIgnoreCase))
-{
-    return;
+    if (existing != null)
+    {
+        existing.IsConnected = true;
+        await _context.SaveChangesAsync();
+        return;
+    }
+
+    var participant = new SessionParticipant
+    {
+        Id = Guid.NewGuid(),
+        SessionId = session.Id,
+        StudentName = name,
+        EmployeeId = employeeId,
+        ConnectionId = connectionId,
+        JoinedAt = DateTime.UtcNow,
+        IsConnected = true
+    };
+
+    _context.SessionParticipants.Add(participant);
+
+    await _context.SaveChangesAsync();
 }
 
-// Enforce max attempts
-var canJoin = await CanStudentJoinAsync(sessionCode, name);
-
-if (!canJoin)
-{
-    Console.WriteLine($"[JOIN] Student {name} exceeded max attempts for session {sessionCode}.");
-    return;
-}
     // Checks if a student has remaining attempts based on quiz.MaxAttempts
     public async Task<bool> CanStudentJoinAsync(string sessionCode, string studentName)
     {
