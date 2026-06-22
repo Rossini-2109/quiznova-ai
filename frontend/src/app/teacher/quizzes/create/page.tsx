@@ -9,6 +9,26 @@ export default function CreateQuizPage() {
 
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Store the newly created quiz ID
+  const [quizId, setQuizId] = useState<string | null>(null);
+  // Question form state (shown after quiz creation)
+  const [questionText, setQuestionText] = useState("");
+  const [optionA, setOptionA] = useState("");
+  const [optionB, setOptionB] = useState("");
+  const [optionC, setOptionC] = useState(""); // optional
+  const [optionD, setOptionD] = useState(""); // optional
+  const [optionE, setOptionE] = useState(""); // optional
+  const [correctAnswer, setCorrectAnswer] = useState("A");
+const [timeLimit, setTimeLimit] = useState(10);
+const [questionSubmitting, setQuestionSubmitting] = useState(false);
+// Image URL states for question and options
+const [questionImageUrl, setQuestionImageUrl] = useState("");
+const [optionAImageUrl, setOptionAImageUrl] = useState("");
+const [optionBImageUrl, setOptionBImageUrl] = useState("");
+const [optionCImageUrl, setOptionCImageUrl] = useState("");
+const [optionDImageUrl, setOptionDImageUrl] = useState("");
+const [optionEImageUrl, setOptionEImageUrl] = useState("");
+
 
   const handleSubmit = async (
     e: React.FormEvent
@@ -30,11 +50,10 @@ export default function CreateQuizPage() {
         }
       );
 
-      alert("Quiz created successfully!");
-
-      router.push(
-        `/teacher/quizzes/edit/${res.data.id}`
-      );
+        alert("Quiz created successfully! You can now add questions.");
+        // Store the new quiz ID and stay on the same page
+        setQuizId(res.data.id);
+        // No navigation – the question form will appear below
     } catch (error: any) {
       console.error(error);
 
@@ -51,63 +70,164 @@ export default function CreateQuizPage() {
   return (
     <div className="max-w-3xl mx-auto p-8">
       <div className="bg-white rounded-3xl border shadow-sm p-8">
-
-        <h1 className="text-3xl font-bold mb-2">
-          Create New Quiz
-        </h1>
-
-        <p className="text-gray-500 mb-8">
-          Enter a quiz title and start adding questions.
-        </p>
-
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-6"
-        >
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Quiz Title
-            </label>
-
-            <input
-              type="text"
-              placeholder="e.g. DBMS Quiz"
-              value={title}
-              onChange={(e) =>
-                setTitle(e.target.value)
-              }
-              required
-              className="w-full px-4 py-3 rounded-xl border"
-            />
+        <h1 className="text-3xl font-bold mb-2">Create New Quiz</h1>
+        <p className="text-gray-500 mb-8">Enter a quiz title and start adding questions.</p>
+        {/* Quiz title form */}
+        {!quizId && (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold mb-2">Quiz Title</label>
+              <input
+                type="text"
+                placeholder="e.g. DBMS Quiz"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="w-full px-4 py-3 rounded-xl border"
+              />
+            </div>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => router.push("/teacher/quizzes")}
+                className="flex-1 px-6 py-3 rounded-xl border"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 px-6 py-3 rounded-xl bg-indigo-600 text-white"
+              >
+                {submitting ? "Creating..." : "Create Quiz"}
+              </button>
+            </div>
+          </form>
+        )}
+        {/* Question addition UI */}
+        {quizId && (
+          <div className="mt-8 space-y-6">
+            <h2 className="text-2xl font-semibold mb-4">Add Questions</h2>
+            <form onSubmit={handleAddQuestion} className="space-y-4 border p-6 rounded-xl">
+              <div>
+                <label className="block text-sm font-semibold mb-2">Question Text</label>
+                <textarea
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-2 border rounded-xl"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Option A</label>
+                  <input type="text" value={optionA} onChange={(e) => setOptionA(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Option B</label>
+                  <input type="text" value={optionB} onChange={(e) => setOptionB(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Option C (optional)</label>
+                  <input type="text" value={optionC} onChange={(e) => setOptionC(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Option D (optional)</label>
+                  <input type="text" value={optionD} onChange={(e) => setOptionD(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Option E (optional)</label>
+                  <input type="text" value={optionE} onChange={(e) => setOptionE(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Correct Answer</label>
+                  <select value={correctAnswer} onChange={(e) => setCorrectAnswer(e.target.value)} className="w-full px-3 py-2 border rounded">
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Time Limit (seconds)</label>
+                  <input type="number" min={5} value={timeLimit} onChange={(e) => setTimeLimit(parseInt(e.target.value) || 0)} className="w-full px-3 py-2 border rounded" />
+                </div>
+              </div>
+              {/* Image uploads */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Question Image</label>
+                  <input type="file" accept="image/*" onChange={async (e) => {
+                    if (e.target.files?.[0]) {
+                      const file = e.target.files[0];
+                      const base64 = await new Promise<string>((res, rej) => {
+                        const reader = new FileReader();
+                        reader.onload = () => res(reader.result as string);
+                        reader.onerror = () => rej(reader.error);
+                        reader.readAsDataURL(file);
+                      });
+                      setQuestionImageUrl(base64);
+                    }
+                  }} className="w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Option A Image</label>
+                  <input type="file" accept="image/*" onChange={async (e) => {
+                    if (e.target.files?.[0]) {
+                      const file = e.target.files[0];
+                      const base64 = await new Promise<string>((res, rej) => {
+                        const reader = new FileReader();
+                        reader.onload = () => res(reader.result as string);
+                        reader.onerror = () => rej(reader.error);
+                        reader.readAsDataURL(file);
+                      });
+                      setOptionAImageUrl(base64);
+                    }
+                  }} className="w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Option B Image</label>
+                  <input type="file" accept="image/*" onChange={async (e) => {
+                    if (e.target.files?.[0]) {
+                      const file = e.target.files[0];
+                      const base64 = await new Promise<string>((res, rej) => {
+                        const reader = new FileReader();
+                        reader.onload = () => res(reader.result as string);
+                        reader.onerror = () => rej(reader.error);
+                        reader.readAsDataURL(file);
+                      });
+                      setOptionBImageUrl(base64);
+                    }
+                  }} className="w-full" />
+                </div>
+              </div>
+              <div className="flex gap-4 mt-4">
+                <button type="submit" disabled={questionSubmitting} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded">
+                  Save & Add New Question
+                </button>
+                <button type="button" onClick={() => router.push("/teacher/quizzes")} className="flex-1 px-4 py-2 border rounded">
+                  Save Quiz
+                </button>
+              </div>
+            </form>
+            {questions.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-xl font-semibold mb-2">Added Questions</h3>
+                <ul className="space-y-2">
+                  {questions.map((q, idx) => (
+                    <li key={q.id} className="border p-2 rounded flex justify-between items-center">
+                      <span>{idx + 1}. {q.questionText || "(no text)"}</span>
+                      <button type="button" onClick={() => handleDuplicate(q.id, idx)} className="text-sm text-indigo-600 underline">
+                        Duplicate
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-
-          <div className="flex gap-4">
-
-            <button
-              type="button"
-              onClick={() =>
-                router.push(
-                  "/teacher/quizzes"
-                )
-              }
-              className="flex-1 px-6 py-3 rounded-xl border"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 px-6 py-3 rounded-xl bg-indigo-600 text-white"
-            >
-              {submitting
-                ? "Creating..."
-                : "Create Quiz"}
-            </button>
-
-          </div>
-        </form>
-
+        )}
       </div>
     </div>
   );

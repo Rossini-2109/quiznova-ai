@@ -196,15 +196,21 @@ export default function EditQuizPage() {
   };
 
   const addOptionToQuestion = (index: number) => {
-    const updated = [...questions];
-    const q = updated[index];
-    const count = q.optionCount || 4;
+  const updated = [...questions];
+  const q = updated[index];
+  const count = q.optionCount || 4;
 
-    if (count < 5) {
-      q.optionCount = count + 1;
-      setQuestions(updated);
+  if (count < 5) {
+    const newCount = count + 1;
+    q.optionCount = newCount;
+    // Initialize new option fields based on newCount
+    if (newCount === 5) {
+      q.optionE = "";
+      q.optionEImageUrl = "";
     }
-  };
+    setQuestions(updated);
+  }
+};
 
   const removeOptionFromQuestion = (index: number) => {
     const updated = [...questions];
