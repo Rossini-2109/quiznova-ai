@@ -9,30 +9,42 @@ export default function CreateQuizPage() {
 
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // Store the newly created quiz ID
   const [quizId, setQuizId] = useState<string | null>(null);
-  // Question form state (shown after quiz creation)
   const [questionText, setQuestionText] = useState("");
   const [optionA, setOptionA] = useState("");
   const [optionB, setOptionB] = useState("");
-  const [optionC, setOptionC] = useState(""); // optional
-  const [optionD, setOptionD] = useState(""); // optional
-  const [optionE, setOptionE] = useState(""); // optional
+  const [optionC, setOptionC] = useState("");
+  const [optionD, setOptionD] = useState("");
+  const [optionE, setOptionE] = useState("");
   const [correctAnswer, setCorrectAnswer] = useState("A");
-const [timeLimit, setTimeLimit] = useState(10);
-const [questionSubmitting, setQuestionSubmitting] = useState(false);
-// Image URL states for question and options
-const [questionImageUrl, setQuestionImageUrl] = useState("");
-const [optionAImageUrl, setOptionAImageUrl] = useState("");
-const [optionBImageUrl, setOptionBImageUrl] = useState("");
-const [optionCImageUrl, setOptionCImageUrl] = useState("");
-const [optionDImageUrl, setOptionDImageUrl] = useState("");
-const [optionEImageUrl, setOptionEImageUrl] = useState("");
+  const [timeLimit, setTimeLimit] = useState(10);
+  const [questionSubmitting, setQuestionSubmitting] = useState(false);
+  const [questions, setQuestions] = useState<Array<{id: string; questionText: string}>>([]);
+  const [questionImageUrl, setQuestionImageUrl] = useState("");
+  const [optionAImageUrl, setOptionAImageUrl] = useState("");
+  const [optionBImageUrl, setOptionBImageUrl] = useState("");
+  const [optionCImageUrl, setOptionCImageUrl] = useState("");
+  const [optionDImageUrl, setOptionDImageUrl] = useState("");
+  const [optionEImageUrl, setOptionEImageUrl] = useState("");
 
+  const resetQuestionForm = () => {
+    setQuestionText("");
+    setOptionA("");
+    setOptionB("");
+    setOptionC("");
+    setOptionD("");
+    setOptionE("");
+    setCorrectAnswer("A");
+    setTimeLimit(10);
+    setQuestionImageUrl("");
+    setOptionAImageUrl("");
+    setOptionBImageUrl("");
+    setOptionCImageUrl("");
+    setOptionDImageUrl("");
+    setOptionEImageUrl("");
+  };
 
-  const handleSubmit = async (
-    e: React.FormEvent
-  ) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim()) {
@@ -42,21 +54,11 @@ const [optionEImageUrl, setOptionEImageUrl] = useState("");
 
     try {
       setSubmitting(true);
-
-      const res = await api.post(
-        "/quiz/create",
-        {
-          title,
-        }
-      );
-
-        alert("Quiz created successfully! You can now add questions.");
-        // Store the new quiz ID and stay on the same page
-        setQuizId(res.data.id);
-        // No navigation – the question form will appear below
+      const res = await api.post("/quiz/create", { title });
+      alert("Quiz created successfully! You can now add questions.");
+      setQuizId(res.data.id);
     } catch (error: any) {
       console.error(error);
-
       alert(
         error?.response?.data?.message ||
         error?.response?.data ||
@@ -64,6 +66,70 @@ const [optionEImageUrl, setOptionEImageUrl] = useState("");
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSaveQuiz = () => {
+    if (questions.length === 0) {
+      alert("Please add at least one question before saving the quiz.");
+      return;
+    }
+    router.push("/teacher/quizzes");
+  };
+
+  const handleAddQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!questionText.trim()) {
+      alert("Please enter question text");
+      return;
+    }
+    if (!quizId) {
+      alert("Quiz ID missing");
+      return;
+    }
+    try {
+      setQuestionSubmitting(true);
+      const res = await api.post(`/quiz/${quizId}/questions`, {
+        questionText,
+        options: [optionA, optionB, optionC, optionD, optionE].filter(Boolean),
+        correctAnswer,
+        timeLimit,
+        imageUrl: questionImageUrl,
+        optionImages: {
+          A: optionAImageUrl,
+          B: optionBImageUrl,
+          C: optionCImageUrl,
+          D: optionDImageUrl,
+          E: optionEImageUrl,
+        },
+      });
+      const newQuestion = { id: res.data.id, questionText };
+      setQuestions(prev => [...prev, newQuestion]);
+      resetQuestionForm();
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Failed to add question");
+    } finally {
+      setQuestionSubmitting(false);
+    }
+  };
+
+  const handleDuplicate = async (questionId: string, idx: number) => {
+    if (!quizId) {
+      alert("Quiz ID missing");
+      return;
+    }
+    try {
+      const res = await api.post(`/quiz/${quizId}/questions/${questionId}/duplicate`);
+      const newDup = { id: res.data.id, questionText: res.data.questionText };
+      setQuestions(prev => {
+        const newArr = [...prev];
+        newArr.splice(idx + 1, 0, newDup);
+        return newArr;
+      });
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Failed to duplicate question");
     }
   };
 
@@ -81,7 +147,7 @@ const [optionEImageUrl, setOptionEImageUrl] = useState("");
                 type="text"
                 placeholder="e.g. DBMS Quiz"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={e => setTitle(e.target.value)}
                 required
                 className="w-full px-4 py-3 rounded-xl border"
               />
@@ -113,7 +179,7 @@ const [optionEImageUrl, setOptionEImageUrl] = useState("");
                 <label className="block text-sm font-semibold mb-2">Question Text</label>
                 <textarea
                   value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
+                  onChange={e => setQuestionText(e.target.value)}
                   rows={3}
                   className="w-full px-4 py-2 border rounded-xl"
                 />
@@ -121,27 +187,27 @@ const [optionEImageUrl, setOptionEImageUrl] = useState("");
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-2">Option A</label>
-                  <input type="text" value={optionA} onChange={(e) => setOptionA(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                  <input type="text" value={optionA} onChange={e => setOptionA(e.target.value)} className="w-full px-3 py-2 border rounded" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Option B</label>
-                  <input type="text" value={optionB} onChange={(e) => setOptionB(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                  <input type="text" value={optionB} onChange={e => setOptionB(e.target.value)} className="w-full px-3 py-2 border rounded" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Option C (optional)</label>
-                  <input type="text" value={optionC} onChange={(e) => setOptionC(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                  <input type="text" value={optionC} onChange={e => setOptionC(e.target.value)} className="w-full px-3 py-2 border rounded" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Option D (optional)</label>
-                  <input type="text" value={optionD} onChange={(e) => setOptionD(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                  <input type="text" value={optionD} onChange={e => setOptionD(e.target.value)} className="w-full px-3 py-2 border rounded" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Option E (optional)</label>
-                  <input type="text" value={optionE} onChange={(e) => setOptionE(e.target.value)} className="w-full px-3 py-2 border rounded" />
+                  <input type="text" value={optionE} onChange={e => setOptionE(e.target.value)} className="w-full px-3 py-2 border rounded" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Correct Answer</label>
-                  <select value={correctAnswer} onChange={(e) => setCorrectAnswer(e.target.value)} className="w-full px-3 py-2 border rounded">
+                  <select value={correctAnswer} onChange={e => setCorrectAnswer(e.target.value)} className="w-full px-3 py-2 border rounded">
                     <option value="A">A</option>
                     <option value="B">B</option>
                     <option value="C">C</option>
@@ -151,14 +217,14 @@ const [optionEImageUrl, setOptionEImageUrl] = useState("");
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Time Limit (seconds)</label>
-                  <input type="number" min={5} value={timeLimit} onChange={(e) => setTimeLimit(parseInt(e.target.value) || 0)} className="w-full px-3 py-2 border rounded" />
+                  <input type="number" min={5} value={timeLimit} onChange={e => setTimeLimit(parseInt(e.target.value) || 0)} className="w-full px-3 py-2 border rounded" />
                 </div>
               </div>
               {/* Image uploads */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-2">Question Image</label>
-                  <input type="file" accept="image/*" onChange={async (e) => {
+                  <input type="file" accept="image/*" onChange={async e => {
                     if (e.target.files?.[0]) {
                       const file = e.target.files[0];
                       const base64 = await new Promise<string>((res, rej) => {
@@ -173,7 +239,7 @@ const [optionEImageUrl, setOptionEImageUrl] = useState("");
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Option A Image</label>
-                  <input type="file" accept="image/*" onChange={async (e) => {
+                  <input type="file" accept="image/*" onChange={async e => {
                     if (e.target.files?.[0]) {
                       const file = e.target.files[0];
                       const base64 = await new Promise<string>((res, rej) => {
@@ -188,7 +254,7 @@ const [optionEImageUrl, setOptionEImageUrl] = useState("");
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-2">Option B Image</label>
-                  <input type="file" accept="image/*" onChange={async (e) => {
+                  <input type="file" accept="image/*" onChange={async e => {
                     if (e.target.files?.[0]) {
                       const file = e.target.files[0];
                       const base64 = await new Promise<string>((res, rej) => {
@@ -206,7 +272,7 @@ const [optionEImageUrl, setOptionEImageUrl] = useState("");
                 <button type="submit" disabled={questionSubmitting} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded">
                   Save & Add New Question
                 </button>
-                <button type="button" onClick={() => router.push("/teacher/quizzes")} className="flex-1 px-4 py-2 border rounded">
+                <button type="button" onClick={handleSaveQuiz} className="flex-1 px-4 py-2 border rounded">
                   Save Quiz
                 </button>
               </div>
