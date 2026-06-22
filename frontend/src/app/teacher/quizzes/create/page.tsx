@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
+import { v4 as uuidv4 } from "uuid";
+import OptionInput from "./components/OptionInput";
+
+interface Option {
+  id: string;
+  text: string;
+  imageUrl: string;
+}
 
 export default function CreateQuizPage() {
   const router = useRouter();
@@ -11,11 +19,10 @@ export default function CreateQuizPage() {
   const [submitting, setSubmitting] = useState(false);
   const [quizId, setQuizId] = useState<string | null>(null);
   const [questionText, setQuestionText] = useState("");
-  const [optionA, setOptionA] = useState("");
-  const [optionB, setOptionB] = useState("");
-  const [optionC, setOptionC] = useState("");
-  const [optionD, setOptionD] = useState("");
-  const [optionE, setOptionE] = useState("");
+  const [options, setOptions] = useState<Option[]>([
+    { id: uuidv4(), text: "", imageUrl: "" },
+    { id: uuidv4(), text: "", imageUrl: "" },
+  ]);
   const [correctAnswer, setCorrectAnswer] = useState("A");
   const [timeLimit, setTimeLimit] = useState(10);
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
