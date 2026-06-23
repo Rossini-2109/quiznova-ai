@@ -24,6 +24,7 @@ public class QRCodeService : IQRCodeService
             Environment.GetEnvironmentVariable("FRONTEND_URL")
             ?? Environment.GetEnvironmentVariable("NEXT_PUBLIC_FRONTEND_URL")
             ?? "https://quiznova-ai-grdq.onrender.com";
+        Console.WriteLine($"[QRCodeService] Frontend URL resolved to: {_frontendUrl}");
     }
 
     public async Task<string?> GenerateQrCodeAsync(string sessionCode)

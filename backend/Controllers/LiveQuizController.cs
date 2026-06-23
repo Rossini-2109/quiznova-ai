@@ -268,6 +268,12 @@
                 return BadRequest(new { message = ex.Message });
             }
         }
+    [HttpGet("{sessionCode}/qrinfo")]
+    public IActionResult GetQrInfo(string sessionCode)
+    {
+        var joinUrl = $"{_frontendUrl}/student/lobby/{sessionCode}";
+        return Ok(new { joinUrl });
+    }
     [HttpGet("{sessionCode}/qrcode")]
     public async Task<IActionResult> GetQrCode(
         string sessionCode
