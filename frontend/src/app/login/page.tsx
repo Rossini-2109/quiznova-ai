@@ -20,6 +20,7 @@ export default function LoginPage() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotStep, setForgotStep] = useState(1);
   const [newPassword, setNewPassword] = useState("");
+  const [forgotMessage, setForgotMessage] = useState("");
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
