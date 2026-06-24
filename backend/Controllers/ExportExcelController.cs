@@ -84,19 +84,17 @@ public class ExportExcelController : ControllerBase
 
             row++;
         }
-
-        worksheet.Columns().AdjustToContents();
-
         using var stream = new MemoryStream();
 
-        workbook.SaveAs(stream);
+      workbook.SaveAs(stream);
 
-        // Set attachment header with appropriate filename
-        Response.Headers["Content-Disposition"] = $"attachment; filename=\"{quiz.Title}_results.xlsx\"";
-        return File(
-            content,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"{quiz.Title}_results.xlsx"
-        );
-    }
-}
+var content = stream.ToArray();
+
+// Set attachment header with appropriate filename
+Response.Headers["Content-Disposition"] = $"attachment; filename=\"{quiz.Title}_results.xlsx\"";
+
+return File(
+    content,
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    $"{quiz.Title}_results.xlsx"
+);
