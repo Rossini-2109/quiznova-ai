@@ -31,7 +31,7 @@ public class QRCodeService : IQRCodeService
     {
         try
         {
-            var joinUrl = $"{_frontendUrl}/student/lobby/{sessionCode}";
+            var joinUrl = $"{_frontendUrl}/join?quizCode={sessionCode}";
 
             Console.WriteLine($"Generating QR for: {joinUrl}");
 

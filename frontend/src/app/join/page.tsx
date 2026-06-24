@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import api from "@/services/api";
 import { useRouter } from "next/navigation";
 import { Compass, KeyRound, AlertCircle, RefreshCw } from "lucide-react";
@@ -16,6 +17,16 @@ export default function JoinPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const qp = searchParams.get('quizCode');
+    if (qp) {
+      setCode(qp);
+      // Auto‑trigger join if valid
+      handleJoin();
+    }
+  }, [searchParams]);
 
   const handleJoin = async () => {
     if (!code.trim()) {
