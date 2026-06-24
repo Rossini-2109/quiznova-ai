@@ -117,46 +117,39 @@ export default function EditQuizPage() {
     setQuestions(updated);
   };
 
-  const duplicateQuestion = async (index: number) => {
+  const duplicateQuestion = (index: number) => {
     const original = questions[index];
 
-    try {
-      const res = await api.post(`/quiz/${id}/questions/${original.id}/duplicate`);
-      const cloned = res.data;
+    const cloned: Question = {
+      ...original,
+      id: crypto.randomUUID(),
+      questionText: original.questionText,
+      optionA: original.optionA,
+      optionB: original.optionB,
+      optionC: original.optionC,
+      optionD: original.optionD,
+      optionE: original.optionE || "",
+      correctAnswer: original.correctAnswer,
+      questionTimeLimit: original.questionTimeLimit,
+      questionImageUrl: original.questionImageUrl,
+      optionAImageUrl: original.optionAImageUrl,
+      optionBImageUrl: original.optionBImageUrl,
+      optionCImageUrl: original.optionCImageUrl,
+      optionDImageUrl: original.optionDImageUrl,
+      optionEImageUrl: original.optionEImageUrl,
+      optionCount: original.optionCount || 4,
+    };
 
-      let count = 4;
-      if (cloned.optionE) count = 5;
-      else if (cloned.optionD) count = 4;
-      else if (cloned.optionC) count = 3;
-      else count = 2;
-
-      const updated = [...questions];
-      updated.splice(index + 1, 0, {
-        ...cloned,
-        optionE: cloned.optionE || "",
-        optionCount: count,
-      });
-      setQuestions(updated);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to duplicate question");
-    }
+    const updated = [...questions];
+    updated.splice(index + 1, 0, cloned);
+    setQuestions(updated);
   };
 
-  const deleteQuestion = async (index: number) => {
+  const deleteQuestion = (index: number) => {
     if (!confirm("Delete this question?")) return;
 
-    const target = questions[index];
     const updated = questions.filter((_, i) => i !== index);
     setQuestions(updated);
-
-    try {
-      await api.delete(`/quiz/${id}/questions/${target.id}`);
-    } catch (err) {
-      console.error(err);
-      setQuestions(questions);
-      alert("Failed to delete question");
-    }
   };
 
   const addNewQuestion = () => {

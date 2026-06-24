@@ -340,7 +340,7 @@ export default function LobbyPage() {
             Participants ({participants.length})
           </h2>
 
-          <ul className="space-y-2 max-h-52 overflow-y-auto">
+          <ul className="space-y-2">
             {participants.length === 0 ? (
               <li className="text-zinc-500">
                 Waiting for others...

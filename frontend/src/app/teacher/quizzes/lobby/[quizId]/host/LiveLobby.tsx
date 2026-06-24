@@ -124,7 +124,7 @@ export default function LiveLobby() {
 
   // Derived values
   const joinCode = quizId.toUpperCase();
-  const joinUrl = `${window.location.origin}/student/quiz/join/${joinCode}`;
+  const joinUrl = `${window.location.origin}/student/lobby/${joinCode}`;
 
   // Render participant row
   const renderParticipant = (p: Participant) => (

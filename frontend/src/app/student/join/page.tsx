@@ -25,7 +25,6 @@ export default function JoinQuizPage() {
       setError("Please enter both name and employee/PS number.");
       return;
     }
-    // Validate employee ID as exactly 8 digits
     const empIdPattern = /^\d{8}$/;
     if (!empIdPattern.test(empId.trim())) {
       setError("Employee ID / PS Number must be exactly 8 digits.");
@@ -36,15 +35,11 @@ export default function JoinQuizPage() {
       setLoading(true);
       setError("");
 
-      // Store name and employeeId for later use in lobby
       const combinedName = `${name.trim()} (${empId.trim()})`;
       localStorage.setItem("studentName", combinedName);
       localStorage.setItem("employeeId", empId.trim());
 
-      // Verify code exists via API (optional, keep for validation)
-      const res = await api.get(`/quiz/code/${code}`);
-      // Navigate directly to lobby for this session code
-      router.push(`/student/lobby/${res.data.sessionCode}`);
+      router.push(`/student/lobby/${code.trim()}`);
     } catch (err) {
       console.error(err);
       setError("Quiz not found. Double check your code and try again.");

@@ -3,19 +3,46 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
-import { ArrowLeft, ImagePlus, X, Plus, Minus } from "lucide-react";
-import OptionInput from "./components/OptionInput";
+import { ArrowLeft, ImagePlus, X, Plus, Minus, Save } from "lucide-react";
 
-interface Option {
+interface Question {
   id: string;
-  text: string;
-  imageUrl: string;
+  questionText: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  optionE: string;
+  correctAnswer: string;
+  questionTimeLimit: number;
+  questionImageUrl?: string;
+  optionAImageUrl?: string;
+  optionBImageUrl?: string;
+  optionCImageUrl?: string;
+  optionDImageUrl?: string;
+  optionEImageUrl?: string;
+  optionCount: number;
 }
 
-const LETTERS = ["A", "B", "C", "D", "E"] as const;
-
-function makeOption(id: string): Option {
-  return { id, text: "", imageUrl: "" };
+function makeBlankQuestion(): Question {
+  return {
+    id: crypto.randomUUID(),
+    questionText: "",
+    optionA: "",
+    optionB: "",
+    optionC: "",
+    optionD: "",
+    optionE: "",
+    correctAnswer: "A",
+    questionTimeLimit: 10,
+    questionImageUrl: "",
+    optionAImageUrl: "",
+    optionBImageUrl: "",
+    optionCImageUrl: "",
+    optionDImageUrl: "",
+    optionEImageUrl: "",
+    optionCount: 4,
+  };
 }
 
 export default function CreateQuizPage() {
@@ -25,51 +52,12 @@ export default function CreateQuizPage() {
   const [submitting, setSubmitting] = useState(false);
   const [quizId, setQuizId] = useState<string | null>(null);
 
-  const [questionText, setQuestionText] = useState("");
-  const [correctAnswer, setCorrectAnswer] = useState("A");
-  const [timeLimit, setTimeLimit] = useState(10);
-  const [optionCount, setOptionCount] = useState(4);
+  const [questions, setQuestions] = useState<Question[]>([makeBlankQuestion()]);
   const [questionSubmitting, setQuestionSubmitting] = useState(false);
-  const [questionImageUrl, setQuestionImageUrl] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
 
-  const [options, setOptions] = useState<Option[]>([
-    makeOption("A"),
-    makeOption("B"),
-    makeOption("C"),
-    makeOption("D"),
-    makeOption("E"),
-  ]);
-
-  const [questions, setQuestions] = useState<
-    Array<{ id: string; questionText: string }>
-  >([]);
-
-  const updateOption = (index: number, fields: Partial<Option>) => {
-    setOptions((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], ...fields };
-      return next;
-    });
-  };
-
-  const resetQuestionForm = () => {
-    setQuestionText("");
-    setCorrectAnswer("A");
-    setTimeLimit(10);
-    setOptionCount(4);
-    setQuestionImageUrl("");
-    setOptions([
-      makeOption("A"),
-      makeOption("B"),
-      makeOption("C"),
-      makeOption("D"),
-      makeOption("E"),
-    ]);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreateQuiz = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!title.trim()) {
       alert("Please enter a quiz title");
       return;
@@ -79,7 +67,7 @@ export default function CreateQuizPage() {
       setSubmitting(true);
       const res = await api.post("/quiz/create", { title });
       setQuizId(res.data.id);
-      router.push(`/teacher/quizzes/lobby/${res.data.id}/host`);
+      setIsSaved(false);
     } catch (error: unknown) {
       console.error(error);
       const err = error as { response?: { data?: { message?: string } } };
@@ -91,140 +79,179 @@ export default function CreateQuizPage() {
     }
   };
 
-  const handleSaveQuiz = () => {
-    if (questions.length === 0) {
-      alert("Please add at least one question before saving the quiz.");
-      return;
-    }
-    router.push("/teacher/quizzes");
+  const updateQuestionField = (index: number, field: keyof Question, value: any) => {
+    const updated = [...questions];
+    updated[index] = { ...updated[index], [field]: value };
+    setQuestions(updated);
   };
 
-  const handleAddQuestion = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUploadImage = async (
+    index: number,
+    field: keyof Question,
+    file: File
+  ) => {
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+      });
 
-    if (!questionText.trim()) {
-      alert("Please enter question text");
-      return;
+      updateQuestionField(index, field, base64);
+    } catch (err: any) {
+      console.error(err);
+      alert("Image upload failed: " + err.message);
     }
+  };
 
-    if (!options[0].text.trim() || !options[1].text.trim()) {
-      alert("Options A and B are required");
-      return;
-    }
+  const addOptionToQuestion = (qIndex: number) => {
+    const q = questions[qIndex];
+    const currentCount = q.optionCount || 4;
+    if (currentCount >= 5) return;
+    const newCount = currentCount + 1;
+    const field = (`option${String.fromCharCode(64 + newCount)}`) as keyof Question;
+    const imgField = (`option${String.fromCharCode(64 + newCount)}ImageUrl`) as keyof Question;
+    updateQuestionField(qIndex, "optionCount", newCount);
+    updateQuestionField(qIndex, field, "");
+    updateQuestionField(qIndex, imgField, "");
+  };
 
-    if (optionCount >= 3 && !options[2].text.trim()) {
-      alert("Option C is required");
-      return;
-    }
+  const removeOptionFromQuestion = (qIndex: number) => {
+    const q = questions[qIndex];
+    const currentCount = q.optionCount || 4;
+    if (currentCount <= 2) return;
+    const newCount = currentCount - 1;
+    const field = (`option${String.fromCharCode(64 + newCount + 1)}`) as keyof Question;
+    const imgField = (`option${String.fromCharCode(64 + newCount + 1)}ImageUrl`) as keyof Question;
+    updateQuestionField(qIndex, field, "");
+    updateQuestionField(qIndex, imgField, "");
+    updateQuestionField(qIndex, "optionCount", newCount);
+  };
 
-    if (optionCount >= 4 && !options[3].text.trim()) {
-      alert("Option D is required");
-      return;
-    }
+  const addNewQuestion = () => {
+    setQuestions((prev) => [...prev, makeBlankQuestion()]);
+  };
 
-    if (optionCount >= 5 && !options[4].text.trim()) {
-      alert("Option E is required");
-      return;
-    }
+  const handleSaveAndAddAnother = async () => {
+    if (!quizId) return;
 
-    if (!correctAnswer) {
-      alert("Please select the correct answer");
-      return;
-    }
-
-    if (!quizId) {
-      alert("Quiz ID missing");
-      return;
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.questionText.trim()) {
+        alert(`Question ${i + 1} is empty`);
+        return;
+      }
+      if (!q.correctAnswer) {
+        alert(`Question ${i + 1} missing correct answer`);
+        return;
+      }
     }
 
     try {
       setQuestionSubmitting(true);
 
-      const res = await api.post("/quiz/add-question", {
-        quizId,
-        questionText,
-        optionA: options[0].text,
-        optionB: options[1].text,
-        optionC: optionCount >= 3 ? options[2].text : "",
-        optionD: optionCount >= 4 ? options[3].text : "",
-        optionE: optionCount >= 5 ? options[4].text : "",
-        correctAnswer,
-        questionType: "MCQ",
-        questionTimeLimit: timeLimit,
-        questionImageUrl: questionImageUrl || undefined,
-        optionAImageUrl: options[0].imageUrl || undefined,
-        optionBImageUrl: options[1].imageUrl || undefined,
-        optionCImageUrl: optionCount >= 3 ? options[2].imageUrl || undefined : undefined,
-        optionDImageUrl: optionCount >= 4 ? options[3].imageUrl || undefined : undefined,
-        optionEImageUrl: optionCount >= 5 ? options[4].imageUrl || undefined : undefined,
-      });
+      for (const q of questions) {
+        await api.post("/quiz/add-question", {
+          quizId,
+          questionText: q.questionText,
+          optionA: q.optionA,
+          optionB: q.optionB,
+          optionC: q.optionCount >= 3 ? q.optionC : "",
+          optionD: q.optionCount >= 4 ? q.optionD : "",
+          optionE: q.optionCount >= 5 ? q.optionE : "",
+          correctAnswer: q.correctAnswer,
+          questionType: "MCQ",
+          questionTimeLimit: q.questionTimeLimit,
+          questionImageUrl: q.questionImageUrl || undefined,
+          optionAImageUrl: q.optionAImageUrl || undefined,
+          optionBImageUrl: q.optionBImageUrl || undefined,
+          optionCImageUrl: q.optionCount >= 3 ? q.optionCImageUrl || undefined : undefined,
+          optionDImageUrl: q.optionCount >= 4 ? q.optionDImageUrl || undefined : undefined,
+          optionEImageUrl: q.optionCount >= 5 ? q.optionEImageUrl || undefined : undefined,
+        });
+      }
 
-      setQuestions((prev) => [
-        ...prev,
-        { id: res.data.id, questionText },
-      ]);
-      resetQuestionForm();
-    } catch (err: unknown) {
-      console.error(err);
-      const error = err as { response?: { data?: { message?: string } } };
-      alert(error?.response?.data?.message || "Failed to add question");
-    } finally {
+      setQuestions([makeBlankQuestion()]);
+      setQuestionSubmitting(false);
+      alert("Questions saved! Add another question.");
+    } catch (error: unknown) {
+      console.error(error);
+      const err = error as { response?: { data?: { message?: string } } };
+      alert(err?.response?.data?.message || "Failed to save questions");
       setQuestionSubmitting(false);
     }
   };
 
-  const handleDuplicate = async (questionId: string, idx: number) => {
+  const handleSaveQuiz = async () => {
     if (!quizId) return;
 
-    try {
-      const res = await api.post(
-        `/quiz/${quizId}/questions/${questionId}/duplicate`
-      );
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.questionText.trim()) {
+        alert(`Question ${i + 1} is empty`);
+        return;
+      }
+      if (!q.correctAnswer) {
+        alert(`Question ${i + 1} missing correct answer`);
+        return;
+      }
+    }
 
-      setQuestions((prev) => {
-        const copy = [...prev];
-        copy.splice(idx + 1, 0, {
-          id: res.data.id,
-          questionText: res.data.questionText,
+    try {
+      setQuestionSubmitting(true);
+
+      for (const q of questions) {
+        await api.post("/quiz/add-question", {
+          quizId,
+          questionText: q.questionText,
+          optionA: q.optionA,
+          optionB: q.optionB,
+          optionC: q.optionCount >= 3 ? q.optionC : "",
+          optionD: q.optionCount >= 4 ? q.optionD : "",
+          optionE: q.optionCount >= 5 ? q.optionE : "",
+          correctAnswer: q.correctAnswer,
+          questionType: "MCQ",
+          questionTimeLimit: q.questionTimeLimit,
+          questionImageUrl: q.questionImageUrl || undefined,
+          optionAImageUrl: q.optionAImageUrl || undefined,
+          optionBImageUrl: q.optionBImageUrl || undefined,
+          optionCImageUrl: q.optionCount >= 3 ? q.optionCImageUrl || undefined : undefined,
+          optionDImageUrl: q.optionCount >= 4 ? q.optionDImageUrl || undefined : undefined,
+          optionEImageUrl: q.optionCount >= 5 ? q.optionEImageUrl || undefined : undefined,
         });
-        return copy;
-      });
-    } catch (err: unknown) {
-      console.error(err);
-      alert("Failed to duplicate question");
+      }
+
+      setIsSaved(true);
+      router.push("/teacher/quizzes");
+    } catch (error: unknown) {
+      console.error(error);
+      const err = error as { response?: { data?: { message?: string } } };
+      alert(err?.response?.data?.message || "Failed to save quiz");
+      setQuestionSubmitting(false);
     }
   };
 
-  const handleQuestionImage = async (file: File) => {
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-    setQuestionImageUrl(base64);
-  };
+  if (!quizId) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push("/teacher/quizzes")}
+            className="h-10 w-10 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <ArrowLeft size={16} className="text-zinc-500" />
+          </button>
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-900 to-indigo-800 dark:from-zinc-100 dark:to-indigo-300 bg-clip-text text-transparent">
+            Create New Quiz
+          </h1>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6 md:p-8">
+          <p className="text-zinc-500 mb-8">
+            Enter a quiz title to get started.
+          </p>
 
-  return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => router.push("/teacher/quizzes")}
-          className="h-10 w-10 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-        >
-          <ArrowLeft size={16} className="text-zinc-500" />
-        </button>
-        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-900 to-indigo-800 dark:from-zinc-100 dark:to-indigo-300 bg-clip-text text-transparent">
-          Create New Quiz
-        </h1>
-      </div>
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6 md:p-8">
-        <p className="text-zinc-500 mb-8">
-          Enter a quiz title and start adding questions.
-        </p>
-
-        {!quizId && (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleCreateQuiz} className="space-y-6">
             <div>
               <label className="block text-sm font-semibold mb-2">
                 Quiz Title
@@ -255,55 +282,98 @@ export default function CreateQuizPage() {
               </button>
             </div>
           </form>
-        )}
+        </div>
+      </div>
+    );
+  }
 
-        {quizId && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold">Add Questions</h2>
+  const inputBase =
+    "w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-colors";
 
-            <form
-              onSubmit={handleAddQuestion}
-              className="space-y-4 border border-zinc-200 dark:border-zinc-800 p-6 rounded-xl bg-zinc-50/50 dark:bg-zinc-800/30"
+  return (
+    <div className="max-w-3xl mx-auto pb-28">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push("/teacher/quizzes")}
+            className="h-10 w-10 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <ArrowLeft size={16} className="text-zinc-500" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-900 to-indigo-800 dark:from-zinc-100 dark:to-indigo-300 bg-clip-text text-transparent">
+              Create New Quiz
+            </h1>
+            <p className="text-sm text-zinc-500 mt-0.5">
+              {questions.length} question{questions.length === 1 ? "" : "s"}
+            </p>
+          </div>
+        </div>
+        <div className="text-sm text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-lg">
+          {title || "Untitled Quiz"}
+        </div>
+      </div>
+
+      {/* Questions */}
+      <div className="space-y-5">
+        {questions.map((q, index) => {
+          const count = q.optionCount || 4;
+          return (
+            <div
+              key={q.id}
+              className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6"
             >
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Question
-                </label>
-                <textarea
-                  value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
-                  className="w-full border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder="Enter question text"
-                  rows={3}
-                />
+              {/* Card header */}
+              <div className="flex items-center justify-between mb-4">
+                <span className="flex items-center gap-2.5 font-bold text-zinc-800 dark:text-zinc-100">
+                  <span className="h-7 w-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm">
+                    {index + 1}
+                  </span>
+                  Question {index + 1}
+                </span>
               </div>
 
-              <div className="flex items-center gap-3">
-                {questionImageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
+              {/* Question text */}
+              <textarea
+                className={inputBase}
+                rows={2}
+                placeholder="Enter question..."
+                value={q.questionText}
+                onChange={(e) =>
+                  updateQuestionField(index, "questionText", e.target.value)
+                }
+              />
+
+              {/* Question image */}
+              <div className="mt-3 flex items-center gap-3">
+                {q.questionImageUrl && (
                   <img
-                    src={questionImageUrl}
+                    src={q.questionImageUrl}
                     alt="Question"
                     className="w-16 h-16 object-contain rounded-lg border border-zinc-200 dark:border-zinc-700"
                   />
                 )}
                 <button
                   type="button"
+                  title="Upload image"
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
                   onClick={() => {
                     const el = document.getElementById(
-                      "create-question-image"
+                      `file-question-${index}`
                     ) as HTMLInputElement;
                     if (el) el.click();
                   }}
-                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
                 >
                   <ImagePlus size={14} />
-                  {questionImageUrl ? "Change image" : "Add image"}
+                  {q.questionImageUrl ? "Change image" : "Add image"}
                 </button>
-                {questionImageUrl && (
+                {q.questionImageUrl && (
                   <button
                     type="button"
-                    onClick={() => setQuestionImageUrl("")}
+                    onClick={() =>
+                      updateQuestionField(index, "questionImageUrl", "")
+                    }
                     className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                     title="Remove image"
                   >
@@ -311,63 +381,142 @@ export default function CreateQuizPage() {
                   </button>
                 )}
                 <input
-                  id="create-question-image"
+                  id={`file-question-${index}`}
                   type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleQuestionImage(file);
+                    if (e.target.files?.[0]) {
+                      handleUploadImage(
+                        index,
+                        "questionImageUrl",
+                        e.target.files[0]
+                      );
+                    }
                   }}
                 />
               </div>
 
-              <div className="space-y-3">
-                {LETTERS.slice(0, optionCount).map((letter, index) => (
-                  <OptionInput
-                    key={letter}
-                    label={letter}
-                    option={options[index]}
-                    onChange={(fields) => updateOption(index, fields)}
-                    onRemove={() =>
-                      setOptionCount((c) => Math.max(2, c - 1))
-                    }
-                    canRemove={optionCount > 2 && index === optionCount - 1}
-                  />
-                ))}
+              {/* Options */}
+              <div className="mt-5">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Options
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => removeOptionFromQuestion(index)}
+                      disabled={count <= 2}
+                      className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      title="Remove last option"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <button
+                      onClick={() => addOptionToQuestion(index)}
+                      disabled={count >= 5}
+                      className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      title="Add option"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {["A", "B", "C", "D", "E"].slice(0, count).map((letter) => {
+                    const field = `option${letter}` as keyof Question;
+                    const imgField = `option${letter}ImageUrl` as keyof Question;
+                    const isCorrect = q.correctAnswer === letter;
+                    return (
+                      <div key={letter} className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateQuestionField(index, "correctAnswer", letter)
+                          }
+                          title={isCorrect ? "Correct answer" : "Mark as correct"}
+                          className={`h-9 w-9 flex-shrink-0 rounded-lg font-bold text-sm flex items-center justify-center transition-colors ${
+                            isCorrect
+                              ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/30"
+                              : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                          }`}
+                        >
+                          {letter}
+                        </button>
+                        <input
+                          className={`${inputBase} flex-1`}
+                          placeholder={`Option ${letter}`}
+                          value={(q[field] as string) ?? ""}
+                          onChange={(e) =>
+                            updateQuestionField(index, field, e.target.value)
+                          }
+                        />
+                        {q[imgField] ? (
+                          <>
+                            <img
+                              src={q[imgField] as string}
+                              alt={`Option ${letter}`}
+                              className="w-9 h-9 object-contain rounded-lg border border-zinc-200 dark:border-zinc-700"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => updateQuestionField(index, imgField, "")}
+                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                              title="Remove image"
+                            >
+                              <X size={14} />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            title="Upload image"
+                            className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            onClick={() => {
+                              const el = document.getElementById(
+                                `file-${index}-${letter}`
+                              );
+                              if (el) (el as HTMLInputElement).click();
+                            }}
+                          >
+                            <ImagePlus size={14} />
+                          </button>
+                        )}
+                        <input
+                          id={`file-${index}-${letter}`}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) {
+                              handleUploadImage(index, imgField, e.target.files?.[0]);
+                            }
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-xs text-zinc-400">
+                  Tap a letter to mark the correct answer.
+                </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setOptionCount((c) => Math.min(5, c + 1))}
-                  disabled={optionCount >= 5}
-                  className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Plus size={14} /> Add Option
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOptionCount((c) => Math.max(2, c - 1))}
-                  disabled={optionCount <= 2}
-                  className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Minus size={14} /> Remove Option
-                </button>
-                <span className="text-xs text-zinc-400 ml-auto">{optionCount}/5 options</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Correct answer + time limit */}
+              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">
                     Correct Answer
                   </label>
                   <select
-                    value={correctAnswer}
-                    onChange={(e) => setCorrectAnswer(e.target.value)}
-                    className="w-full border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 bg-white dark:bg-zinc-900"
+                    className={inputBase}
+                    value={q.correctAnswer}
+                    onChange={(e) =>
+                      updateQuestionField(index, "correctAnswer", e.target.value)
+                    }
                   >
-                    {LETTERS.slice(0, optionCount).map((letter) => (
+                    {["A", "B", "C", "D", "E"].slice(0, count).map((letter) => (
                       <option key={letter} value={letter}>
                         {letter}
                       </option>
@@ -375,62 +524,62 @@ export default function CreateQuizPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">
                     Time Limit (seconds)
                   </label>
                   <input
                     type="number"
+                    className={inputBase}
                     min={5}
-                    value={timeLimit}
+                    value={q.questionTimeLimit}
                     onChange={(e) =>
-                      setTimeLimit(parseInt(e.target.value) || 10)
+                      updateQuestionField(
+                        index,
+                        "questionTimeLimit",
+                        Number(e.target.value)
+                      )
                     }
-                    className="w-full border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 bg-white dark:bg-zinc-900"
                   />
                 </div>
               </div>
+            </div>
+          );
+        })}
+      </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={questionSubmitting}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-3 disabled:opacity-50 transition-colors"
-                >
-                  {questionSubmitting ? "Saving..." : "Save & Add Question"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveQuiz}
-                  className="flex-1 border border-zinc-200 dark:border-zinc-700 rounded-xl py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                >
-                  Done — Back to Quizzes
-                </button>
-              </div>
-            </form>
+      {/* Add question */}
+      <button
+        type="button"
+        onClick={addNewQuestion}
+        className="mt-5 w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 py-4 text-sm font-semibold text-zinc-500 hover:text-indigo-600 hover:border-indigo-400 transition-colors"
+      >
+        <Plus size={16} /> Add New Question
+      </button>
 
-            {questions.length > 0 && (
-              <ul className="space-y-2">
-                {questions.map((q, idx) => (
-                  <li
-                    key={q.id}
-                    className="border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl flex items-center justify-between gap-4 bg-white dark:bg-zinc-900"
-                  >
-                    <span className="flex-1 truncate">
-                      {idx + 1}. {q.questionText}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleDuplicate(q.id, idx)}
-                      className="text-sm text-indigo-600 hover:underline shrink-0"
-                    >
-                      Duplicate
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+      {/* Sticky save bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-6 py-3">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+          <span className="text-sm text-zinc-500">
+            {questions.length} question{questions.length === 1 ? "" : "s"}
+          </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSaveAndAddAnother}
+              disabled={questionSubmitting}
+              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md shadow-violet-500/20 transition-colors disabled:opacity-50"
+            >
+              <Save size={16} />
+              {questionSubmitting ? "Saving..." : "Save & Add Another"}
+            </button>
+            <button
+              onClick={handleSaveQuiz}
+              disabled={questionSubmitting}
+              className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-700 hover:to-cyan-400 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md transition-colors disabled:opacity-50"
+            >
+              <Save size={16} /> Save Quiz
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

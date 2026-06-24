@@ -131,6 +131,11 @@ const fmtTime = (secs?: number) => {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 };
 
+const cleanStudentName = (name?: string) => {
+  if (!name) return "Unknown";
+  return name.replace(/\s*\(\d{8}\)\s*$/, "").trim();
+};
+
 const pctColor = (p: number) =>
   p >= 80
     ? "text-emerald-600 dark:text-emerald-400"
@@ -973,9 +978,9 @@ export default function TeacherResultsPage({
                                   <div className="flex items-center gap-2">
                                     <span className={`text-sm ${medal.className}`}>{medal.icon}</span>
                                     <div className="min-w-0">
-                                      <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate max-w-[140px]">
-                                        {r.studentName ?? r.studentRegister ?? r.studentId.substring(0, 10) + "…"}
-                                      </p>
+                                       <p className="font-semibold text-zinc-800 dark:text-zinc-200 truncate max-w-[140px]">
+                                         {cleanStudentName(r.studentName) ?? cleanStudentName(r.studentRegister) ?? r.studentId.substring(0, 10) + "…"}
+                                       </p>
                                     </div>
                                   </div>
                                 </td>
@@ -1101,7 +1106,7 @@ export default function TeacherResultsPage({
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-extrabold text-zinc-900 dark:text-zinc-50">
-                        {selectedStudent.studentName ?? selectedStudent.studentRegister ?? selectedStudent.studentId.substring(0, 8) + "…"}
+                        {cleanStudentName(selectedStudent.studentName) ?? cleanStudentName(selectedStudent.studentRegister) ?? selectedStudent.studentId.substring(0, 8) + "…"}
                       </h3>
                       <div className="flex flex-wrap gap-3 mt-3 text-sm">
                         {[
@@ -1229,7 +1234,7 @@ export default function TeacherResultsPage({
                             <td className="py-4 px-5">
                               <div className="flex items-center gap-2.5">
                                 <p className="font-semibold text-zinc-900 dark:text-zinc-100">
-                                  {r.studentName ?? r.studentRegister ?? r.studentId.substring(0, 8) + "…"}
+                                  {cleanStudentName(r.studentName) ?? cleanStudentName(r.studentRegister) ?? r.studentId.substring(0, 8) + "…"}
                                 </p>
                                 {r.studentRegister && (
                                   <p className="text-[10px] text-zinc-400 font-mono">{r.studentRegister}</p>

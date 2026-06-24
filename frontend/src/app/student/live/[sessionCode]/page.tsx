@@ -25,6 +25,12 @@ interface Question {
   optionE?: string;
   questionType: string;
   questionTimeLimit: number;
+  questionImageUrl?: string;
+  optionAImageUrl?: string;
+  optionBImageUrl?: string;
+  optionCImageUrl?: string;
+  optionDImageUrl?: string;
+  optionEImageUrl?: string;
 }
 
 // Deterministic string hash -> 32-bit seed
@@ -54,15 +60,15 @@ function getShuffledOptions(
   question: Question | undefined,
   studentName: string,
   shuffle: boolean
-): { id: string; text: string }[] {
+): { id: string; text: string; imageUrl?: string }[] {
   if (!question) return [];
   const base = [
-    { id: "A", text: question.optionA },
-    { id: "B", text: question.optionB },
-    { id: "C", text: question.optionC },
-    { id: "D", text: question.optionD },
-    { id: "E", text: question.optionE },
-  ].filter((o) => o.text) as { id: string; text: string }[];
+    { id: "A", text: question.optionA, imageUrl: question.optionAImageUrl },
+    { id: "B", text: question.optionB, imageUrl: question.optionBImageUrl },
+    { id: "C", text: question.optionC, imageUrl: question.optionCImageUrl },
+    { id: "D", text: question.optionD, imageUrl: question.optionDImageUrl },
+    { id: "E", text: question.optionE, imageUrl: question.optionEImageUrl },
+  ].filter((o) => o.text || o.imageUrl) as { id: string; text: string; imageUrl?: string }[];
 
   if (!shuffle) return base;
 
@@ -601,35 +607,55 @@ const handleSubmit = async (option: string) => {
             <h1 className="text-3xl md:text-4xl font-extrabold leading-tight text-white drop-shadow-sm">
               {currentQuestion?.questionText}
             </h1>
+            {currentQuestion?.questionImageUrl && (
+              <div className="mt-4 flex justify-center">
+                <img
+                  src={currentQuestion.questionImageUrl}
+                  alt="Question"
+                  className="max-w-full max-h-64 object-contain rounded-2xl border border-white/10 shadow-lg"
+                />
+              </div>
+            )}
           </div>
 
-          {/* Options Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            {shuffledOptions.map((opt, displayIdx) => {
-              const color = OPTION_COLORS[displayIdx % OPTION_COLORS.length];
-              const displayLabel = String.fromCharCode(65 + displayIdx);
-              return (
-                <motion.button
-                  key={opt.id}
-                  whileHover={{ scale: isSubmitted ? 1 : 1.015 }}
-                  whileTap={{ scale: isSubmitted ? 1 : 0.985 }}
-                  onClick={() => handleSubmit(opt.id)}
-                  disabled={isSubmitted || isPaused}
-                  className={`
-                    relative p-6 rounded-2xl text-left font-extrabold text-lg transition-all min-h-[90px] flex items-center border border-white/10 bg-gradient-to-br
-                    ${isSubmitted && selectedOption === opt.id ? `${color} ring-4 ring-white shadow-[0_0_40px_rgba(255,255,255,0.25)] scale-[1.02]` : ''}
-                    ${isSubmitted && selectedOption !== opt.id ? 'bg-white/5 text-white/20 border-white/5 cursor-not-allowed opacity-30 scale-[0.98]' : ''}
-                    ${!isSubmitted ? `${color} shadow-lg cursor-pointer hover:border-white/20` : ''}
-                  `}
-                >
-                  <span className="absolute top-4 left-4 w-7 h-7 rounded-full bg-black/35 border border-white/10 flex items-center justify-center text-xs font-black">
-                    {displayLabel}
-                  </span>
-                  <span className="pl-10 block w-full truncate">{opt.text}</span>
-                </motion.button>
-              );
-            })}
-          </div>
+           {/* Options Grid */}
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+             {shuffledOptions.map((opt, displayIdx) => {
+               const color = OPTION_COLORS[displayIdx % OPTION_COLORS.length];
+               const displayLabel = String.fromCharCode(65 + displayIdx);
+               return (
+                 <motion.button
+                   key={opt.id}
+                   whileHover={{ scale: isSubmitted ? 1 : 1.015 }}
+                   whileTap={{ scale: isSubmitted ? 1 : 0.985 }}
+                   onClick={() => handleSubmit(opt.id)}
+                   disabled={isSubmitted || isPaused}
+                   className={`
+                     relative p-4 rounded-2xl text-left font-extrabold text-lg transition-all min-h-[90px] flex flex-col gap-2 border border-white/10 bg-gradient-to-br
+                     ${isSubmitted && selectedOption === opt.id ? `${color} ring-4 ring-white shadow-[0_0_40px_rgba(255,255,255,0.25)] scale-[1.02]` : ''}
+                     ${isSubmitted && selectedOption !== opt.id ? 'bg-white/5 text-white/20 border-white/5 cursor-not-allowed opacity-30 scale-[0.98]' : ''}
+                     ${!isSubmitted ? `${color} shadow-lg cursor-pointer hover:border-white/20` : ''}
+                   `}
+                 >
+                   <span className="flex items-center gap-2 w-full">
+                     <span className="absolute top-4 left-4 w-7 h-7 rounded-full bg-black/35 border border-white/10 flex items-center justify-center text-xs font-black">
+                       {displayLabel}
+                     </span>
+                     <span className="pl-10 block w-full">{opt.text}</span>
+                   </span>
+                   {opt.imageUrl && (
+                     <div className="pl-10 flex justify-center">
+                       <img
+                         src={opt.imageUrl}
+                         alt={`Option ${opt.id}`}
+                         className="max-h-24 object-contain rounded-lg border border-white/10"
+                       />
+                     </div>
+                   )}
+                 </motion.button>
+               );
+             })}
+           </div>
 
         </div>
       )}

@@ -172,6 +172,20 @@ public class AuthController : ControllerBase
         });
     }
 
+    [HttpGet("user-by-email")]
+    public async Task<IActionResult> GetUserByEmail([FromQuery] string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return BadRequest("Email is required.");
+
+        var normalizedEmail = email.Trim().ToLower();
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+        if (user == null)
+            return Ok(new { exists = false });
+
+        return Ok(new { exists = true, id = user.Id, name = user.Name, email = user.Email });
+    }
+
     private string GenerateJwtToken(User user)
     {
         var jwtSettings = _configuration.GetSection("Jwt");
