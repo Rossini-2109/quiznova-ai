@@ -265,7 +265,9 @@ const deleteCurrentQuestion = () => {
           className="border rounded-lg p-3 w-full"
           placeholder="Enter Question"
           value={questionText}
-          onChange={e => setOption?.(e.target.value)}
+          onChange={(e) =>
+            setQuestionText(e.target.value)
+          }
         />
         <div className="flex items-center gap-3">
 

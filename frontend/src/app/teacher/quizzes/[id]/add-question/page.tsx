@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useState, useRef } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
@@ -150,31 +151,56 @@ export default function AddQuestionPage({
       </div>
       {/* Options */}
       {["A", "B", "C", "D", "E"].slice(0, optionCount).map(letter => {
-        const optionValue = { A: optionA, B: optionB, C: optionC, D: optionD, E: optionE }[letter];
-        const setOption = {
-          A: setOptionA,
-          B: setOptionB,
-          C: setOptionC,
-          D: setOptionD,
-          E: setOptionE,
-        }[letter];
-        const image = { A: optionAImage, B: optionBImage, C: optionCImage, D: optionDImage, E: optionEImage }[letter];
-        const setImage = {
-          A: setOptionAImage,
-          B: setOptionBImage,
-          C: setOptionCImage,
-          D: setOptionDImage,
-          E: setOptionEImage,
-        }[letter];
-        const imageRef = { A: optionAImageRef, B: optionBImageRef, C: optionCImageRef, D: optionDImageRef, E: optionEImageRef }[letter];
+        let optionValue: string = '';
+        let setOptionFn: (v: string) => void = () => {};
+        let image: File | null = null;
+        let setImageFn: (f: File | null) => void = () => {};
+        let imageRef: React.RefObject<HTMLInputElement> | null = null;
+        switch (letter) {
+          case 'A':
+            optionValue = optionA;
+            setOptionFn = setOptionA;
+            image = optionAImage;
+            setImageFn = setOptionAImage;
+            imageRef = optionAImageRef;
+            break;
+          case 'B':
+            optionValue = optionB;
+            setOptionFn = setOptionB;
+            image = optionBImage;
+            setImageFn = setOptionBImage;
+            imageRef = optionBImageRef;
+            break;
+          case 'C':
+            optionValue = optionC;
+            setOptionFn = setOptionC;
+            image = optionCImage;
+            setImageFn = setOptionCImage;
+            imageRef = optionCImageRef;
+            break;
+          case 'D':
+            optionValue = optionD;
+            setOptionFn = setOptionD;
+            image = optionDImage;
+            setImageFn = setOptionDImage;
+            imageRef = optionDImageRef;
+            break;
+          case 'E':
+            optionValue = optionE;
+            setOptionFn = setOptionE;
+            image = optionEImage;
+            setImageFn = setOptionEImage;
+            imageRef = optionEImageRef;
+            break;
+        }
         return (
           <div key={letter} className="flex items-center gap-2">
             <input type="radio" name="correctAnswer" checked={correctAnswer === letter} onChange={() => setCorrectAnswer(letter)} />
-            <input className="flex-1 p-2 border rounded" placeholder={`Option ${letter}`} value={optionValue} onChange={e => setOption(e.target.value)} />
-            <button type="button" onClick={() => imageRef.current?.click()} className="p-2 border rounded hover:bg-gray-100">
+            <input className="flex-1 p-2 border rounded" placeholder={`Option ${letter}`} value={optionValue} onChange={e => setOptionFn(e.target.value)} />
+            <button type="button" onClick={() => imageRef?.current?.click()} className="p-2 border rounded hover:bg-gray-100">
               <ImagePlus size={16} />
             </button>
-            <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={e => setImage(e.target.files?.[0] ?? null)} />
+            <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={e => setImageFn(e.target.files?.[0] ?? null)} />
             {image && (
               <img src={URL.createObjectURL(image)} alt={`Option ${letter}`} className="w-16 h-16 object-cover rounded" />
             )}
