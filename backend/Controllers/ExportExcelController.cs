@@ -98,3 +98,5 @@ return File(
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     $"{quiz.Title}_results.xlsx"
 );
+    }
+}
