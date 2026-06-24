@@ -188,22 +188,18 @@ const saveQuiz = () => {
   return false;
 }
 };
-const duplicateCurrentQuestion = () => {
-
-  navigator.clipboard.writeText(
-    JSON.stringify({
-      questionText,
-      optionA,
-      optionB,
-      optionC,
-      optionD,
-      correctAnswer,
-      questionTimeLimit
-    })
-  );
-
-  alert("Question copied");
-};
+  const duplicateCurrentQuestion = async () => {
+    // Duplicate the current question by saving it and then clearing the form for a new entry
+    const success = await saveQuestion();
+    if (success) {
+      alert('Question duplicated and saved');
+      // Increment question number for the new duplicate
+      setQuestionNumber(prev => prev + 1);
+      clearForm();
+    } else {
+      alert('Failed to duplicate the question');
+    }
+  };
 const saveAndNext = async () => {
   const success = await saveQuestion();
 

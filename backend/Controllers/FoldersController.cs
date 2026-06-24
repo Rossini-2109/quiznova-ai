@@ -19,15 +19,23 @@ public class FoldersController : ControllerBase
     }
 
     // GET api/folders/library-stats
+    [Authorize]
     [HttpGet("library-stats")]
     public async Task<IActionResult> GetLibraryStats()
     {
-        var totalQuizzes = await _context.Quizzes.CountAsync();
-        var draftQuizzes = await _context.Quizzes.CountAsync(q => q.Status == "Draft");
-        var publishedQuizzes = await _context.Quizzes.CountAsync(q => q.Status == "Published");
-        var totalFolders = await _context.Folders.CountAsync();
-        var totalAttempts = await _context.QuizAttempts.CountAsync();
+        var teacherIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (teacherIdClaim == null || !Guid.TryParse(teacherIdClaim.Value, out var teacherId))
+        {
+            return Unauthorized();
+        }
+
+        var totalQuizzes = await _context.Quizzes.CountAsync(q => q.TeacherId == teacherId);
+        var draftQuizzes = await _context.Quizzes.CountAsync(q => q.TeacherId == teacherId && q.Status == "Draft");
+        var publishedQuizzes = await _context.Quizzes.CountAsync(q => q.TeacherId == teacherId && q.Status == "Published");
+        var totalFolders = await _context.Folders.CountAsync(f => f.TeacherId == teacherId);
+        var totalAttempts = await _context.QuizAttempts.Include(qa => qa.Quiz).CountAsync(qa => qa.Quiz != null && qa.Quiz.TeacherId == teacherId);
         var recentQuizzes = await _context.Quizzes
+            .Where(q => q.TeacherId == teacherId)
             .OrderByDescending(q => q.CreatedAt)
             .Take(5)
             .Select(q => new { q.Id, q.Title, q.Status, q.CreatedAt })
@@ -46,10 +54,18 @@ public class FoldersController : ControllerBase
 
     // GET api/folders
     // Returns folder hierarchy with quizzes inside each folder
+    [Authorize]
     [HttpGet]
     public async Task<IActionResult> GetFolders()
     {
+        var teacherIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (teacherIdClaim == null || !Guid.TryParse(teacherIdClaim.Value, out var teacherId))
+        {
+            return Unauthorized();
+        }
+
         var folders = await _context.Folders
+            .Where(f => f.TeacherId == teacherId)
             .Include(f => f.Quizzes)
             .OrderBy(f => f.Name)
             .ToListAsync();
@@ -94,11 +110,18 @@ public class FoldersController : ControllerBase
     }
 
     // GET api/folders/unassigned-quizzes
+    [Authorize]
     [HttpGet("unassigned-quizzes")]
     public async Task<IActionResult> GetUnassignedQuizzes()
     {
+        var teacherIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (teacherIdClaim == null || !Guid.TryParse(teacherIdClaim.Value, out var teacherId))
+        {
+            return Unauthorized();
+        }
+
         var quizzes = await _context.Quizzes
-            .Where(q => q.FolderId == null)
+            .Where(q => q.TeacherId == teacherId && q.FolderId == null)
             .Select(q => new {
                 id = q.Id,
                 title = q.Title,
@@ -114,12 +137,19 @@ public class FoldersController : ControllerBase
     }
 
     // GET api/folders/{id}
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetFolder(Guid id)
     {
+        var teacherIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (teacherIdClaim == null || !Guid.TryParse(teacherIdClaim.Value, out var teacherId))
+        {
+            return Unauthorized();
+        }
+
         var folder = await _context.Folders
             .Include(f => f.Quizzes)
-            .FirstOrDefaultAsync(f => f.Id == id);
+            .FirstOrDefaultAsync(f => f.Id == id && f.TeacherId == teacherId);
         if (folder == null) return NotFound("Folder not found");
 
         var result = new {
@@ -149,17 +179,23 @@ public class FoldersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateFolder([FromBody] CreateFolderDto dto)
     {
+        var teacherIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (teacherIdClaim == null || !Guid.TryParse(teacherIdClaim.Value, out var teacherId))
+        {
+            return Unauthorized();
+        }
+
         var folder = new Folder
-{
-    Id = Guid.NewGuid(),
-    Name = dto.Name,
-    TeacherId = Guid.Empty, // replace later with actual teacher id
-    Color = dto.Color ?? "#6366f1",
-    Icon = dto.Icon ?? "folder",
-    ParentFolderId = dto.ParentFolderId,
-    CreatedAt = DateTime.UtcNow,
-    LastModifiedAt = DateTime.UtcNow
-};
+        {
+            Id = Guid.NewGuid(),
+            Name = dto.Name,
+            TeacherId = teacherId,
+            Color = dto.Color ?? "#6366f1",
+            Icon = dto.Icon ?? "folder",
+            ParentFolderId = dto.ParentFolderId,
+            CreatedAt = DateTime.UtcNow,
+            LastModifiedAt = DateTime.UtcNow
+        };
         _context.Folders.Add(folder);
         await _context.SaveChangesAsync();
         return Ok(folder);

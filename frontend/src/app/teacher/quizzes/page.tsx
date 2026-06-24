@@ -167,7 +167,7 @@ export default function QuizManagementPage() {
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
                 <button
-                  onClick={() => router.push(`/teacher/quizzes/edit/${quiz.id}`)}
+                  onClick={() => router.push(`/teacher/quizzes/${quiz.id}`)}
                   className="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
                 >
                   Add Question

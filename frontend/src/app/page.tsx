@@ -5,11 +5,11 @@ import { Sparkles, ArrowRight, BookOpen, Brain, Trophy, ChevronRight } from "luc
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-zinc-950 text-white relative overflow-hidden flex flex-col justify-between">
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-900/20 via-zinc-950 to-zinc-950 -z-10" />
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-violet-500/5 blur-[120px] -z-10" />
-      <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] rounded-full bg-cyan-500/5 blur-[100px] -z-10" />
+    <div className="min-h-screen bg-gradient-to-br from-violet-900/30 via-zinc-950 to-zinc-950 text-white relative overflow-hidden flex flex-col justify-between">
+  {/* Background decoration */}
+  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-800/30 via-zinc-900 to-zinc-900 -z-10" />
+  <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-violet-500/10 blur-[150px] -z-10" />
+  <div className="absolute top-1/3 left-1/3 w-[400px] h-[400px] rounded-full bg-cyan-500/10 blur-[120px] -z-10" />
 
       {/* Navbar */}
       <header className="border-b border-zinc-900 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-50">

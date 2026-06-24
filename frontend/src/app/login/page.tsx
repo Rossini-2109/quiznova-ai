@@ -18,7 +18,8 @@ export default function LoginPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotMessage, setForgotMessage] = useState("");
+  const [forgotStep, setForgotStep] = useState(1);
+  const [newPassword, setNewPassword] = useState("");
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -87,21 +88,43 @@ export default function LoginPage() {
       setForgotMessage("");
       
       const normalizedEmail = forgotEmail.trim().toLowerCase();
-      const user = await api.get(`/auth/user-by-email?email=${encodeURIComponent(normalizedEmail)}`);
+      const res = await api.get(`/auth/user-by-email?email=${encodeURIComponent(normalizedEmail)}`);
       
-      if (user.data) {
-        alert("If an account exists with this email, a password reset link has been sent. Please check your inbox.");
+      if (res.data && res.data.exists) {
+        setForgotStep(2);
       } else {
-        alert("If an account exists with this email, a password reset link has been sent. Please check your inbox.");
+        alert("No account found with this email address");
       }
-      
-      setShowForgotPassword(false);
-      setForgotEmail("");
     } catch (error: any) {
       console.error(error);
-      alert("If an account exists with this email, a password reset link has been sent.");
+      alert("Error checking email. Please try again.");
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword.trim() || newPassword.length < 6) {
+      alert("Password must be at least 6 characters long.");
+      return;
+    }
+
+    try {
+      setForgotLoading(true);
+      await api.post("/auth/reset-password", {
+        email: forgotEmail,
+        newPassword,
+      });
+
+      alert("Password reset successfully! Please sign in with your new password.");
       setShowForgotPassword(false);
+      setForgotStep(1);
       setForgotEmail("");
+      setNewPassword("");
+    } catch (error: any) {
+      console.error(error);
+      alert(error.response?.data?.message || error.response?.data || "Failed to reset password");
     } finally {
       setForgotLoading(false);
     }
@@ -127,40 +150,72 @@ export default function LoginPage() {
         </div>
 
         {showForgotPassword ? (
-          <form onSubmit={handleForgotPassword} className="space-y-5">
-            <div className="relative">
-              <Mail className="absolute left-4 top-3.5 text-zinc-500" size={18} />
-              <input
-                type="email"
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-zinc-800/80 bg-zinc-950/50 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all placeholder:text-zinc-600 text-sm"
-                placeholder="Enter your email address"
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                required
-              />
-            </div>
+          forgotStep === 1 ? (
+            <form onSubmit={handleForgotPassword} className="space-y-5">
+              <div className="relative">
+                <Mail className="absolute left-4 top-3.5 text-zinc-500" size={18} />
+                <input
+                  type="email"
+                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-zinc-800/80 bg-zinc-950/50 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all placeholder:text-zinc-600 text-sm"
+                  placeholder="Enter your email address"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  required
+                />
+              </div>
 
-            {forgotMessage && (
-              <p className="text-sm text-emerald-400 text-center">{forgotMessage}</p>
-            )}
+              <button
+                type="submit"
+                disabled={forgotLoading}
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-400 hover:to-cyan-400 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/15 hover:shadow-violet-500/25 disabled:opacity-50 transition-all text-sm flex items-center justify-center gap-2 group cursor-pointer"
+              >
+                {forgotLoading ? <LoadingSpinner /> : "Verify Email"}
+                {!forgotLoading && <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />}
+              </button>
 
-            <button
-              type="submit"
-              disabled={forgotLoading}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-400 hover:to-cyan-400 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/15 hover:shadow-violet-500/25 disabled:opacity-50 transition-all text-sm flex items-center justify-center gap-2 group cursor-pointer"
-            >
-              {forgotLoading ? <LoadingSpinner /> : "Send Reset Link"}
-              {!forgotLoading && <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />}
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setForgotStep(1);
+                }}
+                className="w-full text-sm text-zinc-400 hover:text-zinc-300 transition-colors"
+              >
+                Back to Login
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleResetPasswordSubmit} className="space-y-5">
+              <div className="relative">
+                <Lock className="absolute left-4 top-3.5 text-zinc-500" size={18} />
+                <input
+                  type="password"
+                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-zinc-800/80 bg-zinc-950/50 text-white focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all placeholder:text-zinc-600 text-sm"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                />
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setShowForgotPassword(false)}
-              className="w-full text-sm text-zinc-400 hover:text-zinc-300 transition-colors"
-            >
-              Back to Login
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={forgotLoading}
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-400 hover:to-cyan-400 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/15 hover:shadow-violet-500/25 disabled:opacity-50 transition-all text-sm flex items-center justify-center gap-2 group cursor-pointer"
+              >
+                {forgotLoading ? <LoadingSpinner /> : "Reset Password"}
+                {!forgotLoading && <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setForgotStep(1)}
+                className="w-full text-sm text-zinc-400 hover:text-zinc-300 transition-colors"
+              >
+                Back to Email Verification
+              </button>
+            </form>
+          )
         ) : (
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="relative">

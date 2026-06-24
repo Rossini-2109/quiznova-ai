@@ -132,12 +132,21 @@ public async Task<IActionResult> AddQuestion(
     }
 }
 
+    [Authorize]
     [HttpGet("all")]
     public async Task<IActionResult> GetAllQuizzes()
     {
         try
         {
-            var quizzes = await _context.Quizzes.ToListAsync();
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
+            {
+                return Unauthorized();
+            }
+
+            var quizzes = await _context.Quizzes
+                .Where(q => q.TeacherId == userId)
+                .ToListAsync();
             return Ok(quizzes);
         }
         catch (Exception ex)

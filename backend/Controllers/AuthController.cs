@@ -56,17 +56,7 @@ public class AuthController : ControllerBase
         var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
         // Create new user
-        string role = request.Role?.Trim() ?? "";
-
-        if (
-            role != "Teacher" &&
-            role != "Student"
-        )
-        {
-            return BadRequest(
-                "Role must be Teacher or Student"
-            );
-        }
+        string role = "Teacher";
 
         var newUser = new User
         {
@@ -97,6 +87,32 @@ public class AuthController : ControllerBase
         };
 
         return CreatedAtAction(nameof(GetMe), null, response);
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.NewPassword))
+        {
+            return BadRequest("Email and new password are required.");
+        }
+
+        if (request.NewPassword.Length < 6)
+        {
+            return BadRequest("Password must be at least 6 characters long.");
+        }
+
+        var normalizedEmail = request.Email.Trim().ToLower();
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
+        if (user == null)
+        {
+            return NotFound("User not found.");
+        }
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Password reset successful" });
     }
 
     [HttpPost("login")]

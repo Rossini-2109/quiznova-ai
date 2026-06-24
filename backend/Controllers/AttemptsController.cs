@@ -365,11 +365,32 @@ public async Task<IActionResult> GetStats()
     }
 
 
+    [Authorize]
     [HttpGet("all")]
     public async Task<IActionResult> GetAllAttempts()
     {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
+        {
+            return Unauthorized();
+        }
+
         var attempts = await _context.QuizAttempts
+            .Include(a => a.Quiz)
+            .Include(a => a.Student)
+            .Where(a => a.Quiz != null && a.Quiz.TeacherId == userId)
             .OrderByDescending(a => a.StartedAt)
+            .Select(a => new {
+                a.Id,
+                a.QuizId,
+                a.StudentId,
+                StudentName = a.Student != null ? a.Student.Name : "Unknown Student",
+                a.Score,
+                a.Percentage,
+                a.StartedAt,
+                a.SubmittedAt,
+                a.TimeTakenMilliseconds
+            })
             .ToListAsync();
 
         return Ok(attempts);
