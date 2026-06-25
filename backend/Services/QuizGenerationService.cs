@@ -117,7 +117,11 @@ public class QuizGenerationService
             ? extractedText
             : $"{instruction}\nSource material:\n{extractedText}";
 
-        return await _aiProvider.GenerateQuestionsAsync(prompt);
+        var generated = await _aiProvider.GenerateQuestionsAsync(prompt);
+        // Ensure we return exactly the requested number of questions (if specified)
+        if (questionCount > 0 && generated.Count > questionCount)
+            generated = generated.Take(questionCount).ToList();
+        return generated;
     }
 
     // Generate purely from the teacher's text requirements (no file).

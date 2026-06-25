@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Crown, Trophy, Medal } from "lucide-react";
+import { sanitizeName } from "@/utils/name";
 
 interface PodiumParticipant {
   id: string;
@@ -79,6 +80,7 @@ export default function Podium({ participants, onClose }: PodiumProps) {
       <div className="relative flex items-end justify-center gap-4 md:gap-8">
         {SLOTS.map((slot) => {
           const p = byRank(slot.rank);
+        const cleanName = p ? sanitizeName(p.name) : "";
           const Icon = slot.icon;
           return (
             <motion.div
@@ -97,10 +99,10 @@ export default function Podium({ participants, onClose }: PodiumProps) {
                     transition={{ delay: slot.delay + 0.5, type: "spring", stiffness: 200 }}
                     className={`mb-2 flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-full bg-gradient-to-br ${slot.gradient} text-black font-black text-lg ring-4 ${slot.ring} shadow-[0_0_30px_rgba(250,204,21,0.4)]`}
                   >
-                    {initials(p.name)}
+                    {initials(cleanName)}
                   </motion.div>
                   <p className="text-white font-bold text-sm md:text-base text-center truncate max-w-full px-1">
-                    {p.name}
+                    {cleanName}
                   </p>
                   <p className="text-white/50 text-xs mb-2 font-mono">{p.score} pts</p>
                 </>
