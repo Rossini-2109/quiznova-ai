@@ -155,7 +155,7 @@ export default function AddQuestionPage({
         let setOptionFn: (v: string) => void = () => {};
         let image: File | null = null;
         let setImageFn: (f: File | null) => void = () => {};
-                let imageRef: React.RefObject<HTMLInputElement | null> | null = null;
+        let imageRef: React.RefObject<HTMLInputElement> | null = null;
         switch (letter) {
           case 'A':
             optionValue = optionA;
