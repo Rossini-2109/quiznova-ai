@@ -328,14 +328,16 @@ public async Task<IActionResult> PublishQuiz(Guid id, [FromBody] PublishQuizDto 
             quiz.TeacherId
         );
 
+        // Set the quiz code to the generated session code
+        quiz.QuizCode = session.SessionCode;
+        await _context.SaveChangesAsync();
+
         return Ok(new
         {
             success = true,
             message = "Quiz published successfully",
-
             sessionId = session.Id,
             quizCode = session.SessionCode,
-
             quizId = quiz.Id,
             status = quiz.Status
         });
