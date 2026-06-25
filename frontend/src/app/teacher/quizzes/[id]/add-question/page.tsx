@@ -226,23 +226,28 @@ export default function AddQuestionPage({ params }: { params: Promise<{ id: stri
         <span>{errorMessage}</span>
       </div>
     )}
-    <div className="flex gap-2">
-      <button
-        onClick={saveQuestion}
-        disabled={isSubmitting}
-        className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50 flex items-center gap-2"
-      >
-        {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : 'Save & Add Another'}
-      </button>
-      <button
-        onClick={() => router.push(`/teacher/quizzes/${quizId}`)}
-        className="bg-gray-200 px-4 py-2 rounded"
-      >
-        Back to Quiz
-      </button>
+          <div className="flex gap-2">
+        <button
+          onClick={saveQuestion}
+          disabled={isSubmitting}
+          className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50 flex items-center gap-2"
+        >
+          {isSubmitting ? (
+            <Loader2 className="animate-spin" size={16} />
+          ) : (
+            "Save & Add Another"
+          )}
+        </button>
+
+        <button
+          onClick={() => router.push(`/teacher/quizzes/${quizId}`)}
+          className="bg-gray-200 px-4 py-2 rounded"
+        >
+          Back to Quiz
+        </button>
+      </div>
     </div>
   </div>
-        </div>
-    </div>
+</div>
   );
 }
