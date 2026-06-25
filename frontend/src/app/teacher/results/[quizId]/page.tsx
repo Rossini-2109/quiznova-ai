@@ -511,11 +511,7 @@ export default function TeacherResultsPage({
   };
 
   const handleViewDashboard = () => {
-    if (selectedSession) {
-      router.push(`/teacher/live/${selectedSession.sessionCode}`);
-    } else {
-      triggerToast("⚠️ Active live dashboard only available for live sessions.");
-    }
+    router.push("https://quiznova-ai-eta.vercel.app/join")
   };
 
   const handleAssignHomework = () => {

@@ -72,7 +72,7 @@ export default function TeacherDashboard() {
     .slice(0, 5);
 
   return (
-    <div className="space-y-8">
+<div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white p-6 space-y-8">
       {/* Top Header */}
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-violet-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">
@@ -85,7 +85,7 @@ export default function TeacherDashboard() {
 
       {/* Dashboard Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-violet-500/10 to-violet-500/5 border border-violet-500/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-violet-500/10 transition-all">
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-white/20 transition-all">
           <div className="h-12 w-12 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center">
             <BookOpen size={22} />
           </div>
@@ -95,7 +95,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-emerald-500/10 transition-all">
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-white/20 transition-all">
           <div className="h-12 w-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
             <ClipboardList size={22} />
           </div>
@@ -105,7 +105,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-amber-500/10 transition-all">
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-white/20 transition-all">
           <div className="h-12 w-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
             <Clock size={22} />
           </div>
@@ -115,7 +115,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border border-cyan-500/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-cyan-500/10 transition-all">
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-white/20 transition-all">
           <div className="h-12 w-12 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
             <Activity size={22} />
           </div>
@@ -125,7 +125,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-pink-500/10 to-pink-500/5 border border-pink-500/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-pink-500/10 transition-all">
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-white/20 transition-all">
           <div className="h-12 w-12 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center">
             <FolderOpen size={22} />
           </div>

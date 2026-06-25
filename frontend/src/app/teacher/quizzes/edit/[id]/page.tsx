@@ -195,9 +195,15 @@ export default function EditQuizPage() {
     const newCount = currentCount + 1;
     const field = (`option${String.fromCharCode(64 + newCount)}`) as keyof Question;
     const imgField = (`option${String.fromCharCode(64 + newCount)}ImageUrl`) as keyof Question;
-    updateQuestionField(qIndex, "optionCount", newCount);
-    updateQuestionField(qIndex, field, "");
-    updateQuestionField(qIndex, imgField, "");
+    const updatedQuestion = {
+      ...q,
+      optionCount: newCount,
+      [field]: "",
+      [imgField]: "",
+    } as Question;
+    const updated = [...questions];
+    updated[qIndex] = updatedQuestion;
+    setQuestions(updated);
   };
 
   // Remove the last option field from a question (minimum 2)

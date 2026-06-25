@@ -55,9 +55,9 @@ export default function LoginPage() {
       );
 
       if (res.data.role === "Student") {
-        router.push("/student/join");
+        router.push("https://quiznova-ai-eta.vercel.app/join");
       } else if (res.data.role === "Teacher") {
-        router.push("/teacher/dashboard");
+        router.push("https://quiznova-ai-eta.vercel.app/teacher/dashboard");
       } else {
         alert("Invalid role");
       }
