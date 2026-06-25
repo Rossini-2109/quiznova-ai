@@ -170,6 +170,9 @@ public async Task<IActionResult> AddQuestion(
         if (quiz == null)
             return NotFound("Quiz not found");
 
+        var session = await _context.Sessions
+            .FirstOrDefaultAsync(s => s.QuizId == quiz.Id);
+
         return Ok(new
         {
             quiz.Id,
@@ -179,6 +182,7 @@ public async Task<IActionResult> AddQuestion(
             quiz.TimeLimit,
             quiz.Status,
             quiz.QuizCode,
+            SessionCode = session?.SessionCode,
             Questions = quiz.Questions.Select(q => new {
                 q.Id,
                 q.QuestionText,
