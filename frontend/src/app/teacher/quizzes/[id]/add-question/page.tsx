@@ -1,33 +1,28 @@
 "use client";
 
-import React from "react";
-import { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { supabase } from "@/lib/supabase";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, Loader2, CheckCircle, XCircle } from "lucide-react";
 
-export default function AddQuestionPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function AddQuestionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: quizId } = use(params);
   const router = useRouter();
 
-  // Question fields
+  // ---------- Question fields ----------
   const [questionText, setQuestionText] = useState("");
   const [optionA, setOptionA] = useState("");
   const [optionB, setOptionB] = useState("");
   const [optionC, setOptionC] = useState("");
   const [optionD, setOptionD] = useState("");
   const [optionE, setOptionE] = useState("");
-  const [correctAnswer, setCorrectAnswer] = useState("");
+  const [correctAnswer, setCorrectAnswer] = useState<string>("");
   const [optionCount, setOptionCount] = useState(4);
   const [questionTimeLimit, setQuestionTimeLimit] = useState(30);
 
-  // Image states
+  // ---------- Image handling ----------
   const [questionImage, setQuestionImage] = useState<File | null>(null);
   const [optionAImage, setOptionAImage] = useState<File | null>(null);
   const [optionBImage, setOptionBImage] = useState<File | null>(null);
@@ -41,6 +36,28 @@ export default function AddQuestionPage({
   const optionCImageRef = useRef<HTMLInputElement>(null);
   const optionDImageRef = useRef<HTMLInputElement>(null);
   const optionEImageRef = useRef<HTMLInputElement>(null);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  // Reset correct answer if an option is removed
+  useEffect(() => {
+    if (optionCount < 5 && correctAnswer === "E") setCorrectAnswer("");
+    if (optionCount < 4 && correctAnswer === "D") setCorrectAnswer("");
+    if (optionCount < 3 && correctAnswer === "C") setCorrectAnswer("");
+  }, [optionCount, correctAnswer]);
+
+  // Auto-clear messages after 3 seconds
+  useEffect(() => {
+    if (successMessage || errorMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage("");
+        setErrorMessage("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage, errorMessage]);
 
   const clearForm = () => {
     setQuestionText("");
@@ -60,7 +77,7 @@ export default function AddQuestionPage({
     setOptionEImage(null);
   };
 
-  const uploadFile = async (file: File | null) => {
+  const uploadFile = async (file: File | null): Promise<string> => {
     if (!file) return "";
     const fileName = `${Date.now()}-${Math.random()}-${file.name}`;
     const { error } = await supabase.storage.from("quiz-images").upload(fileName, file);
@@ -70,18 +87,15 @@ export default function AddQuestionPage({
   };
 
   const saveQuestion = async () => {
-    // Validation
-    if (!questionText.trim()) { alert("Please enter a question"); return; }
-    if (!optionA.trim() || !optionB.trim()) { alert("Option A and B are required"); return; }
-    if (optionCount >= 3 && !optionC.trim()) { alert("Option C is required"); return; }
-    if (optionCount >= 4 && !optionD.trim()) { alert("Option D is required"); return; }
-    if (optionCount >= 5 && !optionE.trim()) { alert("Option E is required"); return; }
-    if (!correctAnswer) { alert("Select correct answer"); return; }
+    // ---------- Validation ----------
+    if (!questionText.trim()) { setErrorMessage("Please enter a question"); return; }
+    if (!optionA.trim() || !optionB.trim()) { setErrorMessage("Option A and B are required"); return; }
+    if (optionCount >= 3 && !optionC.trim()) { setErrorMessage("Option C is required"); return; }
+    if (optionCount >= 4 && !optionD.trim()) { setErrorMessage("Option D is required"); return; }
+    if (optionCount >= 5 && !optionE.trim()) { setErrorMessage("Option E is required"); return; }
+    if (!correctAnswer) { setErrorMessage("Select correct answer"); return; }
 
-    const finalOptionC = optionCount >= 3 ? optionC : "";
-    const finalOptionD = optionCount >= 4 ? optionD : "";
-    const finalOptionE = optionCount >= 5 ? optionE : "";
-
+    setIsSubmitting(true);
     try {
       const [questionImageUrl, optionAImageUrl, optionBImageUrl, optionCImageUrl, optionDImageUrl, optionEImageUrl] = await Promise.all([
         uploadFile(questionImage),
@@ -97,9 +111,9 @@ export default function AddQuestionPage({
         questionText,
         optionA,
         optionB,
-        optionC: finalOptionC,
-        optionD: finalOptionD,
-        optionE: finalOptionE,
+        optionC: optionCount >= 3 ? optionC : "",
+        optionD: optionCount >= 4 ? optionD : "",
+        optionE: optionCount >= 5 ? optionE : "",
         correctAnswer,
         questionType: "MCQ",
         questionTimeLimit,
@@ -111,51 +125,33 @@ export default function AddQuestionPage({
         optionEImageUrl,
       });
 
-      alert("Question added successfully");
+      setSuccessMessage("Question added successfully");
       clearForm();
-      router.refresh(); // stay on same page for next question
+      router.refresh();
     } catch (err: any) {
       console.error(err);
-      alert(err?.response?.data?.message || err?.message || "Failed to add question");
+      setErrorMessage("Failed to add question");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-4">
+    <div className="p-6 space-y-4">
       <h1 className="text-2xl font-bold">Add Question</h1>
-      <textarea
-        className="w-full p-2 border rounded"
-        placeholder="Question text"
-        value={questionText}
-        onChange={e => setQuestionText(e.target.value)}
-      />
-      {/* Question Image */}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => questionImageRef.current?.click()}
-          className="p-2 border rounded hover:bg-gray-100"
-        >
-          <ImagePlus size={18} /> Upload Image
-        </button>
-        <input
-          ref={questionImageRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={e => setQuestionImage(e.target.files?.[0] ?? null)}
-        />
-        {questionImage && (
-          <img src={URL.createObjectURL(questionImage)} alt="Preview" className="w-24 h-24 object-cover rounded" />
-        )}
-      </div>
-      {/* Options */}
-      {["A", "B", "C", "D", "E"].slice(0, optionCount).map(letter => {
-        let optionValue: string = '';
-        let setOptionFn: (v: string) => void = () => {};
-        let image: File | null = null;
-        let setImageFn: (f: File | null) => void = () => {};
-        let imageRef = optionAImageRef;
+      <input className="w-full p-2 border rounded" placeholder="Question text" value={questionText} onChange={e => setQuestionText(e.target.value)} />
+      <button type="button" onClick={() => questionImageRef?.current?.click()} className="flex items-center gap-2 p-2 border rounded">
+        <ImagePlus size={16} /> Add Question Image
+      </button>
+      {/* Question image preview */}
+{questionImage && (
+  <div className="my-2">
+    <img src={URL.createObjectURL(questionImage)} alt="Question" className="max-w-xs rounded shadow" />
+  </div>
+)}
+      
+      {['A', 'B', 'C', 'D', 'E'].slice(0, optionCount).map((letter) => {
+        let optionValue = "", setOptionFn = (v: string) => {}, image: File | null = null, setImageFn = (f: File | null) => {}, imageRef: React.RefObject<HTMLInputElement> | null = null;
         switch (letter) {
           case 'A':
             optionValue = optionA;
@@ -217,10 +213,36 @@ export default function AddQuestionPage({
         {[10,15,20,30,45,60].map(v => (<option key={v} value={v}>{v} seconds</option>))}
       </select>
       {/* Actions */}
-      <div className="flex gap-4">
-        <button onClick={saveQuestion} className="bg-indigo-600 text-white px-4 py-2 rounded">Save & Add Another</button>
-        <button onClick={() => router.push(`/teacher/quizzes/${quizId}`)} className="bg-gray-200 px-4 py-2 rounded">Back to Quiz</button>
+        <div className="flex flex-col gap-4">
+    {successMessage && (
+      <div className="flex items-center gap-2 text-green-600">
+        <CheckCircle size={20} />
+        <span>{successMessage}</span>
       </div>
+    )}
+    {errorMessage && (
+      <div className="flex items-center gap-2 text-red-600">
+        <XCircle size={20} />
+        <span>{errorMessage}</span>
+      </div>
+    )}
+    <div className="flex gap-2">
+      <button
+        onClick={saveQuestion}
+        disabled={isSubmitting}
+        className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50 flex items-center gap-2"
+      >
+        {isSubmitting ? <Loader2 className="animate-spin" size={16} /> : 'Save & Add Another'}
+      </button>
+      <button
+        onClick={() => router.push(`/teacher/quizzes/${quizId}`)}
+        className="bg-gray-200 px-4 py-2 rounded"
+      >
+        Back to Quiz
+      </button>
+    </div>
+  </div>
+        </div>
     </div>
   );
 }
