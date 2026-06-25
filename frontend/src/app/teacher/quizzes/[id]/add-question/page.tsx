@@ -151,7 +151,7 @@ export default function AddQuestionPage({ params }: { params: Promise<{ id: stri
 )}
       
       {['A', 'B', 'C', 'D', 'E'].slice(0, optionCount).map((letter) => {
-        let optionValue = "", setOptionFn = (v: string) => {}, image: File | null = null, setImageFn = (f: File | null) => {}, imageRef: React.RefObject<HTMLInputElement> | null = null;
+        let optionValue = "", setOptionFn = (v: string) => {}, image: File | null = null, setImageFn = (f: File | null) => {}, imageRef: React.RefObject<HTMLInputElement | null> | null = null;
         switch (letter) {
           case 'A':
             optionValue = optionA;
@@ -212,42 +212,54 @@ export default function AddQuestionPage({ params }: { params: Promise<{ id: stri
       <select className="p-2 border rounded" value={questionTimeLimit} onChange={e => setQuestionTimeLimit(Number(e.target.value))}>
         {[10,15,20,30,45,60].map(v => (<option key={v} value={v}>{v} seconds</option>))}
       </select>
-      {/* Actions */}
-        <div className="flex flex-col gap-4">
-    {successMessage && (
-      <div className="flex items-center gap-2 text-green-600">
-        <CheckCircle size={20} />
-        <span>{successMessage}</span>
-      </div>
-    )}
-    {errorMessage && (
-      <div className="flex items-center gap-2 text-red-600">
-        <XCircle size={20} />
-        <span>{errorMessage}</span>
-      </div>
-    )}
-          <div className="flex gap-2">
-        <button
-          onClick={saveQuestion}
-          disabled={isSubmitting}
-          className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50 flex items-center gap-2"
-        >
-          {isSubmitting ? (
-            <Loader2 className="animate-spin" size={16} />
-          ) : (
-            "Save & Add Another"
-          )}
-        </button>
+            {/* Actions */}
+      <div className="flex flex-col gap-4">
+        {successMessage && (
+          <div className="flex items-center gap-2 text-green-600">
+            <CheckCircle size={20} />
+            <span>{successMessage}</span>
+          </div>
+        )}
 
-        <button
-          onClick={() => router.push(`/teacher/quizzes/${quizId}`)}
-          className="bg-gray-200 px-4 py-2 rounded"
-        >
-          Back to Quiz
-        </button>
+        {errorMessage && (
+          <div className="flex items-center gap-2 text-red-600">
+            <XCircle size={20} />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={saveQuestion}
+            disabled={isSubmitting}
+            className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50 flex items-center gap-2"
+          >
+            {isSubmitting ? (
+              <Loader2 className="animate-spin" size={16} />
+            ) : (
+              "Save & Add Another"
+            )}
+          </button>
+
+          <button
+            onClick={() => router.push(`/teacher/quizzes/${quizId}`)}
+            className="bg-gray-200 px-4 py-2 rounded"
+          >
+            Back to Quiz
+          </button>
+        </div>
       </div>
+
+      {/* Hidden Question Image Input */}
+      <input
+        ref={questionImageRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) =>
+          setQuestionImage(e.target.files?.[0] ?? null)
+        }
+      />
     </div>
-  </div>
-</div>
   );
 }
