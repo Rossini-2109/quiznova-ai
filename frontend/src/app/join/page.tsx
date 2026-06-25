@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import api from "@/services/api";
 import { Compass, KeyRound, AlertCircle, RefreshCw } from "lucide-react";
@@ -13,18 +13,8 @@ function JoinContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    const qp = searchParams.get("quizCode");
-
-    if (qp) {
-      setCode(qp);
-    }
-  }, [searchParams]);
-
-  const handleJoin = async () => {
-    const joinCode = code.trim();
-
-    if (!joinCode) {
+  const joinQuiz = async (joinCode: string) => {
+    if (!joinCode.trim()) {
       setError("Please enter a valid quiz join code");
       return;
     }
@@ -46,9 +36,72 @@ function JoinContent() {
     }
   };
 
+  useEffect(() => {
+    const qp = searchParams.get("quizCode");
+
+    if (qp) {
+      setCode(qp);
+      joinQuiz(qp);
+    }
+  }, [searchParams]);
+
   return (
     <div className="max-w-md mx-auto py-12 px-4">
-      {/* Keep your existing JSX here */}
+      <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/50 rounded-3xl p-8 shadow-2xl shadow-violet-500/5 text-center flex flex-col items-center">
+        <div className="h-14 w-14 rounded-2xl bg-violet-50 dark:bg-violet-950/50 text-violet-500 flex items-center justify-center mb-6">
+          <Compass size={28} className="animate-pulse" />
+        </div>
+
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-zinc-900 via-violet-950 to-zinc-900 dark:from-zinc-100 dark:to-zinc-300 bg-clip-text text-transparent">
+          Join a Quiz Assessment
+        </h1>
+
+        <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-1 mb-8 max-w-xs mx-auto">
+          Enter the access code provided by your instructor to start the assessment.
+        </p>
+
+        <div className="w-full space-y-4">
+          <div className="relative">
+            <KeyRound
+              className="absolute left-4 top-3.5 text-zinc-500"
+              size={18}
+            />
+
+            <input
+              className="w-full pl-12 pr-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all placeholder:text-zinc-400 text-center tracking-widest uppercase font-mono font-bold"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value);
+                setError("");
+              }}
+              placeholder="Join Code"
+              maxLength={8}
+            />
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 p-3 text-xs bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 dark:text-red-400 text-left">
+              <AlertCircle size={14} className="flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            onClick={() => joinQuiz(code)}
+            disabled={loading}
+            className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/10 hover:shadow-violet-500/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
+          >
+            {loading ? (
+              <>
+                <RefreshCw className="animate-spin" size={16} />
+                Accessing Quiz...
+              </>
+            ) : (
+              "Enter Lobby"
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
