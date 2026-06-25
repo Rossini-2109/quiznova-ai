@@ -493,7 +493,7 @@ export default function TeacherResultsPage({
     if (!quiz) return;
     const sessionIdParam = selectedSessionId === "practice" ? "00000000-0000-0000-0000-000000000000" : selectedSessionId;
     window.open(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/ExportExcel/quiz/${quizId}?sessionId=${sessionIdParam}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/ExportExcel/quiz/${quizId}?sessionId=${sessionIdParam}`,
       "_blank"
     );
   };
