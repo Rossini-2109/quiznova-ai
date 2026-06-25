@@ -72,7 +72,7 @@ export default function TeacherDashboard() {
     .slice(0, 5);
 
   return (
-<div className="min-h-screen bg-gradient-to-br from-indigo-950 via-slate-900 to-emerald-900 text-white p-6 space-y-8">
+<div className="min-h-screen bg-white text-gray-900 p-6 space-y-8">
       {/* Top Header */}
       <div>
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
@@ -85,53 +85,53 @@ export default function TeacherDashboard() {
 
       {/* Dashboard Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-white/20 transition-all hover:scale-105">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-gray-300 transition-all hover:scale-105">
           <div className="h-12 w-12 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center">
             <BookOpen size={22} />
           </div>
           <div>
             <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Total Quizzes</p>
-            <p className="text-2xl font-black mt-0.5 text-white">{quizzes.length}</p>
+            <p className="text-2xl font-black mt-0.5 text-gray-900">{quizzes.length}</p>
           </div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-white/20 transition-all hover:scale-105">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-gray-300 transition-all hover:scale-105">
           <div className="h-12 w-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
             <ClipboardList size={22} />
           </div>
           <div>
             <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Published</p>
-            <p className="text-2xl font-black mt-0.5 text-white">{publishedCount}</p>
+            <p className="text-2xl font-black mt-0.5 text-gray-900">{publishedCount}</p>
           </div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-white/20 transition-all hover:scale-105">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-gray-300 transition-all hover:scale-105">
           <div className="h-12 w-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
             <Clock size={22} />
           </div>
           <div>
             <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Drafts</p>
-            <p className="text-2xl font-black mt-0.5 text-white">{draftCount}</p>
+            <p className="text-2xl font-black mt-0.5 text-gray-900">{draftCount}</p>
           </div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-white/20 transition-all hover:scale-105">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-gray-300 transition-all hover:scale-105">
           <div className="h-12 w-12 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
             <Activity size={22} />
           </div>
           <div>
             <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Total Attempts</p>
-            <p className="text-2xl font-black mt-0.5 text-white">{attempts.length}</p>
+            <p className="text-2xl font-black mt-0.5 text-gray-900">{attempts.length}</p>
           </div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-white/20 transition-all hover:scale-105">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center gap-4 hover:shadow-gray-300 transition-all hover:scale-105">
           <div className="h-12 w-12 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center">
             <FolderOpen size={22} />
           </div>
           <div>
             <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Folders</p>
-            <p className="text-2xl font-black mt-0.5 text-white">{folderCount}</p>
+            <p className="text-2xl font-black mt-0.5 text-gray-900">{folderCount}</p>
           </div>
         </div>
       </div>
