@@ -13,7 +13,9 @@ public class QuizGenerationService
 {
     private readonly IAIProvider _aiProvider;
     private readonly OpenAIProvider _openAi;
+    private readonly LocalQuestionGenerator _localProvider;
     private readonly bool _isOpenAi;
+    private readonly bool _useFallback;
 
     private static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg", ".webp", ".gif" };
     private static readonly string[] AudioExtensions = { ".mp3", ".wav", ".m4a", ".ogg", ".aac" };
@@ -23,7 +25,9 @@ public class QuizGenerationService
     {
         var provider = config["AIProvider"] ?? "Local";
         _openAi = openAi;
+        _localProvider = local;
         _isOpenAi = provider.Equals("openai", StringComparison.OrdinalIgnoreCase);
+        _useFallback = bool.TryParse(config["AIFallbackEnabled"], out var fallback) && fallback;
 
         _aiProvider = provider.ToLowerInvariant() switch
         {
@@ -46,6 +50,18 @@ public class QuizGenerationService
         if (!string.IsNullOrWhiteSpace(requirements))
             sb.AppendLine($"Teacher requirements: {requirements}");
         return sb.ToString();
+    }
+
+    private async Task<List<GeneratedQuestionDto>> SafeGenerateAsync(string prompt)
+    {
+        try
+        {
+            return await _aiProvider.GenerateQuestionsAsync(prompt);
+        }
+        catch when (_useFallback && _aiProvider != _localProvider)
+        {
+            return await _localProvider.GenerateQuestionsAsync(prompt);
+        }
     }
 
     public async Task<List<GeneratedQuestionDto>> ProcessFileAsync(
@@ -118,7 +134,7 @@ public class QuizGenerationService
             ? extractedText
             : $"{instruction}\nSource material:\n{extractedText}";
 
-        var generated = await _aiProvider.GenerateQuestionsAsync(prompt);
+        var generated = await SafeGenerateAsync(prompt);
         // Ensure we return exactly the requested number of questions (if specified)
         if (questionCount > 0 && generated.Count > questionCount)
             generated = generated.Take(questionCount).ToList();

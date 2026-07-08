@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { Sparkles, Upload, Save, Trash2, AlertCircle, RefreshCw } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 type GeneratedQuestion = {
   question: string;
@@ -69,7 +70,7 @@ export default function AIGeneratorPage() {
       return;
     }
 
-    try {
+    const generatePromise = (async () => {
       setLoading(true);
       setQuestions([]);
 
@@ -100,12 +101,14 @@ export default function AIGeneratorPage() {
           requirements.slice(0, 120)
         );
       }
-    } catch (error: unknown) {
-      console.error(error);
-      alert(extractError(error));
-    } finally {
-      setLoading(false);
-    }
+    })();
+
+    await toast.promise(generatePromise, {
+      loading: "Generating quiz…",
+      success: "Quiz generated successfully!",
+      error: (err) => extractError(err) || "Generation failed",
+    });
+    setLoading(false);
   };
 
   const handleUpdateQuestionText = (index: number, val: string) => {
@@ -146,7 +149,7 @@ export default function AIGeneratorPage() {
       return;
     }
 
-    try {
+    const savePromise = (async () => {
       setSaving(true);
 
       const payload = {
@@ -162,29 +165,42 @@ export default function AIGeneratorPage() {
         })),
       };
 
-      const res = await api.post("/ai/save-quiz", payload);
-      alert("Quiz saved successfully!");
-      router.push("/teacher/quizzes");
-    } catch (error: unknown) {
-      console.error(error);
-      alert(extractError(error) || "Failed to save generated quiz");
-    } finally {
-      setSaving(false);
-    }
+      await api.post("/ai/save-quiz", payload);
+    })();
+
+    await toast.promise(savePromise, {
+      loading: "Saving quiz…",
+      success: "Quiz saved successfully!",
+      error: (err) => extractError(err) || "Save failed",
+    });
+    setSaving(false);
+    router.push("/teacher/quizzes");
   };
 
   return (
-    <div className="space-y-8">
-      {/* Top Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-900 via-indigo-950 to-zinc-900 dark:from-zinc-100 dark:to-zinc-300 bg-clip-text text-transparent flex items-center gap-2">
-          <Sparkles className="text-indigo-500 fill-indigo-500/25" size={28} />
-          AI Quiz Generator
-        </h1>
-        <p className="text-zinc-500 dark:text-zinc-400 mt-1.5">
-          Describe what you need, or generate from a document, image, audio, or video
-        </p>
-      </div>
+    <div className="relative min-h-screen">
+      {/* Overlay for loading/saving */}
+      {(loading || saving) && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="flex flex-col items-center space-y-3">
+            <RefreshCw className="animate-spin text-white" size={32} />
+            <p className="text-white text-sm">
+              {loading ? "Generating quiz..." : "Saving quiz..."}
+            </p>
+          </div>
+        </div>
+      )}
+      <div className="space-y-8">
+        {/* Top Header */}
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-900 via-indigo-950 to-zinc-900 dark:from-zinc-100 dark:to-zinc-300 bg-clip-text text-transparent flex items-center gap-2">
+            <Sparkles className="text-indigo-500 fill-indigo-500/25" size={28} />
+            AI Quiz Generator
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mt-1.5">
+            Describe what you need, or generate from a document, image, audio, or video
+          </p>
+        </div>
 
       {questions.length === 0 ? (
         /* Setup / Upload Card */
@@ -437,6 +453,16 @@ export default function AIGeneratorPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {(loading || saving) && (
+        <div className="fixed inset-0 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 flex flex-col items-center gap-3">
+            <RefreshCw className="animate-spin text-indigo-500" size={32} />
+            <p className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">
+              {loading ? "Generating questions..." : "Saving your quiz..."}
+            </p>
           </div>
         </div>
       )}
