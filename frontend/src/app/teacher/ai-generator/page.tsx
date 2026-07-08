@@ -456,16 +456,7 @@ export default function AIGeneratorPage() {
           </div>
         </div>
       )}
-      {(loading || saving) && (
-        <div className="fixed inset-0 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 flex flex-col items-center gap-3">
-            <RefreshCw className="animate-spin text-indigo-500" size={32} />
-            <p className="text-sm font-semibold text-zinc-600 dark:text-zinc-400">
-              {loading ? "Generating questions..." : "Saving your quiz..."}
-            </p>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
