@@ -21,6 +21,7 @@ builder.Services.AddScoped<backend.Services.ILiveQuizService, backend.Services.L
 // AI Services
 builder.Services.AddHttpClient<OpenAIProvider>();
 builder.Services.AddHttpClient<OllamaProvider>();
+builder.Services.AddHttpClient<GeminiProvider>();
 builder.Services.AddScoped<LocalQuestionGenerator>();
 builder.Services.AddScoped<QuizGenerationService>();
 builder.Services.AddScoped<

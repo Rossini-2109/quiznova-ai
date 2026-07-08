@@ -19,7 +19,7 @@ public class QuizGenerationService
     private static readonly string[] AudioExtensions = { ".mp3", ".wav", ".m4a", ".ogg", ".aac" };
     private static readonly string[] VideoExtensions = { ".mp4", ".mov", ".avi", ".webm", ".mkv" };
 
-    public QuizGenerationService(IConfiguration config, LocalQuestionGenerator local, OpenAIProvider openAi, OllamaProvider ollama)
+    public QuizGenerationService(IConfiguration config, LocalQuestionGenerator local, OpenAIProvider openAi, OllamaProvider ollama, GeminiProvider gemini)
     {
         var provider = config["AIProvider"] ?? "Local";
         _openAi = openAi;
@@ -29,6 +29,7 @@ public class QuizGenerationService
         {
             "openai" => openAi,
             "ollama" => ollama,
+            "gemini" => gemini,
             _ => local
         };
     }

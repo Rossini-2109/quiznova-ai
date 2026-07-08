@@ -271,7 +271,7 @@
     [HttpGet("{sessionCode}/qrinfo")]
     public IActionResult GetQrInfo(string sessionCode)
     {
-var joinUrl = $"https://quiznova-ai-grdq.onrender.com/student/lobby/{sessionCode}";
+var joinUrl = $"{Request.Scheme}://{Request.Host}/student/lobby/{sessionCode}";
         return Ok(new { joinUrl });
     }
     [HttpGet("{sessionCode}/qrcode")]

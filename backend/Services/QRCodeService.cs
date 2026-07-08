@@ -14,7 +14,8 @@ public class QRCodeService : IQRCodeService
     public QRCodeService(IWebHostEnvironment env)
     {
         // Save inside actual wwwroot
-        _qrFolder = Path.Combine(env.WebRootPath, "qrcodes");
+        var webRoot = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+        _qrFolder = Path.Combine(webRoot, "qrcodes");
 
         if (!Directory.Exists(_qrFolder))
         {

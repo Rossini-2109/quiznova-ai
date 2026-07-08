@@ -3,6 +3,7 @@
 import { Copy, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Participant, SessionState } from "./types";
+import { QRCodeCanvas } from "qrcode.react";
 
 interface Props {
   session: SessionState;
@@ -15,6 +16,9 @@ export default function LobbyView({
   participants,
   onRemove,
 }: Props) {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const joinUrl = `${origin}/student/lobby/${session.sessionCode}`;
+
   return (
     <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
 
@@ -30,11 +34,14 @@ export default function LobbyView({
 
       <div className="grid md:grid-cols-2 gap-8">
 
-        <div className="bg-white/5 border border-white/10 rounded-3xl p-6">
-          <img
-            src={`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/LiveQuiz/${session.sessionCode}/qrcode`}
-            className="w-64 h-64 mx-auto bg-white p-4 rounded-2xl"
-            alt="QR"
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex items-center justify-center">
+          <QRCodeCanvas
+            value={joinUrl}
+            size={256}
+            bgColor="#ffffff"
+            fgColor="#000000"
+            level="H"
+            className="rounded-2xl p-4 bg-white mx-auto"
           />
         </div>
 

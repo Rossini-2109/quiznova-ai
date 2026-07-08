@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Users, UserMinus, Copy, Check, Play, QrCode } from "lucide-react";
 import api from "@/services/api";
+import { QRCodeCanvas } from "qrcode.react";
 
 interface Participant {
   id: string;
@@ -30,7 +31,6 @@ export default function TeacherLobby({
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const joinUrl = `${origin}/student/lobby/${sessionCode}`;
-  const qrUrl = `${api.defaults.baseURL}/LiveQuiz/${sessionCode}/qrcode`;
 
   const copy = async (value: string, which: "link" | "code") => {
     try {
@@ -85,11 +85,13 @@ export default function TeacherLobby({
               <span className="text-xs text-white/50 uppercase tracking-widest flex items-center gap-1.5">
                 <QrCode size={14} /> Scan to join
               </span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={qrUrl}
-                alt="Join QR code"
-                className="w-44 h-44 rounded-xl bg-white p-2"
+              <QRCodeCanvas
+                value={joinUrl}
+                size={176}
+                bgColor="#ffffff"
+                fgColor="#000000"
+                level="H"
+                className="rounded-xl p-2 bg-white"
               />
             </div>
 
