@@ -165,10 +165,10 @@ export default function ResultPage({
       {/* Footer Nav Action */}
       <div className="flex pt-4">
         <Link
-          href="/student/dashboard"
+          href="https://quiznova-ai-eta.vercel.app/join"
           className="mx-auto px-6 py-3.5 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold rounded-2xl transition-all text-sm flex items-center gap-2 group shadow-xl"
         >
-          Return to Dashboard
+          Return to Join Page
           <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>
