@@ -131,10 +131,10 @@ export default function StudentResultPage() {
           Retry Now
         </button>
         <Link
-          href="/student/dashboard"
+          href="/student/join"
           className="mt-6 px-5 py-2.5 bg-gray-600 hover:bg-gray-500 text-white rounded-xl text-xs font-semibold"
         >
-          Return to Dashboard
+          Return to Join Page
         </Link>
       </div>
     );
@@ -269,10 +269,10 @@ export default function StudentResultPage() {
         </div>
 
         <Link
-          href="/student/dashboard"
+          href="/student/join"
           className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold rounded-2xl text-center flex items-center justify-center gap-2"
         >
-          Return to Dashboard
+          Return to Join Page
           <ArrowRight size={18} />
         </Link>
 
