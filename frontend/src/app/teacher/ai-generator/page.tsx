@@ -394,12 +394,14 @@ export default function AIGeneratorPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-zinc-400 mb-1">Explanation</label>
-                    <input
+                                        <input
                       type="text"
                       placeholder="Why is this correct?"
                       className="w-full text-xs bg-transparent border-b border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 focus:border-indigo-500 focus:outline-none py-1"
                       value={q.explanation}
-                      onChange={(e) => handleUpdateExplanation(qIdx, e.target.value)}
+                      onChange={(e) =>
+                        handleUpdateExplanation(qIdx, e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -410,10 +412,14 @@ export default function AIGeneratorPage() {
           {/* Right settings sidecard */}
           <div className="space-y-6">
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200/50 dark:border-zinc-800/50 rounded-2xl p-6 shadow-sm space-y-5 sticky top-6">
-              <h3 className="text-lg font-bold border-b border-zinc-100 dark:border-zinc-800 pb-3">Quiz Settings</h3>
+              <h3 className="text-lg font-bold border-b border-zinc-100 dark:border-zinc-800 pb-3">
+                Quiz Settings
+              </h3>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Quiz Title</label>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                  Quiz Title
+                </label>
                 <input
                   type="text"
                   className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-transparent focus:outline-none focus:border-indigo-500 text-sm"
@@ -424,7 +430,9 @@ export default function AIGeneratorPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Description</label>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                  Description
+                </label>
                 <textarea
                   className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-transparent focus:outline-none focus:border-indigo-500 text-sm h-24 resize-none"
                   value={quizDescription}
@@ -433,7 +441,9 @@ export default function AIGeneratorPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">Time Limit (Minutes)</label>
+                <label className="block text-xs font-semibold text-zinc-400 mb-1.5">
+                  Time Limit (Minutes)
+                </label>
                 <input
                   type="number"
                   className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-transparent focus:outline-none focus:border-indigo-500 text-sm"
@@ -456,7 +466,7 @@ export default function AIGeneratorPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
-
   );
 }

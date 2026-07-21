@@ -49,11 +49,14 @@ export default function TeacherDashboard() {
         api.get("/attempts/all"),
         api.get("/folders/all").catch(() => ({ data: [] })),
       ]);
-      setQuizzes(quizRes.data);
-      setAttempts(attemptRes.data);
+      setQuizzes(quizRes.data || []);
+      setAttempts(attemptRes.data || []);
       setFolders(folderRes.data || []);
     } catch (error) {
       console.error("Failed to load dashboard statistics", error);
+      setQuizzes([]);
+      setAttempts([]);
+      setFolders([]);
     } finally {
       setLoading(false);
     }
@@ -63,11 +66,12 @@ export default function TeacherDashboard() {
     loadDashboardData();
   }, []);
 
-  const publishedCount = quizzes.filter((q) => q.status === "Published").length;
-  const draftCount = quizzes.filter((q) => q.status === "Draft").length;
-  const folderCount = folders.length;
+  const publishedCount = (quizzes || []).filter((q) => q?.status === "Published").length;
+  const draftCount = (quizzes || []).filter((q) => q?.status === "Draft").length;
+  const folderCount = (folders || []).length;
 
-  const recentAttempts = [...attempts]
+  const recentAttempts = [...(attempts || [])]
+    .filter((a) => a && (a.submittedAt || a.startedAt))
     .sort((a, b) => new Date(b.submittedAt || b.startedAt).getTime() - new Date(a.submittedAt || a.startedAt).getTime())
     .slice(0, 5);
 
@@ -91,7 +95,7 @@ export default function TeacherDashboard() {
           </div>
           <div>
             <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Total Quizzes</p>
-            <p className="text-2xl font-black mt-0.5 text-gray-900">{quizzes.length}</p>
+            <p className="text-2xl font-black mt-0.5 text-gray-900">{(quizzes || []).length}</p>
           </div>
         </div>
 
@@ -121,7 +125,7 @@ export default function TeacherDashboard() {
           </div>
           <div>
             <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider">Total Attempts</p>
-            <p className="text-2xl font-black mt-0.5 text-gray-900">{attempts.length}</p>
+            <p className="text-2xl font-black mt-0.5 text-gray-900">{(attempts || []).length}</p>
           </div>
         </div>
 
@@ -211,8 +215,10 @@ export default function TeacherDashboard() {
             ) : (
               <div className="space-y-3.5">
                 {recentAttempts.map((attempt, index) => {
-                  const matchingQuiz = quizzes.find((q) => q.id === attempt.quizId);
+                  if (!attempt) return null;
+                  const matchingQuiz = (quizzes || []).find((q) => q && q.id === attempt.quizId);
                   const matchingStudent = attempt.studentName || "Unknown Student";
+                  const attemptDate = attempt.submittedAt || attempt.startedAt;
                   return (
                     <div
                       key={attempt.id}
@@ -226,13 +232,13 @@ export default function TeacherDashboard() {
                           Student: {matchingStudent}
                         </p>
                         <p className="text-xs text-zinc-400 font-medium">
-                          Completed on: {new Date(attempt.submittedAt || attempt.startedAt).toLocaleDateString()}
+                          Completed on: {attemptDate ? new Date(attemptDate).toLocaleDateString() : "N/A"}
                         </p>
                       </div>
 
                       <div className="text-right">
-                        <p className="font-black text-violet-600 dark:text-violet-400">{attempt.score} pts</p>
-                        <p className="text-xs text-zinc-400 font-semibold mt-0.5">{attempt.percentage.toFixed(0)}% accuracy</p>
+                        <p className="font-black text-violet-600 dark:text-violet-400">{(attempt.score ?? 0)} pts</p>
+                        <p className="text-xs text-zinc-400 font-semibold mt-0.5">{(attempt.percentage ?? 0).toFixed(0)}% accuracy</p>
                       </div>
                     </div>
                   );

@@ -40,8 +40,11 @@ public class SessionController : ControllerBase
                 999999
             ).ToString();
 
-        var joinLink =
-            $"https://quiznova-ai-grdq.onrender.com/join/{code}";
+        var frontendUrl = (Environment.GetEnvironmentVariable("FRONTEND_URL")
+            ?? Environment.GetEnvironmentVariable("NEXT_PUBLIC_FRONTEND_URL")
+            ?? "https://quiznova-ai-eta.vercel.app").TrimEnd('/');
+
+        var joinLink = $"{frontendUrl}/join/{code}";
 
         var qrCodeUrl =
             $"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={joinLink}";
