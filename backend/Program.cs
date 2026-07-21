@@ -85,6 +85,33 @@ builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[CRITICAL ERROR] {ex}");
+        var origin = context.Request.Headers.Origin.ToString();
+        context.Response.Headers.AccessControlAllowOrigin = string.IsNullOrEmpty(origin) ? "*" : origin;
+        context.Response.Headers.AccessControlAllowCredentials = "true";
+        context.Response.Headers.AccessControlAllowHeaders = "*";
+        context.Response.Headers.AccessControlAllowMethods = "*";
+
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = "Internal Server Error",
+            message = ex.Message,
+            innerError = ex.InnerException?.Message
+        });
+    }
+});
+
 // Ensure database is migrated and uploads directory exists
 using (var scope = app.Services.CreateScope())
 {
@@ -110,6 +137,8 @@ using (var scope = app.Services.CreateScope())
 // Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseRouting();
 
 // CORS
 app.UseCors("AllowFrontend");
