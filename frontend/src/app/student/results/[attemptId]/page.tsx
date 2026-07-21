@@ -165,7 +165,7 @@ export default function ResultPage({
       {/* Footer Nav Action */}
       <div className="flex pt-4">
         <Link
-          href="https://quiznova-ai-eta.vercel.app/join"
+          href="/join"
           className="mx-auto px-6 py-3.5 bg-zinc-900 hover:bg-zinc-800 text-white font-semibold rounded-2xl transition-all text-sm flex items-center gap-2 group shadow-xl"
         >
           Return to Join Page

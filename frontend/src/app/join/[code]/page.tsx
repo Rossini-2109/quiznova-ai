@@ -1,36 +1,26 @@
 "use client";
 
 import { useEffect } from "react";
-import * as signalR from "@microsoft/signalr";
+import { useRouter, useParams } from "next/navigation";
 
 export default function JoinPage() {
+  const router = useRouter();
+  const params = useParams();
+  const code = params.code as string;
+
   useEffect(() => {
-    const connect = async () => {
-      const connection =
-        new signalR.HubConnectionBuilder()
-          .withUrl(
-            "https://quiznova-ai-grdq.onrender.com/quizHub"
-          )
-          .withAutomaticReconnect()
-          .build();
-
-      try {
-        await connection.start();
-
-        console.log(
-          "Connected to QuizHub"
-        );
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    connect();
-  }, []);
+    if (code) {
+      router.replace(`/student/lobby/${code}`);
+    }
+  }, [code, router]);
 
   return (
-    <div>
-      Student Lobby
+    <div className="min-h-screen bg-gradient-to-br from-[#09041a] to-[#04020a] text-white flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-lg font-semibold animate-pulse text-indigo-400">
+          Redirecting to your student lobby...
+        </p>
+      </div>
     </div>
   );
 }

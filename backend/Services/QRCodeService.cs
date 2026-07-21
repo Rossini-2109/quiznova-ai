@@ -21,10 +21,16 @@ public class QRCodeService : IQRCodeService
         {
             Directory.CreateDirectory(_qrFolder);
         }
-        _frontendUrl =
-        Environment.GetEnvironmentVariable("FRONTEND_URL")
-        ?? Environment.GetEnvironmentVariable("NEXT_PUBLIC_FRONTEND_URL")
-        ?? "https://quiznova-ai-eta.vercel.app";
+        var rawFrontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL")
+            ?? Environment.GetEnvironmentVariable("NEXT_PUBLIC_FRONTEND_URL");
+        if (string.IsNullOrWhiteSpace(rawFrontendUrl) || rawFrontendUrl.Contains("onrender.com"))
+        {
+            _frontendUrl = "https://quiznova-ai-eta.vercel.app";
+        }
+        else
+        {
+            _frontendUrl = rawFrontendUrl.TrimEnd('/');
+        }
         Console.WriteLine($"[QRCodeService] Frontend URL resolved to: {_frontendUrl}");
     }
 

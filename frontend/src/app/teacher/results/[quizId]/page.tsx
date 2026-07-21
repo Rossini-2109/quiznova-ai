@@ -511,7 +511,7 @@ export default function TeacherResultsPage({
   };
 
   const handleViewDashboard = () => {
-    router.push("https://quiznova-ai-eta.vercel.app/join")
+    router.push("/teacher/dashboard");
   };
 
   const handleAssignHomework = () => {
