@@ -456,7 +456,7 @@ export default function AIGeneratorPage() {
           </div>
         </div>
       )}
-
     </div>
+
   );
 }
