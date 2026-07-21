@@ -31,8 +31,22 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<IQRCodeService, QRCodeService>();
 builder.Services.AddScoped<IQuizImportService, QuizImportService>();
 // Database
+var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration.GetConnectionString("LocalConnection")
+    ?? "Data Source=quiznova.db";
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (connStr.Contains("Data Source=", StringComparison.OrdinalIgnoreCase) ||
+        connStr.Contains(".db", StringComparison.OrdinalIgnoreCase))
+    {
+        options.UseSqlite(connStr);
+    }
+    else
+    {
+        options.UseNpgsql(connStr);
+    }
+});
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -127,7 +141,14 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.Database.Migrate();
+        if (db.Database.IsSqlite())
+        {
+            db.Database.EnsureCreated();
+        }
+        else
+        {
+            db.Database.Migrate();
+        }
     }
     catch (Exception ex)
     {
